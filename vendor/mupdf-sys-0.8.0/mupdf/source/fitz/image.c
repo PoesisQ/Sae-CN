@@ -1668,13 +1668,13 @@ display_list_image_get_pixmap(fz_context *ctx, fz_image *image_, fz_irect *subar
 		int r = (subarea->x1 * w + image->super.w - 1) / image->super.w;
 		int b = (subarea->y1 * h + image->super.h - 1) / image->super.h;
 
-		pix = fz_new_pixmap(ctx, image->super.colorspace, r-l, b-t, NULL, 0);
+		pix = fz_new_pixmap(ctx, image->super.colorspace, r-l, b-t, NULL, 1);
 		pix->x = l;
 		pix->y = t;
 	}
 	else
 	{
-		pix = fz_new_pixmap(ctx, image->super.colorspace, w, h, NULL, 0);
+		pix = fz_new_pixmap(ctx, image->super.colorspace, w, h, NULL, 1);
 	}
 
 	/* If we render the display list into pix with the image matrix, we'll get a unit
@@ -1701,6 +1701,18 @@ display_list_image_get_pixmap(fz_context *ctx, fz_image *image_, fz_irect *subar
 		*l2factor = 0;
 
 	return pix;
+}
+
+/* Sae: retain SVG text coordinates and vector precision when embedded in HTML.
+ * Ordinary raster images keep the existing path. No intermediate pixmap is
+ * needed for a completed display list. The function pointer verifies the cast. */
+int sae_run_display_list_image(fz_context *ctx, fz_image *image_, fz_device *dev, fz_matrix ctm)
+{
+    fz_display_list_image *image;
+    if (!image_ || image_->get_pixmap != display_list_image_get_pixmap) return 0;
+    image = (fz_display_list_image *)image_;
+    fz_run_display_list(ctx, image->list, dev, fz_concat(image->transform, ctm), fz_infinite_rect, NULL);
+    return 1;
 }
 
 static void drop_display_list_image(fz_context *ctx, fz_image *image_)

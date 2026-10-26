@@ -6,7 +6,7 @@ use sae_reader::{
     settings::Typography,
     storage::{self, BookState, Preferences},
 };
-use slint::{ComponentHandle, Image, ModelRc, Rgb8Pixel, SharedPixelBuffer, VecModel};
+use slint::{ComponentHandle, Image, ModelRc, VecModel};
 use std::{
     path::PathBuf,
     rc::Rc,
@@ -74,6 +74,8 @@ fn turn(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, direction: i32, ui: &
         };
         r.page = (r.page + direction * step).max(0);
         r.navigation = Navigation::Page(r.page);
+        r.view.pan = [0.5, 0.0];
+        r.view.search_hit = None;
         viewport(ui, r);
     });
 }
@@ -139,15 +141,25 @@ fn sync_style(ui: &ReaderWindow, style: &Typography) {
 fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) {
     let mut s = state.lock().unwrap();
     let is_pdf = s.frame.is_some() && !ui.get_reflowable();
-    if name == "zoom" || (name == "delta-size" && is_pdf) {
+    if name == "zoom"
+        || name.starts_with("fit-")
+        || (matches!(name, "delta-size" | "size") && is_pdf)
+    {
         if let Some(r) = s.request.as_mut() {
-            r.pdf_zoom = (r.pdf_zoom
-                * if name == "zoom" {
-                    value
-                } else {
-                    1.0 + value * 0.1
-                })
-            .clamp(0.25, 4.0);
+            if name.starts_with("fit-") || name == "size" {
+                r.pdf_zoom = 1.0;
+                r.view.fit_width = name == "fit-width";
+                r.view.pan = [0.5, 0.0];
+            } else {
+                r.pdf_zoom = (r.pdf_zoom
+                    * if name == "zoom" {
+                        value
+                    } else {
+                        1.0 + value * 0.1
+                    })
+                .clamp(0.25, 8.0);
+            }
+            ui.set_pdf_zoom(r.pdf_zoom);
         }
         return;
     }
@@ -186,6 +198,7 @@ fn save(state: &Arc<Mutex<State>>) -> anyhow::Result<()> {
         let book = BookState {
             path: request.path.clone(),
             anchor: s.anchor,
+            encoding: request.view.encoding.clone(),
         };
         s.preferences.books.insert(identity, book);
     }
@@ -201,6 +214,7 @@ fn run() -> anyhow::Result<()> {
     sync_style(&ui, &preferences.typography);
     ui.set_double_page(preferences.spread);
     ui.set_theme_index(preferences.theme as i32);
+    ui.set_page_color(preferences.page_color as i32);
     ui.set_fonts(ModelRc::new(VecModel::from(vec!["默认衬线".into()])));
     if let Ok(variant) = std::env::var("SAE_READER_DESIGN") {
         ui.set_design_variant(variant.parse::<i32>().unwrap_or(0).clamp(0, 2));
@@ -248,23 +262,11 @@ fn run() -> anyhow::Result<()> {
                             _ => true,
                         };
                     if changed {
-                        ui.set_page_image(Image::from_rgb8(
-                            SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
-                                &frame.pixels,
-                                frame.width,
-                                frame.height,
-                            ),
-                        ));
+                        ui.set_page_image(frame.pixels.image());
                         ui.set_image_width(frame.display_width);
                         ui.set_image_height(frame.display_height);
                         if let Some(right) = &update.right {
-                            ui.set_right_image(Image::from_rgb8(
-                                SharedPixelBuffer::<Rgb8Pixel>::clone_from_slice(
-                                    &right.pixels,
-                                    right.width,
-                                    right.height,
-                                ),
-                            ));
+                            ui.set_right_image(right.pixels.image());
                             ui.set_right_width(right.display_width);
                             ui.set_right_height(right.display_height);
                         } else {
@@ -283,6 +285,17 @@ fn run() -> anyhow::Result<()> {
                     ui.set_has_document(true);
                     ui.set_book_title(update.title.into());
                     ui.set_reflowable(update.reflowable);
+                    ui.set_pdf_pannable(
+                        !update.reflowable
+                            && (frame.overflow.0 > 1.0
+                                || frame.overflow.1 > 1.0
+                                || update
+                                    .right
+                                    .as_ref()
+                                    .is_some_and(|f| f.overflow.0 > 1.0 || f.overflow.1 > 1.0)),
+                    );
+                    ui.set_encoding_label(update.encoding.unwrap_or_default().into());
+                    ui.set_search_status(update.search_status.into());
                     ui.set_status("".into());
                     ui.set_notice(update.notice.into());
                     if s.contents
@@ -330,9 +343,12 @@ fn run() -> anyhow::Result<()> {
                     if let Some(request) = s.request.as_mut() {
                         request.page = frame.page;
                         request.navigation = Navigation::Keep;
+                        request.view.search_hit = update.search_hit;
+                        request.view.pan = update.pan;
                     }
                 }
                 Err(error) => {
+                    s.completed_generation = generation;
                     ui.set_status(format!("无法读取：{error:#}").into());
                     if s.frame.is_none() {
                         ui.set_has_document(false);
@@ -347,6 +363,78 @@ fn run() -> anyhow::Result<()> {
     let mailbox = worker.mailbox.clone();
     let resize_timer = Rc::new(slint::Timer::default());
     let style_timer = Rc::new(slint::Timer::default());
+    let pan_timer = Rc::new(slint::Timer::default());
+    {
+        let weak = ui.as_weak();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        let timer = pan_timer.clone();
+        ui.on_pan(move |dx, dy| {
+            {
+                let mut s = state.lock().unwrap();
+                let overflow = s
+                    .frame
+                    .iter()
+                    .chain(s.right.iter())
+                    .fold((0.0f32, 0.0f32), |a, f| {
+                        (a.0.max(f.overflow.0), a.1.max(f.overflow.1))
+                    });
+                if let Some(r) = s.request.as_mut() {
+                    if overflow.0 > 1.0 {
+                        r.view.pan[0] = (r.view.pan[0] + dx / overflow.0).clamp(0.0, 1.0);
+                    }
+                    if overflow.1 > 1.0 {
+                        r.view.pan[1] = (r.view.pan[1] + dy / overflow.1).clamp(0.0, 1.0);
+                    }
+                }
+            }
+            let state = state.clone();
+            let mailbox = mailbox.clone();
+            let weak = weak.clone();
+            timer.start(
+                slint::TimerMode::SingleShot,
+                Duration::from_millis(40),
+                move || {
+                    if weak.upgrade().is_some() {
+                        submit(&state, &mailbox, |_| {});
+                    }
+                },
+            );
+        });
+    }
+    {
+        let weak = ui.as_weak();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        ui.on_page_color_changed(move |mode| {
+            let mode = mode.clamp(0, 2) as u8;
+            state.lock().unwrap().preferences.page_color = mode;
+            if let Some(ui) = weak.upgrade() {
+                ui.set_page_color(mode as i32);
+            }
+            submit(&state, &mailbox, |r| r.view.color = mode);
+        });
+    }
+    {
+        let weak = ui.as_weak();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        ui.on_encoding_changed(move |encoding| {
+            if let Some(ui) = weak.upgrade() {
+                ui.set_status("正在切换编码…".into());
+                ui.set_encoding_choice(encoding.clone());
+            }
+            submit(&state, &mailbox, |r| {
+                r.view.encoding = if encoding.as_str() == "自动检测" {
+                    None
+                } else {
+                    Some(encoding.to_string())
+                };
+                r.navigation = Navigation::Page(0);
+                r.view.search_hit = None;
+            });
+        });
+    }
     {
         let weak = ui.as_weak();
         let state = state.clone();
@@ -407,6 +495,12 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         let mailbox = mailbox.clone();
         ui.on_wheel(move |delta| {
+            if let Some(ui) = weak.upgrade() {
+                if ui.get_pdf_pannable() {
+                    ui.invoke_pan(0.0, -delta);
+                    return;
+                }
+            }
             let direction = state.lock().unwrap().wheel.feed(delta, Instant::now());
             if let (Some(direction), Some(ui)) = (direction, weak.upgrade()) {
                 turn(&state, &mailbox, direction, &ui);
@@ -573,7 +667,7 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         let mailbox = mailbox.clone();
         ui.on_hit(move |slot, x, y| {
-            let (uri, source) = {
+            let (uri, source, width) = {
                 let s = state.lock().unwrap();
                 let frame = if slot == 1 { &s.right } else { &s.frame };
                 (
@@ -588,10 +682,21 @@ fn run() -> anyhow::Result<()> {
                     } else {
                         Some(s.anchor)
                     },
+                    frame.as_ref().map_or(0.0, |f| f.display_width),
                 )
             };
-            if let (Some(uri), Some(ui)) = (uri, weak.upgrade()) {
-                follow(uri, source, &ui, &state, &mailbox);
+            if let Some(ui) = weak.upgrade() {
+                if let Some(uri) = uri {
+                    follow(uri, source, &ui, &state, &mailbox);
+                } else {
+                    let direction = sae_reader::paging::click_direction(
+                        ui.get_effective_spread(),
+                        slot,
+                        x,
+                        width,
+                    );
+                    turn(&state, &mailbox, direction, &ui);
+                }
             }
         });
     }
@@ -609,8 +714,56 @@ fn run() -> anyhow::Result<()> {
     {
         let state = state.clone();
         let mailbox = mailbox.clone();
+        let weak = ui.as_weak();
         ui.on_search(move |text| {
-            submit(&state, &mailbox, |r| r.query = text.to_string());
+            if let Some(ui) = weak.upgrade() {
+                ui.set_status(
+                    if text.is_empty() {
+                        ""
+                    } else {
+                        "正在全文查找…"
+                    }
+                    .into(),
+                );
+            }
+            submit(&state, &mailbox, |r| {
+                let query = text
+                    .chars()
+                    .filter(|c| *c != '\0')
+                    .take(256)
+                    .collect::<String>();
+                if query != r.query {
+                    r.view.search_hit = None;
+                }
+                r.query = query;
+                r.navigation = if r.query.is_empty() {
+                    Navigation::Keep
+                } else {
+                    Navigation::Search(1)
+                };
+            });
+        });
+    }
+    {
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        let weak = ui.as_weak();
+        ui.on_search_next(move |direction| {
+            if state
+                .lock()
+                .unwrap()
+                .request
+                .as_ref()
+                .is_none_or(|r| r.query.is_empty())
+            {
+                return;
+            }
+            if let Some(ui) = weak.upgrade() {
+                ui.set_status("正在全文查找…".into());
+            }
+            submit(&state, &mailbox, |r| {
+                r.navigation = Navigation::Search(direction)
+            });
         });
     }
     {
@@ -647,6 +800,7 @@ fn run() -> anyhow::Result<()> {
     slint::run_event_loop()?;
     resize_timer.stop();
     style_timer.stop();
+    pan_timer.stop();
     if let Err(error) = save(&state) {
         eprintln!("Cannot save reader state: {error}");
     }
@@ -673,6 +827,15 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_status("正在打开…".into());
     ui.set_notice("".into());
     ui.set_has_document(false);
+    ui.set_page_image(Image::default());
+    ui.set_right_image(Image::default());
+    ui.set_text_document(
+        path.extension()
+            .is_some_and(|e| e.eq_ignore_ascii_case("txt") || e.eq_ignore_ascii_case("md")),
+    );
+    ui.set_pdf_zoom(1.0);
+    ui.set_pdf_pannable(false);
+    ui.set_search_status("".into());
     ui.set_page_label("".into());
     let identity = storage::fingerprint(&path).ok();
     let mut s = state.lock().unwrap();
@@ -682,6 +845,16 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
         .map(|b| b.anchor)
         .filter(|a| *a > 0);
     let style = s.preferences.typography.clone();
+    let saved_encoding = identity
+        .as_ref()
+        .and_then(|id| s.preferences.books.get(id))
+        .and_then(|b| b.encoding.clone());
+    ui.set_encoding_choice(
+        saved_encoding
+            .clone()
+            .unwrap_or_else(|| "自动检测".to_owned())
+            .into(),
+    );
     let mut request = Request {
         path,
         style,
@@ -694,9 +867,12 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
             .unwrap_or(Navigation::Page(0)),
         query: String::new(),
         pdf_zoom: 1.0,
+        view: Default::default(),
         spread: s.preferences.spread,
     };
     viewport(ui, &mut request);
+    request.view.color = s.preferences.page_color;
+    request.view.encoding = saved_encoding;
     s.back.clear();
     s.frame = None;
     s.right = None;

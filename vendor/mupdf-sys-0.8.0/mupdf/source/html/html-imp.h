@@ -343,6 +343,7 @@ typedef struct
 	fz_storable storable;
 	fz_pool *pool; /* pool allocator for this html tree */
 	fz_html_box *root;
+	int sae_fixed_layout; /* fixed canvas: no internal chapter pagination */
 } fz_html_tree;
 
 struct fz_html_s

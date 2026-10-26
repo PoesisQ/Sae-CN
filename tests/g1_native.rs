@@ -22,6 +22,7 @@ fn real_documents_relayout_cancel_and_release() {
         navigation: Navigation::Page(0),
         query: String::new(),
         pdf_zoom: 1.0,
+        view: Default::default(),
         spread: false,
     };
     let receive_generation = |target| {
@@ -139,6 +140,7 @@ fn calibre_style_inline_svg_cover_keeps_its_image() {
         navigation: Navigation::Page(0),
         query: String::new(),
         pdf_zoom: 1.0,
+        view: Default::default(),
         spread: false,
     });
     let update = receive

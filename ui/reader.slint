@@ -88,14 +88,19 @@ component PagePane inherits Rectangle {
     in property <float> page-height;
     in property <[Mark]> selection;
     in property <[Mark]> matches;
+    in property <int> turn-mode: 0;
     callback select-text(float,float,float,float);
     callback hit(float,float);
     callback wheel(float);
+    callback navigate(int);
     min-width: 0px; min-height: 0px;
     preferred-width: 0px; preferred-height: 0px;
     horizontal-stretch: 1; vertical-stretch: 1;
     clip: true;
-    TouchArea { scroll-event(event) => { root.wheel(event.delta-y / 1px); return accept; } }
+    TouchArea {
+        clicked => { root.navigate(root.turn-mode != 0 ? root.turn-mode : self.mouse-x < self.width / 2 ? -1 : 1); }
+        scroll-event(event) => { root.wheel(event.delta-y / 1px); return accept; }
+    }
     image := Image {
         x: (parent.width - self.width) / 2;
         y: max(0px, (parent.height - self.height) / 2);
@@ -113,10 +118,10 @@ component PagePane inherits Rectangle {
             property <float> start-x;
             property <float> start-y;
             pointer-event(event) => {
-                if event.kind == PointerEventKind.down {
+                if event.kind == PointerEventKind.down && event.button == PointerEventButton.left {
                     self.start-x = self.mouse-x / 1px; self.start-y = self.mouse-y / 1px;
                 }
-                if event.kind == PointerEventKind.up {
+                if event.kind == PointerEventKind.up && event.button == PointerEventButton.left {
                     if abs(self.mouse-x / 1px - self.start-x) + abs(self.mouse-y / 1px - self.start-y) < 4 {
                         root.hit(self.mouse-x / 1px,self.mouse-y / 1px);
                     } else {
@@ -183,15 +188,23 @@ export component ReaderWindow inherits Window {
     out property <float> viewport-width: max(0,canvas.width / 1px - 32);
     out property <float> viewport-height: canvas.height / 1px;
     in property <bool> effective-spread: false;
+    in property <string> search-status: "";
+    in property <float> pdf-zoom: 1;
+    in property <bool> pdf-pannable: false;
+    in property <int> page-color: 0;
+    in property <bool> text-document: false;
+    in property <string> encoding-label: "";
+    in property <string> encoding-choice: "自动检测";
     callback open-file(); callback next-page(int); callback back();
     callback typography(string,float); callback resized(); callback follow-link(string);
     callback setting-text(string,string); callback mode-changed(bool); callback theme-changed(int);
     callback fonts-needed(); callback wheel(float);
     callback select-text(int,float,float,float,float); callback hit(int,float,float); callback copy-text();
-    callback search(string); callback fullscreen();
+    callback search(string); callback search-next(int); callback fullscreen();
+    callback pan(float,float); callback encoding-changed(string); callback page-color-changed(int);
     changed viewport-width => { root.resized(); }
     changed viewport-height => { root.resized(); }
-    changed show-settings => { if root.show-settings { root.fonts-needed(); } }
+    changed show-settings => { if root.show-settings && root.reflowable { root.fonts-needed(); } }
     forward-focus: keyboard;
 
     keyboard := FocusScope {
@@ -204,6 +217,8 @@ export component ReaderWindow inherits Window {
             if event.text == Key.Escape { root.show-contents=false; root.show-settings=false; root.show-search=false; root.search(""); return accept; }
             if event.text == Key.F11 { root.fullscreen(); return accept; }
             if event.text == Key.F10 { root.show-toolbar = !root.show-toolbar; return accept; }
+            if !root.reflowable && event.text == Key.UpArrow { root.pan(0,-120); return accept; }
+            if !root.reflowable && event.text == Key.DownArrow { root.pan(0,120); return accept; }
             if event.modifiers.control && (event.text == "+" || event.text == "=") { root.typography("delta-size",1); return accept; }
             if event.modifiers.control && event.text == "-" { root.typography("delta-size",-1); return accept; }
             if event.modifiers.control && event.text == "0" { root.typography("size",18); return accept; }
@@ -222,7 +237,7 @@ export component ReaderWindow inherits Window {
                     QuietButton { text: "打开"; clicked => { root.open-file(); } }
                     Rectangle { width: 1px; height: 18px; y: 9px; background: ReaderTheme.line; }
                     Text {
-                        text: root.has-document ? root.book-title : "给阅读留一点安静";
+                        text: root.has-document ? root.book-title : "";
                         color: root.has-document ? ReaderTheme.ink : ReaderTheme.muted;
                         font-size: root.design-variant == 1 ? 16px : 13px;
                         font-family: root.design-variant == 1 ? "SimSun" : "Microsoft YaHei UI";
@@ -244,10 +259,38 @@ export component ReaderWindow inherits Window {
                 height: root.show-search ? 44px : 0px; visible: root.show-search; clip: true;
                 HorizontalLayout {
                     padding-left: 22px; padding-right: 22px; padding-top: 5px; padding-bottom: 5px; spacing: 8px;
-                    Text { text: "当前页面"; color: ReaderTheme.muted; font-size: 12px; vertical-alignment: center; }
+                    Text { text: "全文"; color: ReaderTheme.muted; font-size: 12px; vertical-alignment: center; }
                     query := LineEdit { placeholder-text: "输入文字，Enter 查找"; accepted => { root.search(self.text); } }
                     QuietButton { text: "查找"; clicked => { root.search(query.text); } }
+                    QuietButton { text: "上处"; clicked => { root.search-next(-1); } }
+                    QuietButton { text: "下处"; clicked => { root.search-next(1); } }
                     QuietButton { text: "关闭"; clicked => { root.show-search=false; root.search(""); } }
+                }
+            }
+            if root.has-document && !root.reflowable: Rectangle {
+                height: 40px;
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px; padding-top: 4px; padding-bottom: 4px; spacing: 4px;
+                    QuietButton { text: "−"; label: "缩小 PDF"; clicked => { root.typography("zoom",0.8); } }
+                    Text { width: 48px; text: round(root.pdf-zoom*100)+"%"; color: ReaderTheme.muted; font-size: 12px; horizontal-alignment: center; vertical-alignment: center; }
+                    QuietButton { text: "+"; label: "放大 PDF"; clicked => { root.typography("zoom",1.25); } }
+                    QuietButton { text: "适页"; clicked => { root.typography("fit-page",0); } }
+                    QuietButton { text: "适宽"; clicked => { root.typography("fit-width",0); } }
+                    Rectangle { horizontal-stretch: 1; }
+                    QuietButton { text: "←"; label:"向左平移"; enabled:root.pdf-pannable; clicked=>{root.pan(-160,0);} }
+                    QuietButton { text: "↑"; label:"向上平移"; enabled:root.pdf-pannable; clicked=>{root.pan(0,-160);} }
+                    QuietButton { text: "↓"; label:"向下平移"; enabled:root.pdf-pannable; clicked=>{root.pan(0,160);} }
+                    QuietButton { text: "→"; label:"向右平移"; enabled:root.pdf-pannable; clicked=>{root.pan(160,0);} }
+                    ComboBox { width: 128px; model: ["原色","随主题着色","反色"]; current-index:root.page-color; selected(v)=>{root.page-color-changed(self.current-index);} }
+                }
+            }
+            if root.text-document: Rectangle {
+                height: 36px;
+                HorizontalLayout {
+                    padding-left: 22px; padding-right: 22px; spacing: 8px;
+                    Text {text:"文本编码";font-size:12px;color:ReaderTheme.muted;vertical-alignment:center;}
+                    ComboBox {width:154px; current-value: root.encoding-choice; model:["自动检测","UTF-8","UTF-16LE","UTF-16BE","GB18030","Big5","Shift_JIS","windows-1252"]; selected(v)=>{root.encoding-changed(v);} }
+                    Text {text:root.encoding-label;font-size:12px;color:ReaderTheme.muted;horizontal-stretch:1;vertical-alignment:center;}
                 }
             }
             Rectangle {
@@ -255,7 +298,7 @@ export component ReaderWindow inherits Window {
                 clip: true;
                 Text {
                     x: 24px; width: parent.width - 48px;
-                    text: root.status != "" ? root.status : root.notice;
+                    text: root.status != "" ? root.status : root.show-search && root.search-status != "" ? root.search-status : root.notice;
                     color: ReaderTheme.muted; font-size: 12px; overflow: elide; vertical-alignment: center;
                 }
             }
@@ -290,15 +333,18 @@ export component ReaderWindow inherits Window {
                     min-width: 0px; min-height: 0px;
                     preferred-width: 0px; preferred-height: 0px;
                     horizontal-stretch: 1; vertical-stretch: 1; clip: true;
+                    if root.has-document: TouchArea {
+                        clicked => { root.next-page(self.mouse-x < self.width / 2 ? -1 : 1); }
+                        scroll-event(event) => {root.wheel(event.delta-y / 1px);return accept;}
+                    }
                     if !root.has-document: VerticalLayout {
                         alignment: center; spacing: 22px;
                         Text { text: "Sae"; font-family: "Segoe UI"; font-size: 48px; color: ReaderTheme.accent; horizontal-alignment: center; }
-                        Text { text: "把一页书，留给此刻。"; font-family: "SimSun"; font-size: 20px; color: ReaderTheme.ink; horizontal-alignment: center; }
                         HorizontalLayout {
                             alignment: center;
                             QuietButton { text: "打开书籍"; selected: true; clicked => { root.open-file(); } }
                         }
-                        Text { text: "EPUB  /  PDF     ·     Ctrl + O"; color: ReaderTheme.muted; font-size: 12px; horizontal-alignment: center; }
+                        Text { text: "EPUB  /  PDF  /  TXT  /  Markdown     ·     Ctrl + O"; color: ReaderTheme.muted; font-size: 12px; horizontal-alignment: center; }
                     }
                     if root.has-document: HorizontalLayout {
                         spacing: root.effective-spread ? 32px : 0px;
@@ -306,16 +352,20 @@ export component ReaderWindow inherits Window {
                         PagePane {
                             source: root.page-image; page-width: root.image-width; page-height: root.image-height;
                             selection: root.highlights; matches: root.search-marks;
+                            turn-mode: root.effective-spread ? -1 : 0;
                             select-text(a,b,c,d) => { root.select-text(0,a,b,c,d); }
                             hit(a,b) => { root.hit(0,a,b); }
                             wheel(d) => { root.wheel(d); }
+                            navigate(d) => {root.next-page(d);}
                         }
                         if root.effective-spread: PagePane {
                             source: root.right-image; page-width: root.right-width; page-height: root.right-height;
                             selection: root.right-highlights; matches: root.right-search-marks;
+                            turn-mode: 1;
                             select-text(a,b,c,d) => { root.select-text(1,a,b,c,d); }
                             hit(a,b) => { root.hit(1,a,b); }
                             wheel(d) => { root.wheel(d); }
+                            navigate(d) => {root.next-page(d);}
                         }
                     }
                     if root.effective-spread && root.has-document: Rectangle {
@@ -347,6 +397,8 @@ export component ReaderWindow inherits Window {
                             }
                             Rectangle { height: 1px; background: ReaderTheme.line; }
                             Text { text: root.reflowable ? "文字" : "PDF 为固定版式，文字排版不可重排"; color: ReaderTheme.muted; font-size: 11px; wrap: word-wrap; }
+                            if root.reflowable: VerticalLayout {
+                                spacing: 10px;
                             ComboBox { enabled: root.reflowable; model: root.fonts; current-value: root.family-label; selected(value) => { root.setting-text("family",value); } }
                             SettingField { label: "字号"; unit: "pt"; minimum:12; maximum:36; value <=> root.font-size-pt; enabled:root.reflowable; edited(v)=>{root.typography("size",v);} entered(s)=>{root.setting-text("size",s);} }
                             SettingField { label: "行距"; unit: "倍"; minimum:1.15; maximum:2.2; value <=> root.line-height; enabled:root.reflowable; edited(v)=>{root.typography("line",v);} entered(s)=>{root.setting-text("line",s);} }
@@ -361,9 +413,6 @@ export component ReaderWindow inherits Window {
                             SettingField { label: "下边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-bottom; enabled:root.reflowable; edited(v)=>{root.typography("bottom",v);} entered(s)=>{root.setting-text("bottom",s);} }
                             SettingField { label: "左边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-left; enabled:root.reflowable; edited(v)=>{root.typography("left",v);} entered(s)=>{root.setting-text("left",s);} }
                             SettingField { label: "右边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-right; enabled:root.reflowable; edited(v)=>{root.typography("right",v);} entered(s)=>{root.setting-text("right",s);} }
-                            if !root.reflowable: HorizontalLayout {
-                                QuietButton { text: "PDF 缩小"; clicked=>{root.typography("zoom",0.9);} }
-                                QuietButton { text: "PDF 放大"; clicked=>{root.typography("zoom",1.1);} }
                             }
                             CheckBox { text: "显示阅读进度"; checked <=> root.show-progress; toggled=>{root.typography("progress",self.checked?1:0);} }
                             Text { text: "F10 隐藏工具栏 · F11 全屏\n滚轮整页翻阅，双页时翻动一整跨页"; color:ReaderTheme.muted;font-size:11px;wrap:word-wrap; }
@@ -379,7 +428,7 @@ export component ReaderWindow inherits Window {
                 Rectangle { x: 0px; y: 0px; height: 1px; width: parent.width * clamp(root.progress,0,1); background: ReaderTheme.accent; }
                 HorizontalLayout {
                     padding-left: 20px; padding-right: 20px; padding-top: 5px; padding-bottom: 5px;
-                    Text { text: root.double-page && !root.effective-spread ? "窄窗口暂用单页" : "滚轮整页翻阅"; color:ReaderTheme.muted;font-size:11px;horizontal-stretch:1;overflow:elide;vertical-alignment:center; }
+                    Text { text: root.double-page && !root.effective-spread ? "窄窗口暂用单页" : root.pdf-pannable ? "滚轮平移 · 点击左右翻页" : "点击左右翻页 · 滚轮整页"; color:ReaderTheme.muted;font-size:11px;horizontal-stretch:1;overflow:elide;vertical-alignment:center; }
                     QuietButton { text: "‹"; label:"上一页"; enabled:root.has-document;clicked=>{root.next-page(-1);} }
                     Text { min-width:120px;text:root.page-label;color:ReaderTheme.muted;font-family:"Segoe UI";font-size:12px;horizontal-alignment:center;vertical-alignment:center; }
                     QuietButton { text:"›";label:"下一页";enabled:root.has-document;clicked=>{root.next-page(1);} }

@@ -1498,6 +1498,11 @@ static void gen2_children(fz_context *ctx, struct genstate *g, fz_html_box *root
 			fz_apply_css_style(ctx, g->set, &style, &match);
 			apply_attributes_as_styles(ctx, &style, node);
 			display = fz_get_css_match_display(&match);
+			/* Sae: CSS2.1 9.7 blockifies absolutely positioned inline boxes,
+			 * including images on EPUB fixed-layout canvases. */
+			if ((style.position == POS_ABSOLUTE || style.position == POS_FIXED) &&
+				(display == DIS_INLINE || display == DIS_INLINE_BLOCK))
+				display = DIS_BLOCK;
 			if (tag[0]=='b' && tag[1]=='r' && tag[2]==0)
 			{
 				gen2_break(ctx, g, root_box, node);

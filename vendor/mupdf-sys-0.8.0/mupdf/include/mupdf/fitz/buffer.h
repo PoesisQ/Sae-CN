@@ -44,6 +44,9 @@ typedef struct
 	size_t cap, len;
 	int unused_bits;
 	int shared;
+	/* Sae: optional owner for read-only mapped storage. All constructors zero it. */
+	void (*drop_storage)(void *opaque, unsigned char *data);
+	void *storage_owner;
 } fz_buffer;
 
 /**

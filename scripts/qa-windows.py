@@ -15,7 +15,7 @@ root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--books',type=Path)
 parser.add_argument('--runs',type=int,default=1)
-parser.add_argument('--scenario',choices=['startup','idle','visual','stress'],default='startup')
+parser.add_argument('--scenario',choices=['startup','idle','visual','stress','features'],default='startup')
 parser.add_argument('--spread',action='store_true')
 parser.add_argument('--fixture',type=Path)
 parser.add_argument('--blank',action='store_true')
@@ -42,7 +42,7 @@ for alias,path in inputs:
         (profile/'state.json').write_text(json.dumps({'version':1,'spread':args.spread}),encoding='utf-8')
         env=dict(os.environ,SAE_READER_QA_REPORT=str(report.resolve()),SAE_READER_QA_SCENARIO=args.scenario,
                  SAE_READER_DATA_DIR=str(profile.resolve()),SAE_READER_DESIGN=str(args.design))
-        if args.scenario=='visual':
+        if args.scenario in ('visual','features'):
             env['SAE_READER_QA_SCREENSHOTS']=str((args.output/f'{name}-screenshots').resolve())
         if args.scale:
             env['SLINT_SCALE_FACTOR']=str(args.scale)

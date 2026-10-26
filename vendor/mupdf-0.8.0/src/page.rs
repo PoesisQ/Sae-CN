@@ -66,6 +66,12 @@ impl Page {
         .map(|inner| unsafe { Pixmap::from_raw(inner) })
     }
 
+    /// Render a bounded rectangle in transformed device pixels.
+    pub fn to_pixmap_region(&self, ctm: &Matrix, clip: crate::IRect) -> Result<Pixmap, Error> {
+        unsafe { ffi_try!(mupdf_page_to_pixmap_region(context(), self.as_ptr().cast_mut(), ctm.into(), clip.into())) }
+            .map(|inner| unsafe { Pixmap::from_raw(inner) })
+    }
+
     pub fn to_svg(&self, ctm: &Matrix) -> Result<String, Error> {
         let inner = unsafe {
             ffi_try!(mupdf_page_to_svg(

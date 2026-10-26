@@ -34,3 +34,17 @@ Local changes (2026-10-25, AGPL-3.0-or-later):
 Anchor schema version 1 applies only to unchanged content. Record chapter and
 nearby text as relocation context; CSS display/structure changes may require
 fallback. Ordinary typography changes must be tested, not assumed stable.
+
+
+Local changes (2026-10-26, native performance and compatibility):
+
+- `wrapper/font.c`, `mupdf/fitz/buffer.h`, `source/fitz/buffer.c`: read-only Windows font mappings, owned by a zero-initialized optional storage finalizer on `fz_buffer`. The last native reference unmaps storage; retained Rust/native font clones remain valid. UTF-8 paths convert to wide Win32 paths and all failure branches release handles/views. All native consumers are rebuilt together after the internal structure extension.
+- `mupdf/src/font.rs`, `system_font.rs` and application font loader: map matched path fonts without `fs::read` and `copy_font_data` heap copies; in-memory font handles retain the existing owned-buffer route.
+- `wrapper/page.c`, `mupdf/src/page.rs`: exception-safe rendering of a bounded device-pixel rectangle, including annotations. PDF zoom allocates the visible tile rather than a whole magnified page. The application shares its resulting RGB buffer with Slint.
+- `source/html/html-parse.c`: blockify absolutely/fixed positioned inline boxes before dispatching images, following [CSS2.1 section 9.7](https://www.w3.org/TR/CSS2/visuren.html#dis-pos-flo). This is required for fixed-canvas EPUB absolute images.
+- `source/fitz/image.c`: render display-list images with an alpha channel, preserving transparent SVG backgrounds instead of clearing an opaque RGB image to white. Final reader page output remains RGB.
+
+Targeted Ruby/MathML SVG conversion and fixed-canvas selection live in application Rust, not a browser. Unchanged EPUB resources use ZIP raw-copy; only books containing relevant elements initialize this adapter. Unsupported cases remain visible and are reported. See the compatibility matrix for measured coverage and limitations.
+
+- `html-imp.h`, `epub-doc.c`, `html-layout.c`, safe `Document::set_fixed_layout`: validated fixed canvases keep their viewport bounds while disabling internal reflow page breaks and returning one page per spine item. This pinned HTML engine treats CSS px as one native layout unit, so the viewport uses the same units; applying an extra 72/96 factor crops the source canvas.
+- `image.c` and the HTML image drawing dispatch: replay completed SVG display lists directly for opaque content, preserving vector text and searchable/selected coordinates with no intermediate image. A verified native callback identity guards the derived-image cast; ordinary rasters and image opacity retain their existing drawing path.

@@ -21,6 +21,7 @@ kernel.OpenProcess.argtypes=[wintypes.DWORD,wintypes.BOOL,wintypes.DWORD];kernel
 kernel.CloseHandle.argtypes=[wintypes.HANDLE]
 kernel.GetProcessTimes.argtypes=[wintypes.HANDLE]+[ctypes.POINTER(ctypes.c_uint64)]*4
 kernel.GetProcessHandleCount.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
+kernel.GetExitCodeProcess.argtypes=[wintypes.HANDLE,ctypes.POINTER(wintypes.DWORD)]
 psapi.GetProcessMemoryInfo.argtypes=[wintypes.HANDLE,ctypes.c_void_p,wintypes.DWORD]
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
@@ -31,8 +32,10 @@ parser.add_argument('--spread',action='store_true')
 parser.add_argument('--seconds',type=float,default=8)
 parser.add_argument('--runs',type=int,default=1)
 parser.add_argument('--sumatra',action='store_true')
+parser.add_argument('--pid',type=int,help='Observe an already running process without changing or terminating it')
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
+if args.pid and (args.runs!=1 or args.books or args.fixture):parser.error('--pid requires one run and no input files')
 if args.books:
     inputs=[(f'epub-{n:02}',p) for n,p in enumerate(sorted(args.books.glob('*.epub')),1)]
 elif args.fixture:inputs=[('fixture',args.fixture)]
@@ -47,9 +50,14 @@ for alias,path in inputs:
         command=[str(args.exe.resolve())]
         if args.sumatra:command+=['-new-window','-appdata',str(profile.resolve()),'-view','single page','-zoom','fit page']
         if path:command.append(str(path.resolve()))
-        process=subprocess.Popen(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
-        handle=kernel.OpenProcess(0x410,False,process.pid);samples=[];start=time.perf_counter()
-        while process.poll() is None and time.perf_counter()-start<args.seconds:
+        process=None if args.pid else subprocess.Popen(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        handle=kernel.OpenProcess(0x410,False,args.pid if args.pid else process.pid);samples=[];start=time.perf_counter()
+        def exit_code():
+            if process:return process.poll()
+            code=wintypes.DWORD()
+            if kernel.GetExitCodeProcess(handle,ctypes.byref(code)) and code.value!=259:return code.value
+            return None
+        while exit_code() is None and time.perf_counter()-start<args.seconds:
             memory=Memory();memory.cb=ctypes.sizeof(memory)
             if handle and psapi.GetProcessMemoryInfo(handle,ctypes.byref(memory),memory.cb):
                 creation=ctypes.c_uint64();exit_time=ctypes.c_uint64();sys=ctypes.c_uint64();user=ctypes.c_uint64();handles=wintypes.DWORD()
@@ -59,12 +67,12 @@ for alias,path in inputs:
                     'private_working_set':memory.private_ws,'working_set':memory.working_set,'peak_working_set':memory.peak_ws,
                     'peak_pagefile':memory.peak_pagefile,'cpu_ms':(sys.value+user.value)/10000,'handles':handles.value})
             time.sleep(.25)
-        unexpected_exit=process.poll()
-        if unexpected_exit is None:process.terminate();process.wait(timeout=10)
+        unexpected_exit=exit_code()
+        if unexpected_exit is None and process:process.terminate();process.wait(timeout=10)
         if handle:kernel.CloseHandle(handle)
         steady=[s for s in samples if s['ms']>=3000]
         result={'sample':alias,'run':run,'spread_requested':args.spread,'instrumentation':'external Win32 process counters; no QA timer',
-            'unexpected_exit':unexpected_exit,'terminated_by_profiler':unexpected_exit is None,'samples':samples,
+            'unexpected_exit':unexpected_exit,'terminated_by_profiler':unexpected_exit is None and process is not None,'attached':bool(args.pid),'samples':samples,
             'steady_median':{k:statistics.median(s[k] for s in steady) for k in ['private_bytes','private_working_set','working_set','handles']} if steady else None}
         if len(steady)>1:
             wall=steady[-1]['ms']-steady[0]['ms'];cpu=steady[-1]['cpu_ms']-steady[0]['cpu_ms']

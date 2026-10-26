@@ -15,9 +15,13 @@ pub struct Book {
     pub layout_revision: u64,
     pub pagination_complete: bool,
     pub notice: String,
+    pub encoding: Option<String>,
+    pub conversion_style: Option<(String, String)>,
+    _converted: Option<crate::text_adapter::Converted>,
     style: Option<Typography>,
     viewport: (i32, i32),
     chapters: Vec<Option<i32>>,
+    next_chapter: usize,
     contents: Option<Arc<Vec<ContentsItem>>>,
 }
 
@@ -30,6 +34,16 @@ pub struct ContentsItem {
 
 impl Book {
     pub fn open(path: &Path) -> Result<Self> {
+        Self::open_encoded(path, None)
+    }
+    pub fn open_encoded(path: &Path, encoding: Option<&str>) -> Result<Self> {
+        Self::open_styled(path, encoding, &Typography::default())
+    }
+    pub fn open_styled(
+        path: &Path,
+        encoding: Option<&str>,
+        typography: &Typography,
+    ) -> Result<Self> {
         let extension = path
             .extension()
             .and_then(|s| s.to_str())
@@ -43,31 +57,67 @@ impl Book {
             "文件超过当前 512 MiB 安全上限"
         );
         let mut notice = String::new();
+        let mut converted = None;
+        let mut fixed_viewport = None;
+        let mut conversion_style = None;
         match extension.as_str() {
             "epub" => {
                 let report = security::inspect_epub(path)?;
+                converted = crate::epub_compat::convert(path, &report, typography)?;
+                if let Some(compat) = &converted {
+                    notice = compat.notice.clone();
+                    conversion_style =
+                        Some((typography.foreground.clone(), typography.family.clone()));
+                }
                 if report.repaired_html > 0 {
-                    notice = format!(
+                    if !notice.is_empty() {
+                        notice.push_str(" · ");
+                    }
+                    notice.push_str(&format!(
                         "书内 {} 个页面含不规范标记，已启用 HTML 兼容读取",
                         report.repaired_html
-                    );
+                    ));
+                }
+                if report.fixed {
+                    fixed_viewport = report.viewport;
+                    if fixed_viewport.is_none() {
+                        notice.push_str(" · 固定布局缺少有效 viewport，暂按可重排版式打开");
+                    }
+                }
+                if report.vertical {
+                    notice.push_str(" · 此书含竖排；当前原生引擎尚不能保证竖排方向与标点位置");
+                }
+                if report.unconverted_complex_html {
+                    notice.push_str(" · 非规范 HTML 中的注音或公式尚未转换，原生显示可能有差异");
                 }
             }
             "pdf" => {}
             "txt" | "md" => {
-                bail!("TXT / Markdown 适配器尚未通过 G2，目前请使用 EPUB / PDF 技术验证")
+                let document = crate::text_adapter::convert(path, encoding)?;
+                notice = document.notice.clone();
+                converted = Some(document);
             }
             _ => bail!("仅支持 EPUB、PDF、TXT 和 Markdown 四种格式"),
         }
-        let native_path = path
+        let native_path = converted
+            .as_ref()
+            .map(|c| c.path.as_path())
+            .unwrap_or(path)
             .to_str()
             .context("文件路径包含无法表示的 Unicode，请先重命名文件")?;
-        let engine = Document::open(native_path).context("原生引擎无法打开此文件")?;
+        let mut engine = Document::open(native_path).context("原生引擎无法打开此文件")?;
         ensure!(
             !engine.needs_password()?,
             "此文档需要密码；当前验证版尚无密码输入界面"
         );
-        let reflowable = engine.is_reflowable()?;
+        let reflowable = engine.is_reflowable()? && fixed_viewport.is_none();
+        if let Some((width, height)) = fixed_viewport {
+            engine.set_style("@page{margin:0!important}", true)?;
+            engine.set_fixed_layout()?;
+            engine.layout(width, height, 16.0)?;
+            notice.push_str(" · 固定布局按书内画布尺寸显示");
+        }
+        notice = notice.trim_start_matches([' ', '·']).to_owned();
         let mut title = engine.metadata(MetadataName::Title).unwrap_or_default();
         if title.is_empty() {
             title = path
@@ -85,9 +135,16 @@ impl Book {
             layout_revision: 0,
             pagination_complete: false,
             notice,
+            encoding: converted
+                .as_ref()
+                .filter(|c| !c.encoding.is_empty())
+                .map(|c| c.encoding.clone()),
+            conversion_style,
+            _converted: converted,
             style: None,
             viewport: (0, 0),
             chapters: Vec::new(),
+            next_chapter: 0,
             contents: None,
         })
     }
@@ -100,6 +157,9 @@ impl Book {
         current: i32,
     ) -> Result<i32> {
         let dimensions = (width_pt.floor() as i32, height_pt.floor() as i32);
+        if !self.reflowable && self.page_count > 0 {
+            return Ok(current);
+        }
         if self.style.as_ref() == Some(style) && self.viewport == dimensions {
             return Ok(current);
         }
@@ -125,8 +185,13 @@ impl Book {
         } else {
             vec![Some(self.engine.page_count()?)]
         };
-        self.page_count = 0;
-        self.pagination_complete = false;
+        self.page_count = self.chapters.iter().flatten().sum();
+        self.next_chapter = if self.reflowable {
+            0
+        } else {
+            self.chapters.len()
+        };
+        self.pagination_complete = self.next_chapter == self.chapters.len();
         self.style = Some(style.clone());
         self.viewport = dimensions;
         self.layout_revision += 1;
@@ -140,25 +205,27 @@ impl Book {
     }
 
     pub fn ensure_page(&mut self, page: i32) -> Result<()> {
-        for i in 0..self.chapters.len() {
-            self.count_chapter(i)?;
-            if self.page_count > page {
-                break;
-            }
+        while self.page_count <= page && self.next_chapter < self.chapters.len() {
+            self.count_chapter(self.next_chapter)?;
         }
         Ok(())
     }
     fn count_chapter(&mut self, index: usize) -> Result<()> {
         if self.chapters[index].is_none() {
-            self.chapters[index] = Some(self.engine.chapter_page_count(index as i32)?);
+            let count = self.engine.chapter_page_count(index as i32)?.max(0);
+            self.chapters[index] = Some(count);
+            self.page_count += count;
         }
-        self.page_count = self.chapters.iter().filter_map(|p| *p).sum();
-        self.pagination_complete = self.chapters.iter().all(Option::is_some);
+        while self.next_chapter < self.chapters.len() && self.chapters[self.next_chapter].is_some()
+        {
+            self.next_chapter += 1;
+        }
+        self.pagination_complete = self.next_chapter == self.chapters.len();
         Ok(())
     }
     pub fn paginate_next(&mut self) -> Result<bool> {
-        if let Some(i) = self.chapters.iter().position(Option::is_none) {
-            self.count_chapter(i)?;
+        if self.next_chapter < self.chapters.len() {
+            self.count_chapter(self.next_chapter)?;
             Ok(true)
         } else {
             self.pagination_complete = true;

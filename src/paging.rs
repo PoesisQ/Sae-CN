@@ -75,3 +75,13 @@ mod tests {
         assert_eq!(spread_start(17), 16);
     }
 }
+/// Links and text drags are handled before this navigation rule is applied.
+pub fn click_direction(spread: bool, slot: i32, x: f32, width: f32) -> i32 {
+    if spread {
+        if slot == 0 { -1 } else { 1 }
+    } else if x < width * 0.5 {
+        -1
+    } else {
+        1
+    }
+}

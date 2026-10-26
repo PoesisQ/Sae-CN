@@ -14,12 +14,15 @@ pub struct Preferences {
     pub typography: Typography,
     pub spread: bool,
     pub theme: u8,
+    pub page_color: u8,
     pub books: BTreeMap<String, BookState>,
 }
 #[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct BookState {
     pub path: PathBuf,
     pub anchor: u64,
+    #[serde(default)]
+    pub encoding: Option<String>,
 }
 impl Default for Preferences {
     fn default() -> Self {
@@ -28,6 +31,7 @@ impl Default for Preferences {
             typography: Typography::default(),
             spread: false,
             theme: 0,
+            page_color: 0,
             books: BTreeMap::new(),
         }
     }
@@ -42,6 +46,7 @@ impl Preferences {
             .unwrap_or_default();
         value.typography.validate();
         value.theme = value.theme.min(2);
+        value.page_color = value.page_color.min(2);
         value
     }
     pub fn save(&self, path: &Path) -> anyhow::Result<()> {

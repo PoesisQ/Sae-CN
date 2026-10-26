@@ -1,7 +1,7 @@
 //! One replaceable request slot: at most one executing and one pending request.
 use crate::{
     document::{Book, ContentsItem},
-    rendering::{Bounds, Cache, Frame},
+    rendering::{Bounds, Cache, Frame, RenderView},
     settings::Typography,
 };
 use anyhow::Result;
@@ -20,6 +20,26 @@ pub enum Navigation {
     Page(i32),
     Link(String),
     Anchor(u64),
+    Search(i32),
+}
+#[derive(Clone)]
+pub struct ViewOptions {
+    pub encoding: Option<String>,
+    pub color: u8,
+    pub fit_width: bool,
+    pub pan: [f32; 2],
+    pub search_hit: Option<(i32, usize)>,
+}
+impl Default for ViewOptions {
+    fn default() -> Self {
+        Self {
+            encoding: None,
+            color: 0,
+            fit_width: false,
+            pan: [0.5, 0.0],
+            search_hit: None,
+        }
+    }
 }
 #[derive(Clone)]
 pub struct Request {
@@ -33,6 +53,7 @@ pub struct Request {
     pub query: String,
     pub pdf_zoom: f32,
     pub spread: bool,
+    pub view: ViewOptions,
 }
 #[derive(Clone)]
 pub struct Update {
@@ -52,6 +73,10 @@ pub struct Update {
     pub cache_miss: u64,
     pub notice: String,
     pub elapsed_ms: f64,
+    pub search_status: String,
+    pub search_hit: Option<(i32, usize)>,
+    pub encoding: Option<String>,
+    pub pan: [f32; 2],
 }
 struct Pending {
     request: Request,
@@ -96,7 +121,8 @@ impl Worker {
             .spawn(move || {
                 crate::fonts::install();
                 let mut book: Option<Book> = None;
-                let mut cache = Cache::new(24 * 1024 * 1024);
+                let mut cache = Cache::new(16 * 1024 * 1024);
+                let mut opened_encoding = None;
                 let mut actual_page = 0;
                 loop {
                     let pending = {
@@ -113,10 +139,33 @@ impl Worker {
                     let request = pending.request;
                     let started = std::time::Instant::now();
                     let result = (|| -> Result<Update> {
-                        if book.as_ref().is_none_or(|b| b.path != request.path) {
+                        let mut retained_anchor = None;
+                        let conversion_changed = book.as_ref().is_some_and(|b| {
+                            b.path == request.path
+                                && b.conversion_style.as_ref().is_some_and(|s| {
+                                    s != &(
+                                        request.style.foreground.clone(),
+                                        request.style.family.clone(),
+                                    )
+                                })
+                        });
+                        if conversion_changed && matches!(request.navigation, Navigation::Keep) {
+                            retained_anchor = book
+                                .as_ref()
+                                .and_then(|b| b.engine.logical_anchor(actual_page).ok());
+                        }
+                        if book.as_ref().is_none_or(|b| b.path != request.path)
+                            || conversion_changed
+                            || opened_encoding != request.view.encoding
+                        {
                             book = None;
                             cache.clear();
-                            book = Some(Book::open(&request.path)?);
+                            book = Some(Book::open_styled(
+                                &request.path,
+                                request.view.encoding.as_deref(),
+                                &request.style,
+                            )?);
+                            opened_encoding = request.view.encoding.clone();
                             actual_page = 0;
                         }
                         let b = book.as_mut().unwrap();
@@ -146,29 +195,119 @@ impl Worker {
                             Navigation::Anchor(anchor) => {
                                 b.engine.resolve_anchor(*anchor)?.unwrap_or(actual_page)
                             }
-                            Navigation::Keep => actual_page,
+                            Navigation::Keep | Navigation::Search(_) => retained_anchor
+                                .and_then(|a| b.engine.resolve_anchor(a).ok().flatten())
+                                .unwrap_or(actual_page),
                         }
                         .max(0);
                         b.ensure_page(actual_page)?;
                         actual_page = actual_page.min(b.page_count - 1);
+                        let previous_hit = if old_revision == b.layout_revision {
+                            request.view.search_hit
+                        } else {
+                            None
+                        };
+                        let mut search_hit = previous_hit;
+                        let mut search_status = String::new();
+                        let mut pan = request.view.pan;
+                        if let Navigation::Search(direction) = request.navigation {
+                            // No persistent index, text corpus or second engine thread. Native
+                            // text pages are searched and released one at a time, with cancellation.
+                            while !b.pagination_complete {
+                                if !inbox.current(g) {
+                                    anyhow::bail!("superseded");
+                                }
+                                b.paginate_next()?;
+                            }
+                            search_hit = None;
+                            if !request.query.is_empty() {
+                                let step = if direction < 0 { -1 } else { 1 };
+                                let search_start = previous_hit
+                                    .map(|(page, _)| page)
+                                    .filter(|p| *p >= 0 && *p < b.page_count)
+                                    .unwrap_or(actual_page);
+                                for offset in 0..=b.page_count {
+                                    if !inbox.current(g) {
+                                        anyhow::bail!("superseded");
+                                    }
+                                    let page =
+                                        (search_start + offset * step).rem_euclid(b.page_count);
+                                    let hits =
+                                        b.engine.load_page(page)?.search(&request.query, 4096)?;
+                                    let previous =
+                                        previous_hit.filter(|(p, _)| *p == page).map(|(_, i)| i);
+                                    let index = if offset == 0 {
+                                        if step > 0 {
+                                            previous.map_or(0, |i| i + 1)
+                                        } else {
+                                            previous.unwrap_or(hits.len()).saturating_sub(1)
+                                        }
+                                    } else if step > 0 {
+                                        0
+                                    } else {
+                                        hits.len().saturating_sub(1)
+                                    };
+                                    let valid = !hits.is_empty()
+                                        && index < hits.len()
+                                        && !(offset == 0 && step < 0 && previous == Some(0));
+                                    if valid {
+                                        search_hit = Some((page, index));
+                                        actual_page = page;
+                                        search_status = format!(
+                                            "第 {} 页 · 本页高亮 {}/{}",
+                                            page + 1,
+                                            index + 1,
+                                            hits.len()
+                                        );
+                                        if hits.len() == 4096 {
+                                            search_status.push_str(" · 本页达到 4096 个区域上限");
+                                        }
+                                        if !b.reflowable {
+                                            let bounds = b.engine.load_page(page)?.bounds()?;
+                                            let scale =
+                                                pdf_scale(bounds, column, request.height, &request);
+                                            let q = &hits[index];
+                                            let full = [
+                                                (bounds.x1 - bounds.x0) * scale / request.dpi,
+                                                (bounds.y1 - bounds.y0) * scale / request.dpi,
+                                            ];
+                                            let center = [
+                                                ((q.ul.x + q.lr.x) * 0.5 - bounds.x0) * scale
+                                                    / request.dpi,
+                                                ((q.ul.y + q.lr.y) * 0.5 - bounds.y0) * scale
+                                                    / request.dpi,
+                                            ];
+                                            pan = [
+                                                ((center[0] - column * 0.5)
+                                                    / (full[0] - column).max(1.0))
+                                                .clamp(0.0, 1.0),
+                                                ((center[1] - request.height * 0.5)
+                                                    / (full[1] - request.height).max(1.0))
+                                                .clamp(0.0, 1.0),
+                                            ];
+                                        }
+                                        break;
+                                    }
+                                }
+                                if search_hit.is_none() {
+                                    search_status = "全文未找到匹配；扫描件需要文本层".into();
+                                }
+                            }
+                        }
                         if spread {
                             actual_page = crate::paging::spread_start(actual_page);
                             b.ensure_page(actual_page + 1)?;
                         }
-                        let scale = if b.reflowable {
-                            request.dpi * (96.0 / 72.0)
-                        } else {
-                            let page = b.engine.load_page(actual_page)?;
-                            let bounds = page.bounds()?;
-                            (column / (bounds.x1 - bounds.x0))
-                                .min(request.height / (bounds.y1 - bounds.y0))
-                                * request.dpi
-                                * request.pdf_zoom
-                        }
-                        .clamp(0.1, 5.0);
-                        let frame = cache.render(b, actual_page, scale, request.dpi)?;
+                        let frame = render_page(&mut cache, b, actual_page, column, &request, pan)?;
                         let right = if spread && actual_page + 1 < b.page_count {
-                            Some(cache.render(b, actual_page + 1, scale, request.dpi)?)
+                            Some(render_page(
+                                &mut cache,
+                                b,
+                                actual_page + 1,
+                                column,
+                                &request,
+                                pan,
+                            )?)
                         } else {
                             None
                         };
@@ -179,12 +318,18 @@ impl Worker {
                             let mut search = Vec::new();
                             if !request.query.is_empty() {
                                 let page = b.engine.load_page(frame.page)?;
-                                for q in page.search(&request.query, 256)?.iter() {
+                                for (index, q) in
+                                    page.search(&request.query, 4096)?.iter().enumerate()
+                                {
+                                    if index >= 256 && search_hit != Some((frame.page, index)) {
+                                        continue;
+                                    }
+                                    let q = crate::rendering::quad_rect(q);
                                     search.push(Bounds {
-                                        x: (q.ul.x * scale - frame.origin.0) / request.dpi,
-                                        y: (q.ul.y * scale - frame.origin.1) / request.dpi,
-                                        w: (q.ur.x - q.ul.x) * scale / request.dpi,
-                                        h: (q.ll.y - q.ul.y) * scale / request.dpi,
+                                        x: (q.x0 * frame.scale - frame.origin.0) / request.dpi,
+                                        y: (q.y0 * frame.scale - frame.origin.1) / request.dpi,
+                                        w: (q.x1 - q.x0) * frame.scale / request.dpi,
+                                        h: (q.y1 - q.y0) * frame.scale / request.dpi,
                                     });
                                 }
                             }
@@ -219,11 +364,17 @@ impl Worker {
                             cache_miss: cache.misses,
                             notice: b.notice.clone(),
                             elapsed_ms: started.elapsed().as_secs_f64() * 1000.0,
+                            search_status,
+                            search_hit,
+                            encoding: b.encoding.clone(),
+                            pan,
                         })
                     })();
                     if inbox.current(g) {
                         match result {
                             Ok(mut update) => {
+                                let visible_bytes = update.frame.cost()
+                                    + update.right.as_ref().map_or(0, |f| f.cost());
                                 // Publish correct visible pages before all-book pagination.
                                 notify(g, Ok(update.clone()));
                                 if let Some(b) = book.as_mut() {
@@ -251,27 +402,30 @@ impl Worker {
                                     for page in actual_page + step
                                         ..(actual_page + 2 * step).min(b.page_count)
                                     {
+                                        if visible_bytes.saturating_mul(2) > cache.budget {
+                                            break;
+                                        }
                                         if !inbox.current(g) {
                                             break;
                                         }
-                                        if let Ok(native) = b.engine.load_page(page) {
-                                            if let Ok(bounds) = native.bounds() {
-                                                let scale = if b.reflowable {
-                                                    request.dpi * (96.0 / 72.0)
-                                                } else {
-                                                    let column = if step == 2 {
-                                                        (request.width - 32.0) / 2.0
-                                                    } else {
-                                                        request.width
-                                                    };
-                                                    (column / (bounds.x1 - bounds.x0)).min(
-                                                        request.height / (bounds.y1 - bounds.y0),
-                                                    ) * request.dpi
-                                                        * request.pdf_zoom
-                                                }
-                                                .clamp(0.1, 5.0);
-                                                let _ = cache.render(b, page, scale, request.dpi);
-                                            }
+                                        // Magnified PDF views render on demand; do not prefetch
+                                        // tiles that the next page may never use.
+                                        if b.reflowable
+                                            || (request.pdf_zoom <= 1.0 && !request.view.fit_width)
+                                        {
+                                            let column = if step == 2 {
+                                                (request.width - 32.0) / 2.0
+                                            } else {
+                                                request.width
+                                            };
+                                            let _ = render_page(
+                                                &mut cache,
+                                                b,
+                                                page,
+                                                column,
+                                                &request,
+                                                request.view.pan,
+                                            );
                                         }
                                     }
                                 }
@@ -300,4 +454,54 @@ impl Drop for Worker {
             let _ = handle.join();
         }
     }
+}
+
+fn pdf_scale(bounds: mupdf::Rect, column: f32, height: f32, request: &Request) -> f32 {
+    let width = column / (bounds.x1 - bounds.x0).max(1.0);
+    let fit = if request.view.fit_width {
+        width
+    } else {
+        width.min(height / (bounds.y1 - bounds.y0).max(1.0))
+    };
+    (fit * request.dpi * request.pdf_zoom).clamp(0.02, 16.0)
+}
+fn render_page(
+    cache: &mut Cache,
+    book: &Book,
+    page: i32,
+    column: f32,
+    request: &Request,
+    pan: [f32; 2],
+) -> Result<Arc<Frame>> {
+    if book.reflowable {
+        return cache.render(book, page, request.dpi * (96.0 / 72.0), request.dpi);
+    }
+    let bounds = book.engine.load_page(page)?.bounds()?;
+    let scale = pdf_scale(bounds, column, request.height, request);
+    let tint = if request.view.color == 1 {
+        let parse = |s: &str, default| {
+            i32::from_str_radix(s.trim_start_matches('#'), 16).unwrap_or(default)
+        };
+        Some((
+            parse(&request.style.foreground, 0),
+            parse(&request.style.background, 0xffffff),
+        ))
+    } else {
+        None
+    };
+    cache.render_view(
+        book,
+        page,
+        scale,
+        request.dpi,
+        RenderView {
+            viewport: Some((
+                (column * request.dpi).floor().max(1.0) as u32,
+                (request.height * request.dpi).floor().max(1.0) as u32,
+                pan,
+            )),
+            tint,
+            invert: request.view.color == 2,
+        },
+    )
 }

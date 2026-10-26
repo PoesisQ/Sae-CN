@@ -18,6 +18,30 @@ fz_pixmap *mupdf_page_to_pixmap(fz_context *ctx, fz_page *page, fz_matrix ctm, f
     }
 }
 
+/* Sae: allocate only the visible pixel rectangle, including annotations. */
+fz_pixmap *mupdf_page_to_pixmap_region(fz_context *ctx, fz_page *page, fz_matrix ctm, fz_irect clip, mupdf_error_t **errptr)
+{
+    fz_pixmap *pix = NULL;
+    fz_device *dev = NULL;
+    fz_var(pix); fz_var(dev);
+    fz_try(ctx)
+    {
+        pix = fz_new_pixmap_with_bbox(ctx, fz_device_rgb(ctx), clip, NULL, 0);
+        fz_clear_pixmap_with_value(ctx, pix, 255);
+        dev = fz_new_draw_device(ctx, fz_identity, pix);
+        fz_run_page(ctx, page, dev, ctm, NULL);
+        fz_close_device(ctx, dev);
+    }
+    fz_always(ctx) { fz_drop_device(ctx, dev); }
+    fz_catch(ctx)
+    {
+        fz_drop_pixmap(ctx, pix);
+        pix = NULL;
+        mupdf_save_error(ctx, errptr);
+    }
+    return pix;
+}
+
 fz_buffer *mupdf_page_to_svg(fz_context *ctx, fz_page *page, fz_matrix ctm, fz_cookie *cookie, mupdf_error_t **errptr)
 {
     fz_rect mediabox = fz_bound_page(ctx, page);

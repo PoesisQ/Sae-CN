@@ -35,8 +35,7 @@ fn load(file: &str, index: i32) -> Option<Font> {
     if size > FONT_BUDGET {
         return None;
     }
-    let bytes = std::fs::read(path).ok()?;
-    let font = Font::from_bytes_with_index(file, index, &bytes).ok()?;
+    let font = Font::from_file_mapped(file, index, path.to_str()?).ok()?;
     FONTS.with(|fonts| {
         let mut fonts = fonts.borrow_mut();
         while fonts.iter().map(|(_, _, s)| *s).sum::<usize>() + size > FONT_BUDGET {

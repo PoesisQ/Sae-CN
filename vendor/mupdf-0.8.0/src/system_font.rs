@@ -163,15 +163,12 @@ impl font_loader::FontLoader for SystemFontLoader {
             handle?
         };
 
-        let font_index = match handle {
-            Handle::Path { font_index, .. } => font_index,
-            Handle::Memory { font_index, .. } => font_index,
+        let font = match handle {
+            Handle::Path { path, font_index } =>
+                Font::from_file_mapped(name, font_index as i32, path.to_str()?).ok()?,
+            Handle::Memory { bytes, font_index } =>
+                Font::from_bytes_with_index(name, font_index as i32, &bytes).ok()?,
         };
-        let loaded = handle.load().ok()?;
-        let font_data = loaded.copy_font_data()?;
-        let font =
-            Font::from_bytes_with_index(&loaded.family_name(), font_index as i32, &font_data)
-                .ok()?;
 
         if hints.needs_exact_metrics
             && ((hints.bold && !font.is_bold()) || (hints.italic && !font.is_italic()))

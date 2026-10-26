@@ -58,6 +58,12 @@ int mupdf_sae_chapter(fz_context *ctx, fz_document *doc, int page, mupdf_error_t
     return result;
 }
 
+void sae_epub_set_fixed_layout(fz_context *ctx, fz_document *doc);
+void mupdf_sae_set_fixed_layout(fz_context *ctx, fz_document *doc, mupdf_error_t **errptr)
+{
+    TRY_CATCH_VOID(sae_epub_set_fixed_layout(ctx, doc));
+}
+
 /* Document */
 fz_document *mupdf_open_document(fz_context *ctx, const char *filename, mupdf_error_t **errptr)
 {

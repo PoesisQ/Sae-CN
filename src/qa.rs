@@ -130,6 +130,12 @@ pub fn start(
                 return;
             };
             let mut run = run.borrow_mut();
+            if ui.get_status().starts_with("无法读取") {
+                run.errors.push("document open/render failed; see local stderr".into());
+                finish(&ui,&state,&report,&scenario,&run);
+                if let Some(t)=stop.upgrade(){t.stop();}
+                return;
+            }
             let (ready, boot) = {
                 let s = state.lock().unwrap();
                 (
@@ -176,6 +182,51 @@ pub fn start(
                     t.stop();
                 }
                 return;
+            }
+            if scenario == "features" {
+                if run.waiting {
+                    run.waiting=false;run.operations+=1;
+                    let step=run.step;
+                    let s=state.lock().unwrap();
+                    if matches!(step,1|2) && s.frame.as_ref().map(|f|f.page)!=Some(if step==1{1}else{0}) {run.errors.push(format!("page click failed at step {step}"));}
+                    if step==11 && s.frame.as_ref().is_none_or(|f|f.page<10) {run.errors.push("whole-book PDF search did not navigate".into());}
+                    if step==23 && ui.get_reflowable() {run.errors.push("fixed-layout EPUB was treated as reflowable".into());}
+                    if let Some(frame)=&s.frame {
+                        let record=json!({"step":step,"page":frame.page,"right":s.right.as_ref().map(|f|f.page),"overflow":[frame.overflow.0,frame.overflow.1],"pixels":[frame.width,frame.height],"glyphs":frame.glyphs.len(),"images":frame.images.len(),"cache_bytes":s.metrics.max_cache,"counters":counters()});
+                        run.snapshots.push(record);
+                    }
+                    drop(s);
+                    if let Some(folder)=&screenshots {
+                        if let Err(error)=snapshot(&ui,&folder.join(format!("feature-{step:02}.png"))){run.errors.push(error.to_string());}
+                    }
+                }
+                match run.step {
+                    0=>{let s=state.lock().unwrap();let f=s.frame.as_ref().unwrap();let(x,y)=(f.display_width*0.9,f.display_height*0.5);drop(s);ui.invoke_hit(0,x,y);},
+                    1=>ui.invoke_hit(0,5.0,20.0),
+                    2=>ui.invoke_typography("zoom".into(),2.5),
+                    3=>ui.invoke_pan(180.0,300.0),
+                    4=>{ui.invoke_theme_changed(2);ui.invoke_page_color_changed(1);},
+                    5=>ui.invoke_page_color_changed(2),
+                    6=>{ui.invoke_theme_changed(0);ui.invoke_page_color_changed(0);ui.set_double_page(true);ui.invoke_mode_changed(true);},
+                    7=>ui.invoke_typography("fit-width".into(),0.0),
+                    8=>ui.invoke_typography("zoom".into(),2.0),
+                    9=>ui.invoke_pan(160.0,300.0),
+                    10=>{ui.set_show_search(true);ui.invoke_search("Paragraph 20-24".into());},
+                    11=>{ui.set_show_search(false);ui.invoke_search("".into());ui.set_double_page(false);ui.invoke_mode_changed(false);open(PathBuf::from("tests/fixtures/reading.md"),&ui,&state,&mailbox);},
+                    12=>ui.set_show_contents(true),
+                    13=>{ui.set_show_contents(false);ui.invoke_typography("size".into(),24.0);},
+                    14=>{ui.invoke_typography("size".into(),18.0);ui.invoke_next_page(1);},
+                    15=>open(PathBuf::from("tests/fixtures/text-gb18030.txt"),&ui,&state,&mailbox),
+                    16=>ui.invoke_encoding_changed("GB18030".into()),
+                    17=>open(PathBuf::from("tests/fixtures/text-utf16le.txt"),&ui,&state,&mailbox),
+                    18=>open(PathBuf::from("tests/fixtures/advanced.epub"),&ui,&state,&mailbox),
+                    19=>ui.invoke_theme_changed(2),
+                    20=>{ui.invoke_theme_changed(0);open(PathBuf::from("tests/fixtures/vertical.epub"),&ui,&state,&mailbox);},
+                    21=>open(PathBuf::from("tests/fixtures/fixed.epub"),&ui,&state,&mailbox),
+                    22=>ui.invoke_typography("zoom".into(),1.8),
+                    _=>{run.end=Some(counters());finish(&ui,&state,&report,&scenario,&run);if let Some(t)=stop.upgrade(){t.stop();}return;}
+                }
+                run.step+=1;run.waiting=true;run.ready=Some(Instant::now()+Duration::from_millis(400));return;
             }
             if scenario == "stress" {
                 if run.baseline.is_none() {

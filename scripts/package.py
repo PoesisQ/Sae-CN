@@ -80,19 +80,19 @@ corresponding source assets/ directory; it is not a CC0 test fixture.
 (runtime/'THIRD-PARTY-NOTICES.txt').write_text(notices,encoding='utf-8')
 readme='''Sae Reader · Windows x64 预览版
 
-双击 SaeReader.exe，或把 EPUB/PDF 路径作为命令行参数打开。
-滚轮整页切换；顶部可选单页/双页（窄窗口自动暂用单页）。
-Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 当前页查找，
+双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD 路径作为命令行参数打开。
+点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。顶部可选单页/双页（窄窗口自动暂用单页）。
+Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，
 Ctrl+C 复制所选文字，F10 显隐工具栏，F11 全屏。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
-PDF 为固定版式，单独缩放。正常关闭后保存设置及每本书的逻辑位置。
+PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
 
 默认数据：%LOCALAPPDATA%\\SaeReader\\state.json。
 便携数据：以 SaeReader.exe --portable 启动，写入程序目录的 data/。
 卸载：关闭后删除程序目录；如需删除个人历史，再自行删除上述数据目录。
 
-此版实际支持 EPUB/PDF。TXT/MD、跨章节全文搜索尚未提供。
-Ruby、MathML、竖排和固定版式不能笼统宣称完整兼容。详见 docs/。
+此版支持 EPUB/PDF/TXT/MD。文本支持自动检测和手动编码，Markdown 使用本地阅读视图。
+部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
 本次修复及实测结果见 docs/feedback-20261026.md 和 performance-report.md。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
@@ -111,7 +111,7 @@ shutil.copy2(root/'CHANGELOG.md',runtime/'CHANGELOG.md')
 shutil.copy2(root/'assets/window-icon.png',runtime/'assets/window-icon.png')
 shutil.copytree(root/'docs',runtime/'docs',dirs_exist_ok=True)
 source_zip=dist/f'{args.name}-source.zip'
-top=['Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','CHANGELOG.md','LICENSE','.gitignore','.gitattributes','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
+top=['AGENTS.md','Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','CHANGELOG.md','LICENSE','.gitignore','.gitattributes','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
 folders=['src','ui','assets','scripts','tests','docs','vendor','legal']
 files=[]
 for item in top:
@@ -156,7 +156,11 @@ with ExitStack() as stack:
         if check.hexdigest()!=expected:raise RuntimeError('Previous source ZIP checksum mismatch')
         previous=stack.enter_context(zipfile.ZipFile(stack.enter_context(args.reuse_registry_from.open('rb',buffering=1024*1024))))
         previous_prefix=previous_name+'-source/'
-        if previous.read(previous_prefix+'Cargo.lock')!=(root/'Cargo.lock').read_bytes():raise RuntimeError('Cannot reuse dependencies from a different Cargo.lock')
+        def dependency_lock(data):
+            # Only the application's own version may differ. Every dependency
+            # block, checksum and root dependency list must still match exactly.
+            return re.sub(r'(name = "sae-reader"\nversion = ")[^"]+("\n)', r'\1APPLICATION_VERSION\2', data.decode('utf-8').replace('\r\n','\n'))
+        if dependency_lock(previous.read(previous_prefix+'Cargo.lock'))!=dependency_lock((root/'Cargo.lock').read_bytes()):raise RuntimeError('Cannot reuse sources after dependency lock changes')
         previous_entries=[f for f in previous.infolist() if f.filename.startswith(previous_prefix+'dependencies/') and not f.is_dir()]
         previous_crates={f.filename[len(previous_prefix+'dependencies/'):].split('/')[0] for f in previous_entries}
         expected_crates={f"{p['name']}-{p['version']}" for p in metadata['packages'] if p['source']}

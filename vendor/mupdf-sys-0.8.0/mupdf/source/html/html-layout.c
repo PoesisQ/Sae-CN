@@ -111,6 +111,7 @@
 */
 
 enum { T, R, B, L };
+int sae_run_display_list_image(fz_context *ctx, fz_image *image, fz_device *dev, fz_matrix ctm);
 
 /* === LAYOUT INLINE TEXT === */
 
@@ -549,6 +550,7 @@ typedef struct
 
 	hb_buffer_t *hb_buf;
 	fz_html_restarter *restart;
+	int sae_fixed_layout;
 } layout_data;
 
 /* "are we in a restarting context, and still skipping?" */
@@ -567,7 +569,7 @@ static int flush_line(fz_context *ctx, fz_html_box *box, layout_data *ld, float 
 {
 	float avail, line_h, baseline;
 	float page_w = ld->bounds[R] - ld->bounds[L];
-	float page_h = ld->page[B] - ld->page[T];
+	float page_h = ld->sae_fixed_layout ? 0 : ld->page[B] - ld->page[T];
 	float page_top = ld->page[T];
 	line_h = measure_line(a, b, &baseline);
 	if (page_h > 0)
@@ -1068,7 +1070,8 @@ static void layout_flow(fz_context *ctx, layout_data *ld, fz_html_box *box, fz_h
 
 static float advance_for_spacing(fz_context *ctx, layout_data *ld, float start_b, float spacing, int *eop)
 {
-	float page_h = ld->page[B] - ld->page[T];
+	if (ld->sae_fixed_layout) return start_b + spacing;
+	float page_h = ld->sae_fixed_layout ? 0 : ld->page[B] - ld->page[T];
 	float page_top = ld->page[T];
 	float avail = page_h - fmodf(start_b - page_top, page_h);
 	if (spacing > avail)
@@ -1081,8 +1084,9 @@ static float advance_for_spacing(fz_context *ctx, layout_data *ld, float start_b
 
 static int layout_block_page_break(fz_context *ctx, layout_data *ld, float *yp, int page_break)
 {
+	if (ld->sae_fixed_layout) return 0;
 	fz_html_restarter *restart = ld->restart;
-	float page_h = ld->page[B] - ld->page[T];
+	float page_h = ld->sae_fixed_layout ? 0 : ld->page[B] - ld->page[T];
 	float page_top = ld->page[T];
 	float avail;
 	int side; /* 0 = right, 1 = left */
@@ -2670,9 +2674,9 @@ static int layout_table(fz_context *ctx, layout_data *ld, fz_html_box *box)
 			 * Unless the row was at the very start of the page, in which case it'll overflow instead.
 			 * FIXME: Don't overflow, draw twice with offset to break it abruptly at the page border!
 			 */
-			if (ld->page[B] != ld->page[T])
+			if (!ld->sae_fixed_layout && ld->page[B] != ld->page[T])
 			{
-				float page_h = ld->page[B] - ld->page[T];
+				float page_h = ld->sae_fixed_layout ? 0 : ld->page[B] - ld->page[T];
 				float avail = page_h - fmodf(row->s.layout.y - ld->page[T], page_h);
 				float used = row->s.layout.b - row->s.layout.y;
 				if (used > avail && avail < page_h)
@@ -3159,6 +3163,7 @@ fz_restartable_layout_html(fz_context *ctx, fz_html_tree *tree, float start_x, f
 		fz_hb_unlock(ctx);
 
 		ld.restart = restart;
+		ld.sae_fixed_layout = tree->sae_fixed_layout;
 		ld.page[T] = start_y;
 		ld.page[R] = start_x + page_w;
 		ld.page[B] = start_y + page_h;
@@ -3519,7 +3524,8 @@ static int draw_flow_box(fz_context *ctx, fz_html_box *box, float page_top, floa
 					float alpha = style->color.a / 255.0f;
 					fz_matrix itm = fz_pre_translate(ctm, node->x, node->y - page_top);
 					itm = fz_pre_scale(itm, node->w, node->h);
-					fz_fill_image(ctx, dev, node->content.image, itm, alpha, fz_default_color_params);
+					if (alpha != 1.0f || !sae_run_display_list_image(ctx, node->content.image, dev, itm))
+						fz_fill_image(ctx, dev, node->content.image, itm, alpha, fz_default_color_params);
 				}
 			}
 		}

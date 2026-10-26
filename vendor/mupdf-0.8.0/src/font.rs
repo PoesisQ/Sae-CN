@@ -83,6 +83,15 @@ impl Font {
         Self::from_bytes_with_index(name, 0, font_data)
     }
 
+    /// Open a font through read-only, reference-counted file storage on Windows.
+    /// The mapping stays alive until the last native font reference is dropped.
+    pub fn from_file_mapped(name: &str, index: i32, path: &str) -> Result<Self, Error> {
+        let name = CString::new(name)?;
+        let path = CString::new(path)?;
+        unsafe { ffi_try!(mupdf_new_font_from_file_mapped(context(), name.as_ptr(), index, path.as_ptr())) }
+            .map(|inner| Self { inner })
+    }
+
     pub fn from_bytes_with_index(name: &str, index: i32, font_data: &[u8]) -> Result<Self, Error> {
         let c_name = CString::new(name)?;
         let buffer = Buffer::from_bytes(font_data)?;

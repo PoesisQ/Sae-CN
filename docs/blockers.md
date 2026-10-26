@@ -22,7 +22,7 @@ The initial core EPUB exceeded five minutes without a correct first page. It was
 
 ## B002 — License route (resolved by owner)
 
-The owner selected AGPL-compatible open-source distribution in this chat on 2026-10-25. Include corresponding application/engine/binding source, patches, build scripts and notices. Final dependency audit remains required. No commercial purchase or public publishing action is authorized.
+The owner selected AGPL-compatible open-source distribution in this chat on 2026-10-25. Include corresponding application/engine/binding source, patches, build scripts and notices. Final dependency audit remains required. The owner subsequently authorized publishing this repository and Windows/source/license Releases on GitHub.
 
 ## Gate status
 
@@ -46,3 +46,14 @@ epub-01 XHTML 中存在 HTML 空元素未闭合。容器/OPF/NCX/SVG 继续使�
 ## B008 — 当前交付范围与后续验收
 
 本轮优先落实用户明确要求的性能、整页/双页和轻量美术修复；未改变 Rust + Slint + MuPDF 路线。本地反馈版提供独立程序和对应源码；G5 有初步实测/对照/打包证据，仍未通过。真实冷启动、干净 VM/DLL、全格式与复杂 EPUB3 等事项仍按原总纲逐项推进。
+
+
+## 0.2 iteration: current technical obstacles and options
+
+The previous sections are dated history. This iteration implements four-format opening, on-demand whole-book search, click turns, bounded PDF zoom/pan, native tint/invert, mapped fonts and shared pixels. Gates remain unaccepted until their full baseline checks are met; completion of a feature is not completion of all Phase 0–5 gates.
+
+- **Vertical EPUB** remains an engine gap. `vertical.epub` explicitly requests vertical-rl, but the actual native window still lays it horizontally. The chapter retains images and Japanese text; it is not a successful vertical layout. A visible notice identifies the mismatch. Recommended next option: extend MuPDF's native flow/shaping/line-break model, preserving one engine and existing coordinates, but with substantial implementation and regression cost. Alternative: a separate on-demand Rust vertical layout module using existing native font/image rendering; this adds a second pagination/selection model and requires an owner architecture decision before adoption. A browser runtime is outside the approved route.
+- **MathML/Ruby breadth**: targeted vector conversion covers basic groups, fraction, root, sub/superscript and common base/annotation Ruby. Unsupported node types are left in the document with a notice; this is not full MathML/Ruby conformance. Extend the bounded Rust subset with fixtures first. A new full mathematical layout dependency would require size, memory and license evidence before an owner decision.
+- **Fixed layout breadth**: uniform viewport/publisher absolute positioning is under native regression. Per-spine rendition overrides, mixed viewports and automatic publisher spread rules still need separate native work and examples. Do not label these as fully compatible.
+
+The selected final screenshots, build identities and measurements are linked in the 0.2 iteration report. Full clean-VM, actual multi-monitor DPI, accessibility, comprehensive second-reader comparisons and cold-start acceptance are still outstanding. Public release remains a preview.

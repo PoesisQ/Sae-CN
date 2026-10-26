@@ -41,6 +41,7 @@ fn local_epubs_show_real_pixels_in_single_and_double_pages() {
                 navigation: Navigation::Page(0),
                 query: String::new(),
                 pdf_zoom: 1.0,
+                view: Default::default(),
                 spread,
             };
             let start = Instant::now();
@@ -82,4 +83,67 @@ fn local_epubs_show_real_pixels_in_single_and_double_pages() {
         }
     }
     drop(worker);
+}
+
+#[test]
+fn local_pdfs_magnify_real_pages_without_allocating_a_full_zoomed_bitmap() {
+    let Some(folder) = std::env::var_os("SAE_READER_TEST_BOOKS") else {
+        return;
+    };
+    let mut paths = std::fs::read_dir(folder)
+        .unwrap()
+        .filter_map(Result::ok)
+        .map(|e| e.path())
+        .filter(|p| p.extension().is_some_and(|e| e.eq_ignore_ascii_case("pdf")))
+        .collect::<Vec<_>>();
+    paths.sort();
+    assert!(!paths.is_empty());
+    let (tx, rx) = mpsc::channel();
+    let worker = Worker::start(move |g, r| {
+        let _ = tx.send((g, r));
+    });
+    for (index, path) in paths.into_iter().enumerate() {
+        for spread in [false, true] {
+            let request = Request {
+                path: path.clone(),
+                style: Typography::default(),
+                width: 1100.0,
+                height: 740.0,
+                dpi: 1.25,
+                page: 0,
+                navigation: Navigation::Page(0),
+                query: String::new(),
+                pdf_zoom: 3.0,
+                spread,
+                view: Default::default(),
+            };
+            let start = Instant::now();
+            let target = worker.mailbox.submit(request);
+            let update = loop {
+                let (g, r) = rx.recv_timeout(Duration::from_secs(20)).unwrap();
+                if g == target {
+                    break r.unwrap();
+                }
+            };
+            assert!(update.frame.width <= 1375 && update.frame.height <= 925);
+            assert!(update.frame.overflow.0 > 1.0 || update.frame.overflow.1 > 1.0);
+            assert!(update.cache_bytes <= 16 * 1024 * 1024);
+            assert!(
+                update
+                    .frame
+                    .pixels
+                    .chunks_exact(3)
+                    .any(|p| p.iter().any(|v| *v < 180))
+            );
+            println!(
+                "pdf-sample={} spread={} zoom=3 first_tile_ms={:.2} pixels={}x{} cache_bytes={}",
+                index + 1,
+                spread,
+                start.elapsed().as_secs_f64() * 1000.0,
+                update.frame.width,
+                update.frame.height,
+                update.cache_bytes
+            );
+        }
+    }
 }

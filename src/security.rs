@@ -15,6 +15,13 @@ const MAX_ENTRIES: usize = 10_000;
 #[derive(Clone, Debug, Default)]
 pub struct EpubInspection {
     pub repaired_html: usize,
+    pub ruby: usize,
+    pub math: usize,
+    pub vertical: bool,
+    pub fixed: bool,
+    pub viewport: Option<(f32, f32)>,
+    pub complex_entries: Vec<String>,
+    pub unconverted_complex_html: bool,
 }
 pub fn preflight_epub(path: &Path) -> Result<()> {
     inspect_epub(path).map(|_| ())
@@ -75,8 +82,17 @@ pub fn inspect_epub(path: &Path) -> Result<EpubInspection> {
             let html = [".xhtml", ".html", ".htm"]
                 .iter()
                 .any(|ext| lower.ends_with(ext));
-            if validate_markup(&bytes, html)? {
+            let before = (report.ruby, report.math);
+            if validate_markup_inspected(&bytes, html, Some(&mut report))? {
                 report.repaired_html += 1;
+            }
+            if html && before != (report.ruby, report.math) {
+                report.complex_entries.push(name);
+            }
+        } else if lower.ends_with(".css") && item.size() <= MAX_XML {
+            let mut css = String::new();
+            if item.read_to_string(&mut css).is_ok() {
+                report.vertical |= css.contains("vertical-rl") || css.contains("vertical-lr");
             }
         }
     }
@@ -110,7 +126,15 @@ pub fn safe_archive_path(name: &str) -> bool {
 fn validate_xml(bytes: &[u8]) -> Result<()> {
     validate_markup(bytes, false).map(|_| ())
 }
+#[cfg(test)]
 fn validate_markup(bytes: &[u8], html: bool) -> Result<bool> {
+    validate_markup_inspected(bytes, html, None)
+}
+fn validate_markup_inspected(
+    bytes: &[u8],
+    html: bool,
+    mut report: Option<&mut EpubInspection>,
+) -> Result<bool> {
     let (decoded, had_errors) = if bytes.starts_with(&[0xff, 0xfe]) {
         encoding_rs::UTF_16LE.decode_without_bom_handling(&bytes[2..])
     } else if bytes.starts_with(&[0xfe, 0xff]) {
@@ -137,6 +161,9 @@ fn validate_markup(bytes: &[u8], html: bool) -> Result<bool> {
     );
     if html && parsed.is_err() {
         validate_repairable_html(text)?;
+        if let Some(report) = report.as_deref_mut() {
+            report.unconverted_complex_html |= text.contains("<ruby") || text.contains("<math");
+        }
         return Ok(true);
     }
     let doc = parsed.context("Malformed EPUB XML")?;
@@ -147,6 +174,48 @@ fn validate_markup(bytes: &[u8], html: bool) -> Result<bool> {
         );
         if node.is_element() && node.tag_name().name() == "script" {
             bail!("Scripted EPUB content is unsupported; no script is executed");
+        }
+        if let Some(report) = report.as_deref_mut() {
+            if node.is_element() {
+                match node.tag_name().name() {
+                    "ruby" => report.ruby += 1,
+                    "math" => report.math += 1,
+                    "meta" => {
+                        if node.attribute("property") == Some("rendition:layout")
+                            && node.text().is_some_and(|s| s.trim() == "pre-paginated")
+                        {
+                            report.fixed = true;
+                        }
+                        if node.attribute("name") == Some("viewport") && report.viewport.is_none() {
+                            let mut w = None;
+                            let mut h = None;
+                            for field in node.attribute("content").unwrap_or("").split([',', ';']) {
+                                if let Some((name, value)) = field.trim().split_once('=') {
+                                    if let Ok(value) = value.trim().parse::<f32>() {
+                                        if value.is_finite() && (16.0..=20000.0).contains(&value) {
+                                            match name.trim() {
+                                                "width" => w = Some(value),
+                                                "height" => h = Some(value),
+                                                _ => {}
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            if let (Some(w), Some(h)) = (w, h) {
+                                // This pinned MuPDF HTML engine treats CSS px as
+                                // one layout unit. Keep viewport and source px in
+                                // that same coordinate space for fixed canvases.
+                                report.viewport = Some((w, h));
+                            }
+                        }
+                    }
+                    _ => {}
+                }
+                report.vertical |= node
+                    .attribute("style")
+                    .is_some_and(|s| s.contains("vertical-rl") || s.contains("vertical-lr"));
+            }
         }
     }
     Ok(false)

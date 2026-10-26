@@ -220,6 +220,8 @@ fz_drop_buffer(fz_context *ctx, fz_buffer *buf)
 {
 	if (fz_drop_imp(ctx, buf, &buf->refs))
 	{
+		if (buf->drop_storage)
+			buf->drop_storage(buf->storage_owner, buf->data);
 		if (!buf->shared)
 			fz_free(ctx, buf->data);
 		fz_free(ctx, buf);

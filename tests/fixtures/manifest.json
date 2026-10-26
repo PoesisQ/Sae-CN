@@ -63,6 +63,22 @@
     "sha256": "ba778c0261008c8f71ae4061ad0162ffcbe63b52c91f89f236738131d1217ec7",
     "bytes": 3
   },
+  "reading.md": {
+    "sha256": "bba4feb6121a1e27d0eccbc4aa70a825332dbc04ac6b6f77e188e6e5842f8513",
+    "bytes": 579
+  },
+  "text-gb18030.txt": {
+    "sha256": "b6fead9bf640246a8d2da356c30ccd722900e1977d60066342f2145692987032",
+    "bytes": 81053
+  },
+  "text-utf16le.txt": {
+    "sha256": "b08c909509404d2209a184a818429c4db443a9b4ed6a449f7a21fba7e68e551c",
+    "bytes": 120062
+  },
+  "text-utf8.txt": {
+    "sha256": "8ce064a395383291aa9c6bd607340e7cccf4b741aae130a1c106fe1466a876ef",
+    "bytes": 102076
+  },
   "vertical.epub": {
     "sha256": "5d5b18e1395845ea3cb59ba15d12e1208590d30908ad2b2098e7f2802be50738",
     "bytes": 3859

@@ -57,6 +57,7 @@ typedef struct
 	float layout_w, layout_h, layout_em;
 	epub_accelerator *accel;
 	uint32_t css_sum;
+	int sae_fixed_layout;
 
 	/* A common pattern of use is for us to open a document,
 	 * load a page, draw it, drop it, load the next page,
@@ -177,6 +178,7 @@ static fz_html *epub_get_laid_out_html(fz_context *ctx, epub_document *doc, epub
 
 static int count_laid_out_pages(fz_html *html)
 {
+	if (html->tree.sae_fixed_layout) return 1;
 	if (html->tree.root->s.layout.b > 0)
 		return ceilf(html->tree.root->s.layout.b / html->page_h);
 	return 1;
@@ -502,6 +504,7 @@ epub_get_laid_out_html(fz_context *ctx, epub_document *doc, epub_chapter *ch)
 	fz_html *html = epub_parse_chapter(ctx, doc, ch);
 	fz_try(ctx)
 	{
+		html->tree.sae_fixed_layout = doc->sae_fixed_layout;
 		fz_layout_html(ctx, html, doc->layout_w, doc->layout_h, doc->layout_em);
 		accelerate_chapter(ctx, doc, ch, html);
 	}
@@ -588,6 +591,19 @@ epub_lookup_bookmark(fz_context *ctx, fz_document *doc_, fz_bookmark mark)
 			return fz_make_location(i, p);
 	}
 	return fz_make_location(-1, -1);
+}
+
+/* A validated EPUB rendition:layout=pre-paginated uses one canvas per spine item.
+ * Keep its viewport for percentage/absolute positioning, but disable reflow
+ * pagination inside that canvas. Ordinary EPUBs retain the existing path. */
+void sae_epub_set_fixed_layout(fz_context *ctx, fz_document *doc_)
+{
+    epub_document *doc;
+    if (doc_->make_bookmark != epub_make_bookmark)
+        fz_throw(ctx, FZ_ERROR_ARGUMENT, "fixed layout requires an EPUB document");
+    doc = (epub_document *)doc_;
+    doc->sae_fixed_layout = 1;
+    invalidate_accelerator(ctx, doc->accel);
 }
 
 /* Sae Reader: durable EPUB chapter + source-flow ordinal, schema version 1.

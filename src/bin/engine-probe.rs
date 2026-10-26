@@ -73,6 +73,32 @@ fn main() -> Result<()> {
     }
     let original_hash = blake3::hash(&std::fs::read(input)?);
     let start = Instant::now();
+    if args.iter().any(|a| a == "--reader") {
+        let mut book = sae_reader::document::Book::open(Path::new(input))?;
+        book.layout(&Typography::default(), 540.0, 600.0, 0)?;
+        while !book.pagination_complete {
+            book.paginate_next()?;
+        }
+        let mut pages = Vec::new();
+        for number in 0..book.page_count.min(20) {
+            let page = book.engine.load_page(number)?;
+            pages.push(page_evidence(&book.engine, number, out)?);
+            let structured = page
+                .to_text_page(TextPageFlags::PRESERVE_IMAGES)?
+                .structured();
+            std::fs::write(
+                format!("{out}/structure-{number}.txt"),
+                format!("{structured:#?}"),
+            )?;
+        }
+        std::fs::write(
+            format!("{out}/reader-report.json"),
+            serde_json::to_vec_pretty(
+                &json!({"pages":pages,"count":book.page_count,"reflowable":book.reflowable,"notice":book.notice}),
+            )?,
+        )?;
+        return Ok(());
+    }
     let mut doc = Document::open(input)?;
     let reflow = doc.is_reflowable()?;
     let base = Typography::default();

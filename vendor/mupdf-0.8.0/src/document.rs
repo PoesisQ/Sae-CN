@@ -100,6 +100,12 @@ impl Document {
             .map(|inner| Self { inner })
     }
 
+    /// Use one non-paginated fixed canvas per EPUB spine item.
+    /// Call before the first layout; intended for validated pre-paginated EPUBs.
+    pub fn set_fixed_layout(&mut self) -> Result<(), Error> {
+        unsafe { ffi_try!(mupdf_sae_set_fixed_layout(context(), self.inner)) }
+    }
+
     pub fn from_bytes(bytes: &[u8], magic: &str) -> Result<Self, Error> {
         let c_magic = CString::new(magic)?;
         let len = bytes.len();
