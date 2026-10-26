@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.1.0-feedback3')
+parser.add_argument('--name', default='SaeReader-0.1.0-preview.1')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -43,7 +43,7 @@ for kind in ('source', 'windows-x64'):
         assert archive.testzip() is None, 'CRC failure'
         checked[kind] = {'entries': len(names), 'crc': 'all passed'}
         if kind == 'source':
-            required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'src/main.rs', 'ui/reader.slint',
+            required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
                         'assets/icon-original.png', 'assets/window-icon.png', 'assets/app-icon.ico',
                         'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py',
                         'legal/third-party/sources.json']

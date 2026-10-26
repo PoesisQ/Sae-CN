@@ -1,3 +1,7 @@
+param(
+    [string]$Name='SaeReader-0.1.0-preview.1',
+    [string]$ReuseRegistryFrom
+)
 $ErrorActionPreference='Stop'
 . "$PSScriptRoot\env.ps1"
 cargo build --release --locked --offline --bin sae-reader
@@ -8,5 +12,7 @@ cargo vendor --locked --versioned-dirs "$PSScriptRoot\..\artifacts\distribution-
 if ($LASTEXITCODE -ne 0) { throw 'Dependency source preparation failed' }
 cargo metadata --locked --offline --format-version 1 | Set-Content -Encoding UTF8 "$PSScriptRoot\..\artifacts\cargo-metadata.json"
 cargo tree --locked --offline --target x86_64-pc-windows-msvc --edges normal,build --prefix none --format '{p}|{l}' | Set-Content -Encoding UTF8 "$PSScriptRoot\..\artifacts\used-dependencies.txt"
-python "$PSScriptRoot\package.py"
+$readerPackageArgs=@("$PSScriptRoot\package.py",'--name',$Name)
+if ($ReuseRegistryFrom) { $readerPackageArgs+=@('--reuse-registry-from',$ReuseRegistryFrom) }
+python @readerPackageArgs
 if ($LASTEXITCODE -ne 0) { throw 'Packaging failed' }

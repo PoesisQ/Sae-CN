@@ -10,12 +10,13 @@ import json
 from pathlib import Path
 import re
 import shutil
+import subprocess
 import zipfile
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.1.0-feedback3')
+parser.add_argument('--name',default='SaeReader-0.1.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -58,7 +59,7 @@ for p in metadata['packages']:
 shutil.copy2(root/'legal/third-party/sources.json',licenses/'supplemental-sources.json')
 inventory={'application':'AGPL-3.0-or-later','packages':packages,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.1.0 feedback build
+notices='''Sae Reader 0.1.0 preview
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
@@ -77,7 +78,7 @@ application. Its original, provenance and size-conversion script are in the
 corresponding source assets/ directory; it is not a CC0 test fixture.
 '''
 (runtime/'THIRD-PARTY-NOTICES.txt').write_text(notices,encoding='utf-8')
-readme='''Sae Reader · 本地反馈验证版
+readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF 路径作为命令行参数打开。
 滚轮整页切换；顶部可选单页/双页（窄窗口自动暂用单页）。
@@ -90,21 +91,27 @@ PDF 为固定版式，单独缩放。正常关闭后保存设置及每本书的�
 便携数据：以 SaeReader.exe --portable 启动，写入程序目录的 data/。
 卸载：关闭后删除程序目录；如需删除个人历史，再自行删除上述数据目录。
 
-此版实际支持 EPUB/PDF。TXT/MD、跨章节全文搜索、复杂 EPUB3 仍待后续闸门。
+此版实际支持 EPUB/PDF。TXT/MD、跨章节全文搜索尚未提供。
 Ruby、MathML、竖排和固定版式不能笼统宣称完整兼容。详见 docs/。
 本次修复及实测结果见 docs/feedback-20261026.md 和 performance-report.md。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
-依赖 Windows 系统 DLL 和 Microsoft Visual C++ 2015–2022 x64 运行库；
+依赖 Windows 系统 DLL 和 Microsoft Visual C++ v14 x64 运行库；
 若提示缺少 VCRUNTIME140.dll / VCRUNTIME140_1.dll，需使用微软官方运行库。
 本包不附带 Microsoft 的运行库 DLL，不要求安装 Rust 或开发工具才能运行。
 
-源码和许可：同目录旁交付的 *-source.zip 与此二进制对应。未进行公开上传。
+源码、许可、图标与更新说明：
+https://github.com/PoesisQ/Sae-CN/releases
+请下载与本版本对应的 *-source.zip；完整许可已包含在本 Windows 包中。
 '''
 (runtime/'使用说明.txt').write_text(readme,encoding='utf-8')
+shutil.copy2(root/'README.md',runtime/'README.md')
+shutil.copy2(root/'CHANGELOG.md',runtime/'CHANGELOG.md')
+(runtime/'assets').mkdir()
+shutil.copy2(root/'assets/window-icon.png',runtime/'assets/window-icon.png')
 shutil.copytree(root/'docs',runtime/'docs',dirs_exist_ok=True)
 source_zip=dist/f'{args.name}-source.zip'
-top=['Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','LICENSE','.gitignore','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
+top=['Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','CHANGELOG.md','LICENSE','.gitignore','.gitattributes','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
 folders=['src','ui','assets','scripts','tests','docs','vendor','legal']
 files=[]
 for item in top:
@@ -126,6 +133,11 @@ replace-with = "vendored-sources"
 [source.vendored-sources]
 directory = "dependencies"
 '''
+revision=None
+source_tree_clean=None
+if (root/'.git').exists():
+    revision=subprocess.check_output(['git','rev-parse','HEAD'],cwd=root,text=True).strip()
+    source_tree_clean=not bool(subprocess.check_output(['git','status','--porcelain','--untracked-files=no'],cwd=root,text=True).strip())
 class SequentialZipOutput:
     """No backpatch seeks on the slow source drive; ZIP uses data descriptors."""
     def __init__(self, file): self.file = file
@@ -161,6 +173,7 @@ with ExitStack() as stack:
         z.writestr(info,previous.read(entry))
         if index%5000==0:print(f'Verified registry source entries: {index}/{len(previous_entries)}',flush=True)
     z.writestr(args.name+'-source/.cargo/config.toml',config)
+    if revision:z.writestr(args.name+'-source/SOURCE_REVISION.txt',revision+'\n')
     z.writestr(args.name+'-source/SOURCE-BUILD.txt','Matching local source. Install VS2022 v143 C++ / Windows SDK, run scripts/bootstrap.ps1 and scripts/env.ps1, then cargo build --release --locked --offline. All locked registry dependencies are included in dependencies/. See README.md and docs/.\n')
 runtime_zip=dist/f'{args.name}-windows-x64.zip'
 with runtime_zip.open('wb',buffering=1024*1024) as output:
@@ -172,6 +185,6 @@ def digest(path):
     with path.open('rb') as file:
         for block in iter(lambda:file.read(1024*1024),b''):hash.update(block)
     return hash.hexdigest()
-manifest={'name':args.name,'files':[{'file':p.name,'bytes':p.stat().st_size,'sha256':digest(p)} for p in [runtime/'SaeReader.exe',source_zip,runtime_zip]],'locked_registry_packages':len(list(deps.iterdir()))}
+manifest={'name':args.name,'source_commit':revision,'source_tree_clean':source_tree_clean,'files':[{'file':p.name,'bytes':p.stat().st_size,'sha256':digest(p)} for p in [runtime/'SaeReader.exe',source_zip,runtime_zip]],'locked_registry_packages':len(list(deps.iterdir()))}
 (dist/f'{args.name}-manifest.json').write_text(json.dumps(manifest,indent=2),encoding='utf-8')
 print(json.dumps(manifest,indent=2))

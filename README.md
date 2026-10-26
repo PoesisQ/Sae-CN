@@ -1,95 +1,83 @@
-# Sae Reader
+<p align="center">
+  <img src="assets/window-icon.png" alt="Sae Reader 图标" width="96" height="96">
+</p>
 
-Windows 10/11 x64 native reader under staged development against the complete
-`Windows_Reader_Codex_Engineering_Brief_v1_20261025.md` baseline.
+<h1 align="center">Sae Reader</h1>
 
-**Rust + Slint + MuPDF.** EPUB/PDF/TXT/Markdown only. No browser runtime or resident
-helper. The initial repository is a feasibility implementation; consult the gate
-table in [docs/blockers.md](docs/blockers.md) before assuming any acceptance item
-has passed.
+<p align="center">安静、轻量的 Windows EPUB / PDF 阅读器。</p>
 
-源代码仓库：[PoesisQ/Sae-CN](https://github.com/PoesisQ/Sae-CN)。仓库包含应用、修改过的
-原生引擎源码、合法测试样本、性能/视觉证据及许可补充文件；用户书籍、个人配置、
-本机构建缓存、工具链和 `dist/` 发行文件不入库。完整离线依赖源码包由打包脚本生成，
-普通源码检出则按 `Cargo.lock` 获取 registry 依赖。
+<p align="center">
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.1.0-preview.1/SaeReader-0.1.0-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.1.0-preview.1">更新说明与源码</a> ·
+  <a href="LICENSE">AGPL-3.0-or-later</a>
+</p>
 
-本次反馈版的实际可用格式为 **EPUB / PDF**；TXT / Markdown 适配器尚未通过 G2。
-2026-10-26 修复实书字体查找导致的长时间等待，支持滚轮整页翻阅及单页/双页选择，
-采用暖纸、细分隔线和按需展开侧栏的轻量界面。数据和截图见
-[本轮报告](docs/feedback-20261026.md)，不据此宣称 Phase 0–5 全部验收完成。
+Sae Reader 将注意力留给书页：暖纸、白纸与深色主题，可调排版，单页或双页阅读，
+以及需要时才展开的目录与设置。采用原生界面，无账户、广告、云同步或常驻后台服务。
 
-## 使用
+当前为 **v0.1.0-preview.1 预览版**，实际支持 **EPUB / PDF**。
 
-运行 `dist/SaeReader-0.1.0-feedback3/SaeReader.exe`，或向程序传入 EPUB/PDF 路径。
-正常关闭后保存全局排版和每本书的逻辑位置；默认保存到
-`%LOCALAPPDATA%/SaeReader/state.json`，`--portable` 改为程序旁 `data/`。
-无常驻服务。卸载时关闭程序、删除程序目录，个人历史可按需另行删除。
+![双页阅读界面](docs/evidence/feedback/ui-paper-double.png)
 
-已接入用户提供的 AI PNG 图标；窗口和 EXE 使用有界尺寸资源，原稿及来源记录
-随源码交付，见 `assets/README.md`。
+## 下载与使用
 
-- 滚轮、方向键、PageUp/PageDown：整页切换；双页时整跨页切换。
-- 顶部「单页 / 双页」：切换模式；阅读画布不足 800 逻辑像素时暂用单页。
-- Ctrl+O：打开；Ctrl+F：当前页查找；Ctrl+C：复制所选文字。
-- Ctrl+Plus/Minus：EPUB 字号或 PDF 缩放；F10：工具栏；F11：全屏。
-- 「排版」：字体、字号、行距、段前后距、缩进、对齐、正文宽度、四边距和主题。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.1.0-preview.1/SaeReader-0.1.0-preview.1-windows-x64.zip)。
+2. 完整解压，双击 `SaeReader.exe`，点击「打开」选择 EPUB 或 PDF。
+3. 顶部切换「单页 / 双页」，使用滚轮或方向键整页翻阅。
 
-当前不含拖入文件、跨章节全文搜索、完整单书排版配置、PDF 放大后的平移等 G2/G3 功能。
-Windows 系统 DLL 和 VC++ 2015–2022 x64 运行库仍为外部运行依赖；干净虚拟机验收待做。
+适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
+或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-## Build
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.1.0-preview.1) 同时提供独立 EXE、
+完整依赖源码、许可证和 SHA256 校验文件；推荐使用包含使用说明与许可文件的 Windows 压缩包。
 
-VS 2022 C++ v143 + Windows SDK and Python are required for development. Bootstrap
-installs Rust 1.99.1 and build-only libclang into `.tools` without changing the
-system PATH:
+## 阅读功能
 
-```powershell
-./scripts/bootstrap.ps1
-. ./scripts/env.ps1
-cargo build --release --locked
-cargo test --release --locked --no-default-features
-cargo run --release --locked --no-default-features --bin engine-probe -- tests/fixtures/core-epub3.epub artifacts/probe
-```
+- **单页 / 双页**：滚轮一次切换整页或整组双页；窄窗口自动暂用单页。
+- **真实重排**：EPUB 字体、字号、行距、段距、缩进、对齐、正文宽度及四边距可调。
+- **舒适主题**：暖纸、白纸和深色；PDF 保留固定版式，提供独立缩放。
+- **阅读工具**：章节目录、内部链接与返回、文字选择与复制、当前页查找。
+- **记住位置**：正常关闭或切书时保存排版、阅读模式及每本书的阅读位置。
 
-`Cargo.lock` pins the resolved dependency graph. The exact native library version,
-feature audit, test results and build caveats must be recorded before a release.
-Fixtures can be regenerated with Python and `fonttools`:
+## 快捷键
 
-```powershell
-python scripts/generate-fixtures.py
-```
+| 操作 | 快捷键 |
+|---|---|
+| 打开文件 | `Ctrl+O` |
+| 上一页 / 下一页 | 方向键、`PageUp` / `PageDown`、滚轮 |
+| 当前页查找 | `Ctrl+F` |
+| 复制所选文字 | `Ctrl+C` |
+| 调整 EPUB 字号 / PDF 缩放 | `Ctrl+Plus` / `Ctrl+Minus` |
+| 显隐工具栏 | `F10` |
+| 全屏 | `F11` |
 
-本地实书回归（只读，不会把书复制进源码或发行包）：
+## 数据与便携模式
+
+默认设置与阅读位置保存在 `%LOCALAPPDATA%\SaeReader\state.json`。
+需要便携使用时，在程序目录启动：
 
 ```powershell
-$env:SAE_READER_TEST_BOOKS='S:\书'
-cargo test --release --locked --offline --no-default-features --test local_books -- --nocapture
+.\SaeReader.exe --portable
 ```
 
-原生窗口诊断需显式 `--features qa` 和 `SAE_READER_QA_REPORT`；普通发行构建不含
-诊断定时器。复测脚本为 `scripts/qa-windows.py`、`profile-window.py`、
-`profile-local-books.py`。窗口必须在可见的 Windows 桌面运行。
+此时数据写入程序旁的 `data/` 文件夹。卸载时关闭程序并删除程序文件夹；
+个人阅读记录可按需另行删除。
 
-打包脚本为 `scripts/package.ps1`。发行目录旁交付完整 `*-source.zip`，包含修改过的
-MuPDF 源码和锁定依赖的全部 580 个 registry 源码目录；配置使用本地 vendor，
-已安装开发前提后可离线构建。不会附带 Windows 字体、用户书籍或私有配置。
+## 当前限制
 
-## Validation and limits
+- TXT / Markdown、拖入打开和跨章节全文搜索尚未提供；当前查找只覆盖当前页。
+- 部分复杂 EPUB 3 内容仍有兼容性问题，包括 Ruby 注音、MathML、竖排及固定版式。
+- PDF 放大后的平移、部分控件下的 Escape 行为仍需完善。
+- 不支持 DRM、嵌入脚本或多媒体播放。
 
-- [Architecture](docs/architecture-decisions.md)
-- [EPUB matrix](docs/epub-compatibility-matrix.md)
-- [Performance](docs/performance-report.md)
-- [Visual QA](docs/visual-qa.md)
-- [Known limitations](docs/known-limitations.md)
-- [License memo](docs/license-memo.md)
+详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
+和 [性能实测](docs/performance-report.md)。
 
-EPUB3 is evaluated feature by feature. Multimedia, scripts and DRM are unsupported.
-PDF typography is fixed. Application files must never overwrite original books.
+## 开发与许可
 
-## License
+使用 Rust、Slint 和 MuPDF 构建。[开发与构建说明](docs/development.md) 包含工具、测试和打包步骤。
 
-The owner selected AGPL-compliant open-source distribution. Application source:
-AGPL-3.0-or-later; dependencies retain their licenses. Distribute matching source,
-build scripts, native changes and notices with binary releases. See `LICENSE` and
-`docs/license-memo.md`. The repository does not yet constitute a cleared final
-release package.
+应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
+每个二进制 Release 同时提供对应源码及许可文件。
+
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.1.0-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.1.0-preview.1/SaeReader.ico)。
