@@ -107,6 +107,8 @@ struct Run {
     baseline: Option<Value>,
     end: Option<Value>,
     errors: Vec<String>,
+    chrome_viewport: Option<(f32, f32)>,
+    pan_origin: f32,
 }
 /// A QA-only timer is created only when an explicit report destination is set.
 /// The production binary has no diagnostic timer, environment parser or PNG codec.
@@ -182,6 +184,69 @@ pub fn start(
                     t.stop();
                 }
                 return;
+            }
+            if scenario == "chrome" {
+                let viewport=(ui.get_viewport_width(),ui.get_viewport_height());
+                if run.waiting {
+                    run.waiting=false; run.operations+=1;
+                    if matches!(run.step,1|2|3) && run.chrome_viewport!=Some(viewport) {
+                        run.errors.push("hover/pinned chrome changed document viewport".into());
+                    }
+                    if (run.step==1 && (!ui.get_top_visible() || ui.get_bottom_visible()))
+                        || (run.step==2 && (ui.get_top_visible() || !ui.get_bottom_visible()))
+                        || (run.step==3 && (!ui.get_top_visible() || !ui.get_bottom_visible())) {
+                        run.errors.push("edge reveal did not independently show/hide its controls".into());
+                    }
+                    let native_full=ui.window().with_winit_window(|w| w.fullscreen().is_some()).unwrap_or(false);
+                    if (run.step==4 && !native_full) || (run.step==5 && native_full) {
+                        run.errors.push("native fullscreen state did not change".into());
+                    }
+                    let (page,origin)={let s=state.lock().unwrap();(s.frame.as_ref().map_or(-1,|f|f.page),s.frame.as_ref().map_or(0.0,|f|f.origin.1))};
+                    if (run.step==9 && ui.get_pdf_zoom()<1.1) || (run.step==10 && ui.get_pdf_zoom()<1.3) {
+                        run.errors.push("zoom dial wheel/drag did not change zoom".into());
+                    }
+                    if run.step==11 && page<18 {run.errors.push("progress drag did not seek the page".into());}
+                    if run.step==12 && origin<=run.pan_origin {run.errors.push("right-button page drag did not pan".into());}
+                    if run.step==13 && (ui.get_pdf_zoom()-1.0).abs()>0.01 {run.errors.push("dial click did not restore fit page".into());}
+                    let step=run.step;
+                    run.snapshots.push(json!({"step":step,"viewport":[viewport.0,viewport.1],"native_fullscreen":native_full,
+                        "top_visible":ui.get_top_visible(),"bottom_visible":ui.get_bottom_visible(),"zoom":ui.get_pdf_zoom(),"page":page,"origin_y":origin}));
+                    if let Some(folder)=&screenshots {
+                        if let Err(e)=snapshot(&ui,&folder.join(format!("chrome-{step:02}.png"))) { run.errors.push(e.to_string()); }
+                    }
+                }
+                use slint::platform::{WindowEvent,PointerEventButton};
+                let point=slint::LogicalPosition::new((viewport.0+32.0)*0.5+171.0,viewport.1-43.0);
+                let drag=|from:slint::LogicalPosition,to:slint::LogicalPosition,button| {
+                    ui.window().dispatch_event(WindowEvent::PointerPressed{position:from,button});
+                    ui.window().dispatch_event(WindowEvent::PointerMoved{position:to});
+                    ui.window().dispatch_event(WindowEvent::PointerReleased{position:to,button});
+                };
+                match run.step {
+                    0=>{run.chrome_viewport=Some(viewport);ui.set_top_hover(true);},
+                    1=>{ui.set_top_hover(false);ui.set_bottom_hover(true);},
+                    2=>{ui.set_bottom_hover(false);ui.set_show_toolbar(true);},
+                    3=>ui.invoke_fullscreen(),
+                    4=>ui.invoke_fullscreen(),
+                    5=>{ui.set_show_toolbar(false);ui.set_top_hover(false);ui.set_bottom_hover(false);ui.set_show_settings(true);},
+                    6=>{ui.set_show_settings(false);ui.set_show_toolbar(false);},
+                    7=>{ui.set_bottom_hover(true);},
+                    8=>ui.window().dispatch_event(WindowEvent::PointerScrolled{position:point,delta_x:0.0,delta_y:120.0}),
+                    9=>drag(point,slint::LogicalPosition::new(point.x+56.0,point.y),PointerEventButton::Left),
+                    10=>{
+                        let left=(viewport.0+32.0-560.0)*0.5;
+                        drag(slint::LogicalPosition::new(left+150.0,point.y),slint::LogicalPosition::new(left+319.0,point.y),PointerEventButton::Left);
+                    },
+                    11=>{
+                        run.pan_origin=state.lock().unwrap().frame.as_ref().unwrap().origin.1;
+                        let from=slint::LogicalPosition::new((viewport.0+32.0)*0.7,viewport.1*0.5);
+                        drag(from,slint::LogicalPosition::new(from.x-80.0,from.y-60.0),PointerEventButton::Right);
+                    },
+                    12=>drag(point,point,PointerEventButton::Left),
+                    13=>{ui.set_bottom_hover(false);},
+                    _=>{run.end=Some(counters());finish(&ui,&state,&report,&scenario,&run);if let Some(t)=stop.upgrade(){t.stop();}return;}
+                }
+                run.step+=1;run.waiting=true;run.ready=Some(Instant::now()+Duration::from_millis(400));return;
             }
             if scenario == "features" {
                 if run.waiting {

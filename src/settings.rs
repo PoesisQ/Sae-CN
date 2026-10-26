@@ -18,7 +18,6 @@ pub struct Typography {
     pub user_priority: bool,
     pub continuous: bool,
     pub show_progress: bool,
-    pub show_toolbar: bool,
 }
 
 impl Default for Typography {
@@ -39,7 +38,6 @@ impl Default for Typography {
             user_priority: true,
             continuous: false,
             show_progress: true,
-            show_toolbar: true,
         }
     }
 }

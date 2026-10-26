@@ -18,7 +18,7 @@ The repository is under staged development. Unverified features must not be adve
 - Version 0.2 adds bounded visible-tile PDF zoom, fit-page/width and pan in single/double mode. Zoomed wheel gestures pan; clicking left/right still turns pages. Native tint/invert are opt-in, cached per tile and affect illustrations as well as text.
 - Preferences/location are saved on normal close or switching books, not periodically during reading. Crash recovery and invalid/future-schema backup/migration need further work.
 - Actual 150% system DPI plus four controlled Slint scales were checked; actual other Windows DPI settings/multi-monitor transitions and complete screen-reader coverage remain unverified.
-- Final manual QA found Escape can be consumed by a focused settings/edit control instead of closing all panels; visible close/collapse buttons work. Keyboard shortcut propagation still needs G1/G3 regression work.
+- Window-level F11/F10/Esc and Ctrl+O/F now bypass focused controls. Complete keyboard-only reading/editing, selection shortcuts and screen-reader coverage still need G1/G3 acceptance.
 - Local feedback packaging includes full vendored source/notices. Microsoft VC runtime DLLs are external prerequisites; a clean Windows VM run remains pending.
 
 

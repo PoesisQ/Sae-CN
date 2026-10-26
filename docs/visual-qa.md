@@ -1,3 +1,21 @@
+# v0.2.0-preview.1 当前界面检查
+
+以下为本次最终构建，后面的旧轮次记录保留用于对照。构建校验值、25 张截图的来源与内容校验值见 [builds.json](evidence/iteration-0.2/builds.json) 和 [images.json](evidence/iteration-0.2/images.json)。公开图片均为原创 CC0 样本，不包含用户书籍或桌面。
+
+![上沿悬停展开的双页工具条](evidence/iteration-0.2/ui-chrome-top.png)
+
+![正文占满客户区，浮层收起](evidence/iteration-0.2/ui-immersive.png)
+
+本轮检查确认：品牌、文件名、阅读命令、单双页分组和全屏入口有明确层次；底部页码、细进度条与缩放旋钮收在独立浮层，移除方向平移按钮与操作提示。使用基本矩形、边线和 6 个小 SVG，未加入模糊、位图皮肤或持续动画。浮层和侧栏只覆盖正文，不改变排版宽高。叠在正文上的控件会暂时遮挡其下内容，离开边缘或关闭侧栏后恢复原画面。
+
+实际事件覆盖 [旋钮滚轮](evidence/iteration-0.2/ui-control-zoom-wheel.png)、[旋钮拖动](evidence/iteration-0.2/ui-control-zoom-drag.png)、[进度拖动](evidence/iteration-0.2/ui-control-progress.png)、[右键平移](evidence/iteration-0.2/ui-control-pan.png) 和点击恢复适页。原生 Winit 全屏状态有进入/退出断言；实际 Windows F11 也观察到标题栏与任务栏消失。用户介入后停止键鼠操作，其余控件检查使用程序内 Slint 指针/滚轮事件，不能据此宣称完整物理键鼠路径或触摸板验收。
+
+补充检查了 [设置](evidence/iteration-0.2/ui-chrome-settings.png)、[Markdown](evidence/iteration-0.2/ui-markdown.png)、[TXT](evidence/iteration-0.2/ui-txt.png)、[全文搜索](evidence/iteration-0.2/ui-whole-book-search.png)、[Ruby/公式](evidence/iteration-0.2/ui-ruby-math.png)、[夜读](evidence/iteration-0.2/ui-ruby-math-night.png)、[固定画布](evidence/iteration-0.2/ui-fixed-canvas.png)。原图 SVG、图片和基本数学结构可见；Ruby 注音在基文字上方。原生回归另检文字层与连续基文搜索，未仅凭截图认定可选择或可搜索。
+
+当前实际系统 DPI 为 150%；100/125/200% 是在真实窗口内用 Slint 受控缩放检查。实际多显示器切换、独立审美验收、完整无障碍、出版方样式/任意配色/字重入口仍不宣称完成。
+
+---
+
 # 视觉 QA — 本轮反馈版
 
 本轮按用户要求改为克制的书页界面；G3 全项仍未通过。保留真实窗口渲染和 Windows 屏幕证据，区分引擎 PNG、窗口 renderer snapshot 与桌面捕获。

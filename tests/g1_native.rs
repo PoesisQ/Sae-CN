@@ -8,12 +8,23 @@ use std::{path::PathBuf, sync::mpsc, time::Duration};
 
 #[test]
 fn real_documents_relayout_cancel_and_release() {
+    // The running reader may legitimately have the public fixtures open.
+    // Exclusive-handle checks must use files owned by this regression process.
+    let fixture_dir = std::env::temp_dir().join(format!("sae-handle-test-{}", std::process::id()));
+    std::fs::create_dir_all(&fixture_dir).unwrap();
+    for name in ["core.pdf", "core-epub3.epub"] {
+        std::fs::copy(
+            PathBuf::from("tests/fixtures").join(name),
+            fixture_dir.join(name),
+        )
+        .unwrap();
+    }
     let (send, receive) = mpsc::channel();
     let worker = Worker::start(move |generation, result| {
         let _ = send.send((generation, result));
     });
     let mut request = Request {
-        path: PathBuf::from("tests/fixtures/core-epub3.epub"),
+        path: fixture_dir.join("core-epub3.epub"),
         style: Typography::default(),
         width: 1000.0,
         height: 800.0,
@@ -100,7 +111,7 @@ fn real_documents_relayout_cancel_and_release() {
     }
     let last = receive_generation(final_generation);
     assert!(last.cache_bytes <= 24 * 1024 * 1024);
-    request.path = PathBuf::from("tests/fixtures/core.pdf");
+    request.path = fixture_dir.join("core.pdf");
     request.navigation = Navigation::Page(0);
     for page in 0..20 {
         request.navigation = Navigation::Page(page);
@@ -114,7 +125,10 @@ fn real_documents_relayout_cancel_and_release() {
     #[cfg(windows)]
     {
         use std::os::windows::fs::OpenOptionsExt;
-        for path in ["tests/fixtures/core.pdf", "tests/fixtures/core-epub3.epub"] {
+        for path in [
+            fixture_dir.join("core.pdf"),
+            fixture_dir.join("core-epub3.epub"),
+        ] {
             std::fs::OpenOptions::new()
                 .read(true)
                 .share_mode(0)
@@ -122,6 +136,7 @@ fn real_documents_relayout_cancel_and_release() {
                 .expect("native file handle remains open after worker shutdown");
         }
     }
+    std::fs::remove_dir_all(fixture_dir).unwrap();
 }
 
 #[test]

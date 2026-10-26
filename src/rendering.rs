@@ -229,6 +229,18 @@ impl Cache {
             return Ok(frame);
         }
         self.misses += 1;
+        if view.viewport.is_some() {
+            // Keep one tile per fixed page. Old pan positions cannot be shown
+            // simultaneously and should not retain several viewport buffers.
+            self.entries.retain(|(old, frame)| {
+                if old.revision == key.revision && old.page == key.page {
+                    self.bytes -= frame.cost();
+                    false
+                } else {
+                    true
+                }
+            });
+        }
         let start = Instant::now();
         let mut pix = native.to_pixmap_region(&Matrix::new_scale(scale, scale), clip)?;
         if view.invert {

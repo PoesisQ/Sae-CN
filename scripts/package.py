@@ -16,7 +16,7 @@ import zipfile
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.1.0-preview.1')
+parser.add_argument('--name',default='SaeReader-0.2.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -81,9 +81,11 @@ corresponding source assets/ directory; it is not a CC0 test fixture.
 readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD 路径作为命令行参数打开。
-点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。顶部可选单页/双页（窄窗口自动暂用单页）。
+点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，
-Ctrl+C 复制所选文字，F10 显隐工具栏，F11 全屏。
+Ctrl+C 复制所选文字，F10 固定/自动收起工具栏，F11 全屏，Esc 退出全屏。
+鼠标靠近下沿显示进度拖动条与 PDF 缩放旋钮。旋钮支持滚轮或拖动，点击恢复适页；Ctrl+滚轮也可缩放。
+PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
 
@@ -93,7 +95,7 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 
 此版支持 EPUB/PDF/TXT/MD。文本支持自动检测和手动编码，Markdown 使用本地阅读视图。
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
-本次修复及实测结果见 docs/feedback-20261026.md 和 performance-report.md。
+本次修复及实测结果见 docs/iteration-0.2.md 和 docs/performance-report.md。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
 依赖 Windows 系统 DLL 和 Microsoft Visual C++ v14 x64 运行库；
@@ -157,9 +159,13 @@ with ExitStack() as stack:
         previous=stack.enter_context(zipfile.ZipFile(stack.enter_context(args.reuse_registry_from.open('rb',buffering=1024*1024))))
         previous_prefix=previous_name+'-source/'
         def dependency_lock(data):
-            # Only the application's own version may differ. Every dependency
-            # block, checksum and root dependency list must still match exactly.
-            return re.sub(r'(name = "sae-reader"\nversion = ")[^"]+("\n)', r'\1APPLICATION_VERSION\2', data.decode('utf-8').replace('\r\n','\n'))
+            value=data.decode('utf-8-sig').replace('\r\n','\n')
+            value=re.sub(r'(name = "sae-reader"\nversion = ")[^"]+("\n)',r'\1APPLICATION_VERSION\2',value)
+            # Only this additional edge is permitted; the Winit package itself
+            # was already present. All versions/checksums/other edges must match.
+            value=re.sub(r'(\[\[package\]\]\nname = "slint"\n)(.*?)(?=\n\[\[package\]\]|\Z)',
+                         lambda match:match.group(0).replace(' "i-slint-backend-winit",\n',''),value,flags=re.S)
+            return value
         if dependency_lock(previous.read(previous_prefix+'Cargo.lock'))!=dependency_lock((root/'Cargo.lock').read_bytes()):raise RuntimeError('Cannot reuse sources after dependency lock changes')
         previous_entries=[f for f in previous.infolist() if f.filename.startswith(previous_prefix+'dependencies/') and not f.is_dir()]
         previous_crates={f.filename[len(previous_prefix+'dependencies/'):].split('/')[0] for f in previous_entries}

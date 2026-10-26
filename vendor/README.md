@@ -48,3 +48,6 @@ Targeted Ruby/MathML SVG conversion and fixed-canvas selection live in applicati
 
 - `html-imp.h`, `epub-doc.c`, `html-layout.c`, safe `Document::set_fixed_layout`: validated fixed canvases keep their viewport bounds while disabling internal reflow page breaks and returning one page per spine item. This pinned HTML engine treats CSS px as one native layout unit, so the viewport uses the same units; applying an extra 72/96 factor crops the source canvas.
 - `image.c` and the HTML image drawing dispatch: replay completed SVG display lists directly for opaque content, preserving vector text and searchable/selected coordinates with no intermediate image. A verified native callback identity guards the derived-image cast; ordinary rasters and image opacity retain their existing drawing path.
+# 0.2 context isolation
+
+`mupdf/source/fitz/context.c`: copy-on-write style storage for cloned contexts, used by both CSS setters. This fixes concurrent CSS replacement without duplicating the native resource store. An allocation failure keeps the previous CSS valid. Upstream copyright and AGPL notices remain intact.

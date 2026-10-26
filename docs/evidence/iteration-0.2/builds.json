@@ -1,0 +1,22 @@
+{
+  "production": "8fbe2148fb58c9f5a31a159a70ab99c7d9f700174303e9305ce17d0b14618a2c",
+  "qa": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+  "baseline": "386f8f97ff1f57a1952680c32be801422a6cf4611bf32ccd09c133436980f75e",
+  "cpu": {
+    "Name": "Intel(R) Core(TM) i9-14900HX",
+    "NumberOfCores": 24,
+    "NumberOfLogicalProcessors": 32
+  },
+  "os": {
+    "Caption": "Microsoft Windows 11 \u5bb6\u5ead\u7248 \u4e2d\u6587\u7248",
+    "Version": "10.0.26200",
+    "BuildNumber": "26200"
+  },
+  "measured_at": "2026-10-26T16:13:13+08:00",
+  "measurement_limits": [
+    "Warm OS cache; antivirus and background applications not disabled",
+    "Production counters separate from optional QA renderer timings",
+    "Final UI uses the full client area; prior release reserved chrome space",
+    "Existing older reader window retained; never measured or terminated by new-run sampler"
+  ]
+}

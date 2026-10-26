@@ -6,6 +6,7 @@ use sae_reader::{
     settings::Typography,
     storage::{self, BookState, Preferences},
 };
+use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Image, ModelRc, VecModel};
 use std::{
     path::PathBuf,
@@ -136,7 +137,6 @@ fn sync_style(ui: &ReaderWindow, style: &Typography) {
     ui.set_canvas_color(color(&style.background));
     ui.set_dark(style.background.eq_ignore_ascii_case("#171A19"));
     ui.set_show_progress(style.show_progress);
-    ui.set_show_toolbar(style.show_toolbar);
 }
 fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) {
     let mut s = state.lock().unwrap();
@@ -388,6 +388,11 @@ fn run() -> anyhow::Result<()> {
                     }
                 }
             }
+            // Coalesce to one pending refresh without postponing it throughout
+            // a long drag. The mailbox always receives the latest pan position.
+            if timer.running() {
+                return;
+            }
             let state = state.clone();
             let mailbox = mailbox.clone();
             let weak = weak.clone();
@@ -487,6 +492,37 @@ fn run() -> anyhow::Result<()> {
         ui.on_next_page(move |direction| {
             if let Some(ui) = weak.upgrade() {
                 turn(&state, &mailbox, direction, &ui);
+            }
+        });
+    }
+    {
+        let weak = ui.as_weak();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        ui.on_seek(move |fraction| {
+            let count = state.lock().unwrap().count;
+            if let Some(ui) = weak.upgrade() {
+                submit(&state, &mailbox, |r| {
+                    r.page = (fraction.clamp(0.0, 1.0) * (count - 1).max(0) as f32).round() as i32;
+                    r.navigation = Navigation::Page(r.page);
+                    r.view.pan = [0.5, 0.0];
+                    r.view.search_hit = None;
+                    viewport(&ui, r);
+                });
+            }
+        });
+    }
+    {
+        let weak = ui.as_weak();
+        ui.on_wheel_xy(move |dx, dy, shift, control| {
+            if let Some(ui) = weak.upgrade() {
+                if control && !ui.get_reflowable() {
+                    ui.invoke_typography("zoom".into(), 1.12f32.powf(dy / 120.0));
+                } else if ui.get_pdf_pannable() && (shift || dx.abs() > 0.0) {
+                    ui.invoke_pan(if shift { -dy } else { -dx }, if shift { 0.0 } else { -dy });
+                } else {
+                    ui.invoke_wheel(dy);
+                }
             }
         });
     }
@@ -773,8 +809,82 @@ fn run() -> anyhow::Result<()> {
             if let Some(ui) = weak.upgrade() {
                 let mut s = state.lock().unwrap();
                 s.full = !s.full;
+                ui.set_is_fullscreen(s.full);
                 ui.window().set_fullscreen(s.full);
             }
+        });
+    }
+    {
+        let weak = ui.as_weak();
+        let mut control = false;
+        // Window-level shortcuts work while a button, slider or text field owns
+        // focus. Cursor events only update overlay visibility, never layout.
+        ui.window().on_winit_window_event(move |window, event| {
+            let Some(ui) = weak.upgrade() else {
+                return EventResult::Propagate;
+            };
+            match event {
+                winit::event::WindowEvent::ModifiersChanged(modifiers) => {
+                    control = modifiers.state().control_key();
+                }
+                winit::event::WindowEvent::Focused(false) => {
+                    control = false;
+                    ui.set_top_hover(false);
+                    ui.set_bottom_hover(false);
+                    ui.set_controls_busy(false);
+                }
+                winit::event::WindowEvent::CursorMoved { position, .. } => {
+                    let scale = window.scale_factor() as f64;
+                    let y = position.y / scale;
+                    let height = window.size().height as f64 / scale;
+                    ui.set_top_hover(y <= 76.0);
+                    ui.set_bottom_hover(y >= height - 84.0);
+                }
+                winit::event::WindowEvent::CursorLeft { .. } => {
+                    ui.set_top_hover(false);
+                    ui.set_bottom_hover(false);
+                }
+                winit::event::WindowEvent::KeyboardInput { event, .. }
+                    if event.state == winit::event::ElementState::Pressed && !event.repeat =>
+                {
+                    use winit::keyboard::{Key, NamedKey};
+                    if control {
+                        use winit::keyboard::{KeyCode, PhysicalKey};
+                        match event.physical_key {
+                            PhysicalKey::Code(KeyCode::KeyO) => {
+                                ui.invoke_open_file();
+                                return EventResult::PreventDefault;
+                            }
+                            PhysicalKey::Code(KeyCode::KeyF) => {
+                                ui.invoke_focus_search();
+                                return EventResult::PreventDefault;
+                            }
+                            _ => {}
+                        }
+                    }
+                    match event.logical_key {
+                        Key::Named(NamedKey::F11) => {
+                            ui.invoke_fullscreen();
+                            return EventResult::PreventDefault;
+                        }
+                        Key::Named(NamedKey::F10) => {
+                            ui.set_show_toolbar(!ui.get_show_toolbar());
+                            return EventResult::PreventDefault;
+                        }
+                        Key::Named(NamedKey::Escape) => {
+                            if ui.get_is_fullscreen() {
+                                ui.invoke_fullscreen();
+                            } else {
+                                ui.invoke_dismiss_panels();
+                            }
+                            return EventResult::PreventDefault;
+                        }
+                        _ => {}
+                    }
+                }
+                _ => {}
+            }
+            EventResult::Propagate
         });
     }
     ui.show()?;

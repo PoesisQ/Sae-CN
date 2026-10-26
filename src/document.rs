@@ -44,6 +44,7 @@ impl Book {
         encoding: Option<&str>,
         typography: &Typography,
     ) -> Result<Self> {
+        crate::fonts::install();
         let extension = path
             .extension()
             .and_then(|s| s.to_str())

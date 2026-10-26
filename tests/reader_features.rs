@@ -22,6 +22,29 @@ fn request(file: &str) -> Request {
 }
 
 #[test]
+fn concurrent_worker_contexts_keep_their_own_css_storage() {
+    let barrier = std::sync::Arc::new(std::sync::Barrier::new(8));
+    let handles: Vec<_> = (0..8)
+        .map(|id| {
+            let barrier = barrier.clone();
+            std::thread::spawn(move || {
+                let mut context = mupdf::Context::get();
+                let css = format!("body {{ font-size: {}pt; }}", id + 12);
+                barrier.wait();
+                for _ in 0..500 {
+                    context.set_user_css(&css).unwrap();
+                    std::thread::yield_now();
+                    assert_eq!(context.user_css().as_deref(), Some(css.as_str()));
+                }
+            })
+        })
+        .collect();
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+
+#[test]
 fn whole_book_search_reaches_other_chapters_and_wraps_in_both_directions() {
     let (tx, rx) = mpsc::channel();
     let worker = Worker::start(move |g, r| {
@@ -103,6 +126,8 @@ fn pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_a
     r.view.color = 2;
     let inverse = get(r.clone());
     assert_eq!(&inverse.frame.pixels[0..3], &[0, 0, 0]);
+    let unchanged = get(r.clone());
+    assert!(std::sync::Arc::ptr_eq(&inverse.frame, &unchanged.frame));
     r.view.color = 0;
     for spread in [false, true] {
         r.spread = spread;
@@ -117,6 +142,11 @@ fn pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_a
         }
         r.view.pan = [1.0, 1.0];
         let bottom = get(r.clone());
+        let tile_budget = bottom.frame.cost() + bottom.right.as_ref().map_or(0, |f| f.cost());
+        assert!(
+            bottom.cache_bytes <= tile_budget,
+            "obsolete pan tiles retained"
+        );
         assert!(
             bottom.frame.origin.0 > top.frame.origin.0
                 && bottom.frame.origin.1 > top.frame.origin.1

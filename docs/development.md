@@ -28,13 +28,13 @@ cargo build --release --locked --offline --bin sae-reader
 ## 测试与诊断
 
 ```powershell
-cargo test --release --locked --no-default-features --lib --test g1_native
+cargo test --release --locked --offline --features qa --no-fail-fast -- --nocapture
 ```
 
 测试本地书籍时设置 `SAE_READER_TEST_BOOKS` 为自己的目录，再执行：
 
 ```powershell
-cargo test --release --locked --no-default-features --test local_books -- --nocapture
+cargo test --release --locked --offline --features qa --test local_books -- --nocapture
 ```
 
 样本可通过 `python scripts/generate-fixtures.py` 重建，需要 `fonttools`。
@@ -47,9 +47,9 @@ cargo test --release --locked --no-default-features --test local_books -- --noca
 ## 打包
 
 ```powershell
-./scripts/package.ps1 -Name SaeReader-0.1.0-preview.1
-python scripts/verify-package.py --name SaeReader-0.1.0-preview.1
-python scripts/prepare-release.py --name SaeReader-0.1.0-preview.1
+./scripts/package.ps1 -Name SaeReader-0.2.0-preview.1
+python scripts/verify-package.py --name SaeReader-0.2.0-preview.1
+python scripts/prepare-release.py --name SaeReader-0.2.0-preview.1
 ```
 
 打包目录必须是全新名称，避免把个人便携数据带入发行包。
@@ -59,6 +59,7 @@ python scripts/prepare-release.py --name SaeReader-0.1.0-preview.1
 
 有本地已校验的完整源码 ZIP 时，可传入 `-ReuseRegistryFrom` 加快打包；
 脚本先验证旧包 SHA256、Cargo.lock 与依赖覆盖，实际程序及项目源码仍取当前文件。
+仅允许应用版本差异以及固定版本 Slint 到已存在 Winit crate 的 accessor 功能依赖边；所有包版本、校验和及其他依赖关系必须一致。
 
 ## 工程记录
 

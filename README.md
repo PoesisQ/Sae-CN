@@ -17,13 +17,13 @@ Sae Reader 支持暖纸、白纸与深色主题，可调排版、单页或双页
 
 当前为 **v0.2.0-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown**。
 
-![双页阅读界面](docs/evidence/feedback/ui-paper-double.png)
+![双页阅读，靠近边缘显示工具条](docs/evidence/iteration-0.2/ui-chrome-top.png)
 
 ## 下载与使用
 
 1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.2.0-preview.1/SaeReader-0.2.0-preview.1-windows-x64.zip)。
-2. 完整解压，双击 `SaeReader.exe`，点击「打开」选择 EPUB、PDF、TXT 或 Markdown。
-3. 顶部切换「单页 / 双页」，点击阅读区域左边上一页、右边下一页，也可用滚轮或方向键整页翻阅。
+2. 完整解压，双击 `SaeReader.exe`，打开 EPUB、PDF、TXT 或 Markdown。
+3. 鼠标移至窗口上沿展开工具条，选择「单页 / 双页」；点击阅读区域左边上一页、右边下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
@@ -40,6 +40,7 @@ Sae Reader 支持暖纸、白纸与深色主题，可调排版、单页或双页
 - **PDF 缩放**：单页、双页均可放大，适页、适宽与平移；按可见区域渲染。放大后滚轮平移，点击左右仍翻页。
 - **文本与 Markdown**：自动识别编码，可手动切换；保留 TXT 空行与缩进，Markdown 支持标题、列表、引用、代码、表格、本地图片与链接。
 - **记住位置**：正常关闭或切书时保存排版、阅读模式及每本书的阅读位置及手动文本编码。
+- **沉浸阅读**：上下浮层靠近边缘时出现，不占正文空间；F11 全屏。底部拖动进度条跳页，PDF 缩放旋钮支持滚轮和拖动，点击恢复适页。
 
 ## 快捷键
 
@@ -50,10 +51,11 @@ Sae Reader 支持暖纸、白纸与深色主题，可调排版、单页或双页
 | 全文查找 | `Ctrl+F` |
 | 复制所选文字 | `Ctrl+C` |
 | 调整可重排文字字号 / PDF 缩放 | `Ctrl+Plus` / `Ctrl+Minus` |
-| PDF 平移 | 上下方向键、放大后的滚轮、工具栏方向按钮 |
+| PDF 平移 | 放大后的滚轮、Shift+滚轮横移、中键或右键拖动 |
+| PDF 缩放 | 底部旋钮、Ctrl+滚轮 |
 | 恢复 PDF 适页 / 默认字号 | `Ctrl+0` |
-| 显隐工具栏 | `F10` |
-| 全屏 | `F11` |
+| 固定 / 自动收起工具栏 | `F10` |
+| 全屏 / 退出全屏 | `F11` / `Esc` |
 
 ## 数据与便携模式
 

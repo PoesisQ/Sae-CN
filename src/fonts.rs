@@ -8,7 +8,8 @@ thread_local! {
 }
 
 pub fn install() {
-    mupdf::set_font_loader(WindowsFonts);
+    static INSTALLED: std::sync::Once = std::sync::Once::new();
+    INSTALLED.call_once(|| mupdf::set_font_loader(WindowsFonts));
 }
 pub fn clear_thread_cache() {
     FONTS.with(|fonts| fonts.borrow_mut().clear());

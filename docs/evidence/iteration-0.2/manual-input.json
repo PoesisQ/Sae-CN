@@ -1,0 +1,7 @@
+{
+  "build": "8fbe2148fb58c9f5a31a159a70ab99c7d9f700174303e9305ce17d0b14618a2c",
+  "method": "Sky real Windows input; original PDF fixture",
+  "F11": "passed: title bar and taskbar disappear; document occupies the screen",
+  "further_input": "stopped after user intervention; test windows retained",
+  "wheel_drag_evidence": "verified-chrome uses native Slint control pointer/scroll dispatch, not OS mouse injection"
+}

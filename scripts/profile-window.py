@@ -27,6 +27,7 @@ root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--exe',type=Path,default=root/'target/x86_64-pc-windows-msvc/release/sae-reader.exe')
 parser.add_argument('--books',type=Path)
+parser.add_argument('--format',choices=['epub','pdf'],default='epub')
 parser.add_argument('--fixture',type=Path)
 parser.add_argument('--spread',action='store_true')
 parser.add_argument('--seconds',type=float,default=8)
@@ -37,7 +38,7 @@ parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
 if args.pid and (args.runs!=1 or args.books or args.fixture):parser.error('--pid requires one run and no input files')
 if args.books:
-    inputs=[(f'epub-{n:02}',p) for n,p in enumerate(sorted(args.books.glob('*.epub')),1)]
+    inputs=[(f'{args.format}-{n:02}',p) for n,p in enumerate(sorted(args.books.glob('*.'+args.format)),1)]
 elif args.fixture:inputs=[('fixture',args.fixture)]
 else:inputs=[('blank',None)]
 reports=[]

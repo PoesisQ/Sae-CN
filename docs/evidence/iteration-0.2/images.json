@@ -1,0 +1,152 @@
+[
+  {
+    "file": "ui-pdf-fit.png",
+    "sha256": "3d5eb641c147f16e7801656a5ad59384e33de6fb0c60dbca2bff716793a236b9",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-pdf-zoom.png",
+    "sha256": "a3d7a7b54dbcf6efb80382818c18f3eb7c3374b8908312cb8f48b21fee6e7503",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-pdf-tint-night.png",
+    "sha256": "1026030d6ae4e8671a330dbc03e0fd946b55dad845b1461f21175d8490c82638",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-pdf-invert.png",
+    "sha256": "6316110b16d868880c8383ee5919943f6e6d957ea1179d0d6e716fcb0cd080c1",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-pdf-spread.png",
+    "sha256": "362f66844f3d12140cd89126beb30a3a4347a4ab1d3d10d17b15445b6c907bdf",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-chrome-top.png",
+    "sha256": "c2e5361d76b43ec6ddf7a4b29bd0bdbc17512b831e09f1e6334f6d95af85c157",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-chrome-bottom.png",
+    "sha256": "3abe413d41dbff648a456c2178ea12ca292a3da6573255d2177a11b089e6234c",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-chrome-fullscreen.png",
+    "sha256": "210fb984d5e3b25dc1b4f53047b1b0c8606c54e95525605fc1ecf2e0dda83e3e",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-chrome-settings.png",
+    "sha256": "f3e08efe4392487a73385f59eb522fe4fe6608e18f0ff25a75e370d4bce0ff82",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-control-zoom-wheel.png",
+    "sha256": "9c2bbc4859e17aae4e47e138cccfcf97a6fd28dee46048a4053a557d939044cf",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-control-zoom-drag.png",
+    "sha256": "3f0cee4081aeabde4dd9c419bfab7b679c0f2fc30c0550770572feb2c58d9837",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-control-progress.png",
+    "sha256": "e8a3fbfc3f7d29ec67c87a2aabb64ffdbe2201c211f6254adb6d886a0c62d81d",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-control-pan.png",
+    "sha256": "ca872ea16444a27d110ddf514320d1d9b390f2b15fba7f2461e9e3d0e10a0af5",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-immersive.png",
+    "sha256": "5cd10a459ca3286b21d5c26b7f087246fdae0150d332f49bdcf3ef4f0cff772c",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-whole-book-search.png",
+    "sha256": "5503f33a7d5e34de74f53b74797bd60332bf3aac1e0d77a8a4ea3324e82330fc",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-markdown.png",
+    "sha256": "a23702b84f8a5a8d92972d2218dc73814bfdd624fbfb3260bfacd51b47f5824b",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-txt.png",
+    "sha256": "697445b2e34d1ab3237a35c8b3ed8d495380352111b28e2e5b9daaabfae2c9fb",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-ruby-math.png",
+    "sha256": "9217416068bcb020a0553d08ff5868111e40416e09ed539586f66c22af7f5341",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-ruby-math-night.png",
+    "sha256": "e0a3db0b6cfd3937ce4f9a6bf59b6b21cc444d23c2b3271386bdf402b64f1fa0",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-vertical-limitation.png",
+    "sha256": "e9fe02e9639ec3802abf4b3ff117fb155b9a892ddce20ec316d457da22f16c07",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-fixed-canvas.png",
+    "sha256": "867d524a32a3bd00832d74596698b5c9c71e9002968280b3f31f48cb1b0d18b1",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-epub-spread.png",
+    "sha256": "3b95082e61ead138400257644290a655626d7bfa80e64aea325f30ed04d1b493",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-epub-settings.png",
+    "sha256": "ac1bafa9e069160fa3e997fd79d3e0538c91330aeb7a18af915979dc968adef5",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-epub-night.png",
+    "sha256": "cd58cc7664ecb42f0196fbb303348bb745cabbb517765429b8287b8a2fad0eeb",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  },
+  {
+    "file": "ui-markdown-night.png",
+    "sha256": "f44293e4c909ff3ca2bb2c1ce1af5bf87767791d6a9c6560eee00c18a6e37895",
+    "build": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade",
+    "capture": "native Slint software renderer; original CC0 fixture"
+  }
+]

@@ -30,9 +30,9 @@ The owner selected AGPL-compatible open-source distribution in this chat on 2026
 |---|---|---|
 | G0 | 通过（生成样本范围） | Native EPUB2/3/PDF, five true layout changes, reopened logical anchors; raw evidence preserved |
 | G1 | 大部分原型证据已补，尚未全项通过 | 20 页 EPUB/PDF、坐标/锚点、双页、取消、句柄和窗口压力通过；实际多档系统 DPI/跨屏仍待补 |
-| G2 | 部分实施，未通过 | 目前实际开放 EPUB/PDF；TXT/MD、全文搜索等未完成 |
-| G3 | 用户反馈 UI 修复已实施，未通过 | 三套原生窗口候选、主题/侧栏/窄屏截图已补；完整参数与独立视觉验收仍待补 |
-| G4 | 未开始 | Requires measured P1 compatibility audit |
+| G2 | 四格式与全文搜索已实施，未全项通过 | 真实文本/图文回归已补；P0 外链确认、脚注、宽表与完整互操作仍待补 |
+| G3 | 沉浸浮层、旋钮与全屏已实施，未全项通过 | 最终截图、主题/窄屏/受控 DPI 检查；完整样式入口、独立美术与全键盘验收仍待补 |
+| G4 | 部分实施，未通过 | 基础 MathML/Ruby、同尺寸固定画布有原生回归；竖排等仍有已复现缺口 |
 | G5 | 部分实施，未通过 | 首屏/内存/CPU/窗口压力/初步 Sumatra 对照已有数据；冷启动、完整对照、干净 VM 等待补 |
 
 ## B006 — 真实 EPUB 缺失字体导致大量系统字库扫描（本轮修复）
@@ -57,3 +57,7 @@ The previous sections are dated history. This iteration implements four-format o
 - **Fixed layout breadth**: uniform viewport/publisher absolute positioning is under native regression. Per-spine rendition overrides, mixed viewports and automatic publisher spread rules still need separate native work and examples. Do not label these as fully compatible.
 
 The selected final screenshots, build identities and measurements are linked in the 0.2 iteration report. Full clean-VM, actual multi-monitor DPI, accessibility, comprehensive second-reader comparisons and cold-start acceptance are still outstanding. Public release remains a preview.
+
+## B009 — Cloned native contexts shared mutable CSS (resolved in 0.2)
+
+Default parallel native regression terminated with Windows STATUS_HEAP_CORRUPTION (0xc0000374). Inspection found `fz_clone_context` shares `fz_style_context`, while `fz_set_user_css` freed/replaced its string without isolation. The native patch detaches style storage on first mutation and allocates the replacement before freeing the old string. Shared resource/font stores remain bounded and shared. An eight-thread, 500-write/read-per-thread regression checks independent CSS; ordinary document tests remain parallel. Direct Book callers now install the same lazy Windows font loader deterministically. Handle-release regression uses its own fixture copies so an intentionally open reader cannot invalidate an exclusive-open assertion.

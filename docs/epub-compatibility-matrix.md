@@ -18,14 +18,14 @@ Engine/binding versions will be recorded from the actual build. `待测` means n
 | E12 | P0 global/book style precedence, original immutable | core-epub3.epub | 待测 | Render changes and file hash |
 | E13 | P1 SVG and mixed graphics | advanced.epub, inline-svg-cover.epub | 基本形状/图片通过；复杂对照待补 | g0-advanced、inline SVG 原生回归与实际窗口图片；不是 SVG 全规范声明 |
 | E14 | P1 float/nested tables/lists/positioning | advanced.epub | 待测 | Compare and classify differences |
-| E15 | P1 MathML | advanced.epub | 已确认 P1 缺陷 | 分数/幂被展平；g0-advanced 证据，不能称兼容 |
-| E16 | P1 SVG/image formulas | advanced.epub | 待测 | Verify elements and baseline |
-| E17 | P1 Ruby/emphasis marks | advanced.epub | 已确认 P1 缺陷 | Ruby 成普通行内文字；未实现可靠注音回退 |
+| E15 | P1 MathML | advanced.epub | 基础子集兼容；复杂结构未完成 | 0.2 原生截图及 reader_features：分组、分数、根号、上下标矢量转换；不支持的节点保留并提示 |
+| E16 | P1 SVG/image formulas | advanced.epub | 基础矢量图文已测；全面对照待补 | 原生显示列表直接绘制，保留文字层；暖纸/夜读截图，不将位图外观当作选择证据 |
+| E17 | P1 Ruby/emphasis marks | advanced.epub | 常见 Ruby 上下注音已测；着重号待补 | reader_features 断言字、注音与连续基文搜索；ui-ruby-math.png |
 | E18 | P1 CJK line-break constraints | advanced.epub | 待测 | Punctuation at line edges |
-| E19 | P1 vertical-rl/Japanese/reading direction | vertical.epub | 待测 | Direction and navigation |
+| E19 | P1 vertical-rl/Japanese/reading direction | vertical.epub | 已复现缺陷，未兼容 | 原生仍横排；书内明确提示。证据与原生扩展选项见 blockers.md |
 | E20 | P1 RTL/bidi | advanced.epub | 待测 | Text order and navigation |
-| E21 | P1 EPUB3 fixed layout/spreads | fixed.epub | 待测 | Respect fixed layout, no text-only substitute |
-| E22 | P1 cross chapter search/highlight | core-epub3.epub | 当前页高亮通过；跨章未完成 | 最终窗口 Quiet 两处高亮坐标一致，ui-search-native.png；不宣称全文搜索 |
+| E21 | P1 EPUB3 fixed layout/spreads | fixed.epub | 同尺寸画布已测；混合画布与出版方跨页待补 | 600×800 固定画布、绝对定位图像和底部文字断言，字号/窗口变化不重排；支持阅读器单双页与缩放 |
+| E22 | P1 cross chapter search/highlight | core-epub3.epub | 跨章与双页查找回归通过 | reader_features 前后循环、右页命中、缩放视区定位；ui-whole-book-search.png；无常驻索引 |
 | E23 | P2 audio/video/media overlay/script | not supplied | 不支持（产品范围） | Must surface limitation; never execute scripts |
 | E24 | P2 DRM | not supplied | 不支持（产品范围） | No bypass |
 | S01 | Security ZIP bomb/traversal/XXE/depth | generated hostile fixtures | 当前自动回归通过 | test-feedback-final.log；容错 HTML 仍拒绝实体/脚本/深度炸弹，容器 XML 仍严格 |

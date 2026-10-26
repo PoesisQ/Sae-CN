@@ -66,8 +66,35 @@ static void fz_drop_style_context(fz_context *ctx)
 	}
 }
 
+/* Sae Reader: cloned worker contexts must not mutate shared CSS storage.
+ * The resource store and font cache remain shared; styles detach on first write.
+ * Allocate before replacing the old context so an exception leaves it valid. */
+static void sae_unshare_style_context(fz_context *ctx)
+{
+	fz_style_context *style;
+	int shared;
+	fz_lock(ctx, FZ_LOCK_ALLOC);
+	shared = ctx->style->refs > 1;
+	fz_unlock(ctx, FZ_LOCK_ALLOC);
+	if (!shared)
+		return;
+	style = fz_malloc_struct(ctx, fz_style_context);
+	style->refs = 1;
+	style->use_document_css = ctx->style->use_document_css;
+	fz_try(ctx)
+		style->user_css = ctx->style->user_css ? fz_strdup(ctx, ctx->style->user_css) : NULL;
+	fz_catch(ctx)
+	{
+		fz_free(ctx, style);
+		fz_rethrow(ctx);
+	}
+	fz_drop_style_context(ctx);
+	ctx->style = style;
+}
+
 void fz_set_use_document_css(fz_context *ctx, int use)
 {
+	sae_unshare_style_context(ctx);
 	ctx->style->use_document_css = use;
 }
 
@@ -78,8 +105,11 @@ int fz_use_document_css(fz_context *ctx)
 
 void fz_set_user_css(fz_context *ctx, const char *user_css)
 {
+	char *replacement;
+	sae_unshare_style_context(ctx);
+	replacement = user_css ? fz_strdup(ctx, user_css) : NULL;
 	fz_free(ctx, ctx->style->user_css);
-	ctx->style->user_css = user_css ? fz_strdup(ctx, user_css) : NULL;
+	ctx->style->user_css = replacement;
 }
 
 const char *fz_user_css(fz_context *ctx)

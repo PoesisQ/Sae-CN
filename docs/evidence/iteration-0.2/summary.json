@@ -1,0 +1,359 @@
+{
+  "memory": [
+    {
+      "mode": "blank",
+      "sample": "blank",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 14.109375,
+      "new_private_mib": 14.0859375,
+      "private_reduction_percent": 0.16611295681063123,
+      "old_private_ws_mib": 11.91015625,
+      "new_private_ws_mib": 11.9140625,
+      "old_ws_mib": 32.1796875,
+      "new_ws_mib": 34.84375
+    },
+    {
+      "mode": "single",
+      "sample": "epub-01",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 56.0390625,
+      "new_private_mib": 35.30859375,
+      "private_reduction_percent": 36.99289000418235,
+      "old_private_ws_mib": 53.59765625,
+      "new_private_ws_mib": 32.921875,
+      "old_ws_mib": 77.0546875,
+      "new_ws_mib": 57.6328125
+    },
+    {
+      "mode": "single",
+      "sample": "epub-02",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 73.08203125,
+      "new_private_mib": 30.890625,
+      "private_reduction_percent": 57.73157303971351,
+      "old_private_ws_mib": 70.5859375,
+      "new_private_ws_mib": 28.3984375,
+      "old_ws_mib": 114.90234375,
+      "new_ws_mib": 53.671875
+    },
+    {
+      "mode": "single",
+      "sample": "epub-03",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 72.52734375,
+      "new_private_mib": 40.69921875,
+      "private_reduction_percent": 43.88431087413152,
+      "old_private_ws_mib": 69.91796875,
+      "new_private_ws_mib": 38.10546875,
+      "old_ws_mib": 104.41015625,
+      "new_ws_mib": 62.859375
+    },
+    {
+      "mode": "double",
+      "sample": "epub-01",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 62.015625,
+      "new_private_mib": 39.80859375,
+      "private_reduction_percent": 35.80876795162509,
+      "old_private_ws_mib": 59.515625,
+      "new_private_ws_mib": 37.40234375,
+      "old_ws_mib": 83.00390625,
+      "new_ws_mib": 62.9453125
+    },
+    {
+      "mode": "double",
+      "sample": "epub-02",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 79.0390625,
+      "new_private_mib": 35.25,
+      "private_reduction_percent": 55.401798952258574,
+      "old_private_ws_mib": 76.5,
+      "new_private_ws_mib": 32.8046875,
+      "old_ws_mib": 121.296875,
+      "new_ws_mib": 58.76171875
+    },
+    {
+      "mode": "double",
+      "sample": "epub-03",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 84.1328125,
+      "new_private_mib": 47.98046875,
+      "private_reduction_percent": 42.97056365493546,
+      "old_private_ws_mib": 81.48046875,
+      "new_private_ws_mib": 45.34375,
+      "old_ws_mib": 115.50390625,
+      "new_ws_mib": 70.35546875
+    },
+    {
+      "mode": "pdf",
+      "sample": "fixture",
+      "n_old": 3,
+      "n_new": 3,
+      "old_private_mib": 22.890625,
+      "new_private_mib": 22.1171875,
+      "private_reduction_percent": 3.378839590443686,
+      "old_private_ws_mib": 20.6796875,
+      "new_private_ws_mib": 19.9375,
+      "old_ws_mib": 42.984375,
+      "new_ws_mib": 43.08984375
+    }
+  ],
+  "startup": {
+    "startup-blank": [
+      {
+        "sample": "blank",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 164.17535,
+          "p95": 204.2793,
+          "max": 208.3331
+        },
+        "first_frame_assigned_ms": null,
+        "process_total_ms": {
+          "n": 20,
+          "median": 227.80909999999994,
+          "p95": 265.2301000000001,
+          "max": 273.72070000000014
+        },
+        "failures": 0
+      }
+    ],
+    "startup-core.pdf": [
+      {
+        "sample": "fixture",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 221.6753,
+          "p95": 246.9127,
+          "max": 254.1048
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 162.284,
+          "p95": 179.9846,
+          "max": 191.56029999999998
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 274.4454999999997,
+          "p95": 299.0599999999999,
+          "max": 302.22159999999974
+        },
+        "failures": 0
+      }
+    ],
+    "startup-epub": [
+      {
+        "sample": "epub-01",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 243.87895,
+          "p95": 282.5582,
+          "max": 285.84720000000004
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 182.16115000000002,
+          "p95": 216.3681,
+          "max": 221.3012
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 308.06845,
+          "p95": 341.62889999999993,
+          "max": 343.32120000000054
+        },
+        "failures": 0
+      },
+      {
+        "sample": "epub-02",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 290.39105000000006,
+          "p95": 307.8587,
+          "max": 333.75739999999996
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 237.76725,
+          "p95": 255.31920000000002,
+          "max": 268.5612
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 349.8338999999993,
+          "p95": 371.1540000000007,
+          "max": 385.6552999999998
+        },
+        "failures": 0
+      },
+      {
+        "sample": "epub-03",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 253.6406,
+          "p95": 271.3563,
+          "max": 273.8589
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 193.03109999999998,
+          "p95": 212.5571,
+          "max": 216.6741
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 309.93184999999903,
+          "p95": 353.65879999999805,
+          "max": 364.3044999999994
+        },
+        "failures": 0
+      }
+    ],
+    "startup-reading.md": [
+      {
+        "sample": "fixture",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 220.53744999999998,
+          "p95": 251.49899999999997,
+          "max": 259.3657
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 172.11795,
+          "p95": 207.64170000000001,
+          "max": 220.331
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 278.17244999999986,
+          "p95": 312.4565000000001,
+          "max": 314.0903000000002
+        },
+        "failures": 0
+      }
+    ],
+    "startup-spread": [
+      {
+        "sample": "epub-01",
+        "scenario": "startup",
+        "spread_requested": true,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 302.37155,
+          "p95": 324.43080000000003,
+          "max": 340.4948
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 237.4841,
+          "p95": 256.8806,
+          "max": 277.7455
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 363.2578,
+          "p95": 389.86800000000034,
+          "max": 408.09549999999996
+        },
+        "failures": 0
+      },
+      {
+        "sample": "epub-02",
+        "scenario": "startup",
+        "spread_requested": true,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 317.82365,
+          "p95": 352.8845,
+          "max": 359.36129999999997
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 263.3787,
+          "p95": 291.5641,
+          "max": 314.2906
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 381.8784000000006,
+          "p95": 414.4362000000008,
+          "max": 414.7729
+        },
+        "failures": 0
+      },
+      {
+        "sample": "epub-03",
+        "scenario": "startup",
+        "spread_requested": true,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 283.9099,
+          "p95": 329.6292,
+          "max": 376.9148
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 221.09109999999998,
+          "p95": 264.8139,
+          "max": 308.0546
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 346.9818499999988,
+          "p95": 394.61760000000015,
+          "max": 440.51310000000046
+        },
+        "failures": 0
+      }
+    ],
+    "startup-text-gb18030.txt": [
+      {
+        "sample": "fixture",
+        "scenario": "startup",
+        "spread_requested": false,
+        "native_snapshot_ready_ms": {
+          "n": 20,
+          "median": 264.9317,
+          "p95": 291.1567,
+          "max": 305.0979
+        },
+        "first_frame_assigned_ms": {
+          "n": 20,
+          "median": 210.12144999999998,
+          "p95": 232.2492,
+          "max": 242.1541
+        },
+        "process_total_ms": {
+          "n": 20,
+          "median": 323.7735000000001,
+          "p95": 351.77069999999986,
+          "max": 360.15700000000004
+        },
+        "failures": 0
+      }
+    ]
+  },
+  "startup_runs": 200,
+  "scenario_operations": 730
+}

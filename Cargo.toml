@@ -26,7 +26,7 @@ chardetng = "0.1"
 pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
 blake3 = "1.8"
 font-kit = "0.14"
-slint = { version = "=1.18.1", default-features = false, features = ["std", "backend-winit", "renderer-software", "compat-1-2", "accessibility"], optional = true }
+slint = { version = "=1.18.1", default-features = false, features = ["std", "backend-winit", "renderer-software", "compat-1-2", "accessibility", "unstable-winit-030"], optional = true }
 rfd = { version = "0.15", default-features = false, optional = true }
 arboard = { version = "3.7", default-features = false, optional = true }
 png = { version = "0.18", optional = true }

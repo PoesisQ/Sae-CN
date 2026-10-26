@@ -123,6 +123,7 @@ impl Worker {
                 let mut book: Option<Book> = None;
                 let mut cache = Cache::new(16 * 1024 * 1024);
                 let mut opened_encoding = None;
+                let mut fixed_view = None;
                 let mut actual_page = 0;
                 loop {
                     let pending = {
@@ -169,6 +170,41 @@ impl Worker {
                             actual_page = 0;
                         }
                         let b = book.as_mut().unwrap();
+                        if !b.reflowable {
+                            let colors = if request.view.color == 1 {
+                                [
+                                    u32::from_str_radix(
+                                        request.style.foreground.trim_start_matches('#'),
+                                        16,
+                                    )
+                                    .unwrap_or(0),
+                                    u32::from_str_radix(
+                                        request.style.background.trim_start_matches('#'),
+                                        16,
+                                    )
+                                    .unwrap_or(0xffffff),
+                                ]
+                            } else {
+                                [0, 0]
+                            };
+                            let view = [
+                                request.width.to_bits(),
+                                request.height.to_bits(),
+                                request.dpi.to_bits(),
+                                request.pdf_zoom.to_bits(),
+                                request.spread as u32,
+                                request.view.fit_width as u32,
+                                request.view.color as u32,
+                                colors[0],
+                                colors[1],
+                            ];
+                            if fixed_view != Some(view) {
+                                cache.clear();
+                                fixed_view = Some(view);
+                            }
+                        } else {
+                            fixed_view = None;
+                        }
                         let spread = request.spread && request.width >= 800.0;
                         let column = if spread {
                             (request.width - 32.0) / 2.0
