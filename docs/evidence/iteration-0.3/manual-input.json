@@ -1,0 +1,11 @@
+{
+  "build": "b47761aa1124e7583a6423d378943f709abfd1f5e552a0b5071a6c3dfd961ab6",
+  "method": "Sky real Windows input; ordinary production build; original CC0 PDF",
+  "right_arrow": "passed: visible PDF pages 1-2 became 3-4",
+  "left_arrow": "passed: visible PDF pages 3-4 became 1-2",
+  "F11": "passed: native title bar/taskbar disappeared",
+  "Escape": "passed: window frame restored, original spread retained",
+  "additional_contents_input": "stopped after file-dialog state changed; no further OS input",
+  "contents_evidence": "separate native Slint renderer snapshots at actual 150% and controlled 100/125/200% scales",
+  "scope": "Input implementation unchanged by later startup geometry optimization; final binary repeats the native Slint event regressions, not these OS input observations."
+}

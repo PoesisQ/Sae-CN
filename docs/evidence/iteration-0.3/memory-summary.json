@@ -1,0 +1,551 @@
+{
+  "inputs": [
+    {
+      "case": "blank",
+      "bytes": 0,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "pdf-single",
+      "bytes": 64942,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "pdf-double",
+      "bytes": 64942,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-01-single",
+      "bytes": 403878,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-01-double",
+      "bytes": 403878,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-02-single",
+      "bytes": 573193,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-02-double",
+      "bytes": 573193,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-03-single",
+      "bytes": 471781,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-03-double",
+      "bytes": 471781,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "azw3-single",
+      "bytes": 3605858,
+      "spread": false,
+      "paired": false
+    },
+    {
+      "case": "azw3-double",
+      "bytes": 3605858,
+      "spread": true,
+      "paired": false
+    },
+    {
+      "case": "mobi-hybrid",
+      "bytes": 484776,
+      "spread": false,
+      "paired": false
+    },
+    {
+      "case": "fb2-single",
+      "bytes": 5600,
+      "spread": false,
+      "paired": false
+    }
+  ],
+  "builds": {
+    "production": {
+      "previous": {
+        "bytes": 23783424,
+        "sha256": "8fbe2148fb58c9f5a31a159a70ab99c7d9f700174303e9305ce17d0b14618a2c"
+      },
+      "current": {
+        "bytes": 24004608,
+        "sha256": "1d07778f4827150ba7cc529fef71a2699987190590a6e48e55a515973494c966"
+      }
+    },
+    "qa": {
+      "previous": {
+        "bytes": 23922688,
+        "sha256": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade"
+      },
+      "current": {
+        "bytes": 24165888,
+        "sha256": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c"
+      }
+    },
+    "before_startup_optimization": {
+      "production": {
+        "previous": {
+          "bytes": 23783424,
+          "sha256": "8fbe2148fb58c9f5a31a159a70ab99c7d9f700174303e9305ce17d0b14618a2c"
+        },
+        "current": {
+          "bytes": 23998464,
+          "sha256": "b47761aa1124e7583a6423d378943f709abfd1f5e552a0b5071a6c3dfd961ab6"
+        }
+      },
+      "qa": {
+        "previous": {
+          "bytes": 23922688,
+          "sha256": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade"
+        },
+        "current": {
+          "bytes": 24160256,
+          "sha256": "fe0f2443df741f611f3a0dc9ca11573d584a902e1135ed2a81a1e4545ad862cf"
+        }
+      }
+    },
+    "machine": {
+      "os": {
+        "Caption": "Microsoft Windows 11 家庭版 中文版",
+        "Version": "10.0.26200",
+        "BuildNumber": "26200",
+        "TotalVisibleMemorySize": 16381412
+      },
+      "measurement_date": "2026-10-27",
+      "cpu": {
+        "Name": "Intel(R) Core(TM) i9-14900HX",
+        "NumberOfCores": 24,
+        "NumberOfLogicalProcessors": 32
+      }
+    },
+    "imports": {
+      "0.2.0-preview.1": [
+        "shlwapi.dll",
+        "oleaut32.dll",
+        "user32.dll",
+        "kernel32.dll",
+        "uiautomationcore.dll",
+        "dwrite.dll",
+        "gdi32.dll",
+        "ole32.dll",
+        "dwmapi.dll",
+        "comctl32.dll",
+        "shell32.dll",
+        "combase.dll",
+        "ntdll.dll",
+        "api-ms-win-core-winrt-error-l1-1-0.dll",
+        "uxtheme.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "bcryptprimitives.dll",
+        "advapi32.dll",
+        "imm32.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ],
+      "0.3.0-preview.1": [
+        "shlwapi.dll",
+        "oleaut32.dll",
+        "user32.dll",
+        "kernel32.dll",
+        "uiautomationcore.dll",
+        "dwrite.dll",
+        "gdi32.dll",
+        "ole32.dll",
+        "dwmapi.dll",
+        "comctl32.dll",
+        "shell32.dll",
+        "combase.dll",
+        "ntdll.dll",
+        "api-ms-win-core-winrt-error-l1-1-0.dll",
+        "uxtheme.dll",
+        "api-ms-win-core-synch-l1-2-0.dll",
+        "bcryptprimitives.dll",
+        "advapi32.dll",
+        "imm32.dll",
+        "VCRUNTIME140.dll",
+        "VCRUNTIME140_1.dll",
+        "api-ms-win-crt-string-l1-1-0.dll",
+        "api-ms-win-crt-runtime-l1-1-0.dll",
+        "api-ms-win-crt-math-l1-1-0.dll",
+        "api-ms-win-crt-stdio-l1-1-0.dll",
+        "api-ms-win-crt-heap-l1-1-0.dll",
+        "api-ms-win-crt-convert-l1-1-0.dll",
+        "api-ms-win-crt-time-l1-1-0.dll",
+        "api-ms-win-crt-utility-l1-1-0.dll",
+        "api-ms-win-crt-filesystem-l1-1-0.dll",
+        "api-ms-win-crt-environment-l1-1-0.dll",
+        "api-ms-win-crt-locale-l1-1-0.dll"
+      ]
+    },
+    "source_inputs": {
+      "assets/sae-reader.rc": "791d99b9f955fa7ef9471ef12ee061be224ebd20d1e3f76901ff93e503ac69e9",
+      "build.rs": "ba26c713a2caee9adf531201d1845f7f8b779b281616c928fbefa80b6ccc1fec",
+      "Cargo.lock": "6c9dcfa44b37f75e872e8b575b30de5418403e11f12fcae04bdbab3265c8561e",
+      "Cargo.toml": "d718ea249b952b3e049615380c2215a032f85ee3d25ea4da6fe6a930c913fc82",
+      "native/kindle.c": "88a6ab12d630aa2f4b7cfc38d13be254ee33a2523b8df5d9d52d74e73ddb4cf7",
+      "native/kindle_alloc.c": "b6b913c44c9679b6200a890262f8d64cd6acc5142689a7162f19769577081a01",
+      "native/kindle_alloc.h": "9c8faa74809cfb0d3f6cb5d027cf22d62e0dde78bc4c321e5e76b7cece22866f",
+      "src/bin/engine-probe.rs": "bb19e4431ee37ad52118375d2a42bb49736b0c7fdd87eef0f50dff22bdf201da",
+      "src/bin/load-bench.rs": "0f7595edb91416475839c4965732252c3606bc722041825b2e5502da2414fec4",
+      "src/document.rs": "c2c156381ebc835883c5891c893b8c53fb877fdb3472bdd88d800723d93c81ab",
+      "src/epub_compat.rs": "a8fde2b3791a93a78bae770e08d07951595afead191e2169e8ebcab82bddb781",
+      "src/fb2_adapter.rs": "7cd35babe43a766a85bf365df81a7fb8d23ef352a4663a09f44da25e125f7a7f",
+      "src/fonts.rs": "18165e9da03ff13dd18603e4fb1c3b32ec8dc21357cdfc06e20ce31165461eaf",
+      "src/kindle_adapter.rs": "8a7a2b1d752f492d0b587c2652223f252e7459c1f3153772a47c4a171e4f5654",
+      "src/lib.rs": "a8f751801a3a95eeadf415ec471164c4a4492aa4d1b1c519cb70c7141df0f833",
+      "src/main.rs": "be0b140443b382b3f917e63943d79660d86290bc10733ba6f6cacbed00cb78af",
+      "src/paging.rs": "48b39e26fa757be7ef1a4976c21c3555f86b65af72b44ac9cc8e2c902d550ae3",
+      "src/qa.rs": "a06e8f550c70577701069e37b27f0207dd1e79377b1930435fc69bcb144fc8bb",
+      "src/reading.rs": "f4946f6c3fc82ba976aa79c5f4f835a91921572f1a45368c61c0b770ebfb5d71",
+      "src/rendering.rs": "36108abb06427dc5f9d3c2b5bec235b631baf2409351a609181b5b3377227173",
+      "src/security.rs": "c4b537c49a6be43a8697730369d73dcfe1cc277f8db17d7ebd88a2117fe8e892",
+      "src/settings.rs": "4c8f4ebad85d24260c538bb126dd3dea8de6ce2ed19b97724ec2ce1bcfa88ae8",
+      "src/storage.rs": "c42197758de70e9968f919ba0d5e05a2103c24a02b4d58901a181c3d6f5102d7",
+      "src/text_adapter.rs": "06023c8ee1ffb0f07720ed20ce6e1702ae03811ab0eeb891794053aefdd18247",
+      "src/zoom.rs": "3de44178ffd6d71f69c046ede54038c5b39db6c94dfa01bdd9cec213f490b6b2",
+      "ui/reader.slint": "b352453b1fa941beafcd95f3ca4fce0eec8d768ed9b7458d1bb3c3ad5c36136b",
+      "vendor/libmobi/UPSTREAM.txt": "51946aca43ee7f83c25bd134509e48a7fc1cfa789a1faa60926c86e88090c014",
+      "vendor/mupdf-sys-0.8.0/mupdf/source/html/html-doc.c": "dcbbc14e5d64914ce88dff4d7f902199cc0095fc25c0e87ea80fad536aa405d4",
+      "vendor/mupdf-sys-0.8.0/wrapper/document.c": "e3b77db5b9ced565407386578b41abfb733e37af99ae0a15d8539fdab5593bc1"
+    }
+  },
+  "memory": [
+    {
+      "version": "previous",
+      "case": "blank",
+      "n": 3,
+      "result": {
+        "private_bytes": 14712832.0,
+        "private_working_set": 12435456.0,
+        "working_set": 34140160.0,
+        "handles": 249.0,
+        "idle_one_core_percent": 1.9313627266894509,
+        "peak_private_bytes": 14766080
+      },
+      "raw": "memory/previous/blank"
+    },
+    {
+      "version": "previous",
+      "case": "pdf-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 23183360.0,
+        "private_working_set": 20893696.0,
+        "working_set": 44724224.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 2.9061490849417413,
+        "peak_private_bytes": 23302144
+      },
+      "raw": "memory/previous/pdf-single"
+    },
+    {
+      "version": "previous",
+      "case": "pdf-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 27570176.0,
+        "private_working_set": 25255936.0,
+        "working_set": 49041408.0,
+        "handles": 253.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 27586560
+      },
+      "raw": "memory/previous/pdf-double"
+    },
+    {
+      "version": "previous",
+      "case": "epub-01-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 37195776.0,
+        "private_working_set": 34611200.0,
+        "working_set": 59658240.0,
+        "handles": 239.0,
+        "idle_one_core_percent": 1.2963417546804936,
+        "peak_private_bytes": 37289984
+      },
+      "raw": "memory/previous/epub-01-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-01-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 41730048.0,
+        "private_working_set": 39182336.0,
+        "working_set": 65175552.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 41865216
+      },
+      "raw": "memory/previous/epub-01-double"
+    },
+    {
+      "version": "previous",
+      "case": "epub-02-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 32112640.0,
+        "private_working_set": 29532160.0,
+        "working_set": 55160832.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 32366592
+      },
+      "raw": "memory/previous/epub-02-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-02-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 36999168.0,
+        "private_working_set": 34373632.0,
+        "working_set": 60936192.0,
+        "handles": 260.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 37068800
+      },
+      "raw": "memory/previous/epub-02-double"
+    },
+    {
+      "version": "previous",
+      "case": "epub-03-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 42491904.0,
+        "private_working_set": 39772160.0,
+        "working_set": 64280576.0,
+        "handles": 241.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 42590208
+      },
+      "raw": "memory/previous/epub-03-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-03-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 50221056.0,
+        "private_working_set": 47468544.0,
+        "working_set": 72286208.0,
+        "handles": 241.0,
+        "idle_one_core_percent": 0.0,
+        "peak_private_bytes": 50487296
+      },
+      "raw": "memory/previous/epub-03-double"
+    },
+    {
+      "version": "current",
+      "case": "blank",
+      "n": 3,
+      "result": {
+        "private_bytes": 14712832.0,
+        "private_working_set": 12423168.0,
+        "working_set": 34172928.0,
+        "handles": 250.0,
+        "idle_one_core_percent": 0.32327357017082664,
+        "peak_private_bytes": 14761984
+      },
+      "raw": "memory/current/blank"
+    },
+    {
+      "version": "current",
+      "case": "pdf-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 23199744.0,
+        "private_working_set": 20881408.0,
+        "working_set": 44777472.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 1.613852962657044,
+        "peak_private_bytes": 23273472
+      },
+      "raw": "memory/current/pdf-single"
+    },
+    {
+      "version": "current",
+      "case": "pdf-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 27541504.0,
+        "private_working_set": 25219072.0,
+        "working_set": 49197056.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.6470704336477622,
+        "peak_private_bytes": 27607040
+      },
+      "raw": "memory/current/pdf-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-01-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 37093376.0,
+        "private_working_set": 34553856.0,
+        "working_set": 59682816.0,
+        "handles": 239.0,
+        "idle_one_core_percent": 0.3221199512851555,
+        "peak_private_bytes": 37130240
+      },
+      "raw": "memory/current/epub-01-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-01-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 41869312.0,
+        "private_working_set": 39284736.0,
+        "working_set": 65290240.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.9689130325365646,
+        "peak_private_bytes": 42033152
+      },
+      "raw": "memory/current/epub-01-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-02-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 32129024.0,
+        "private_working_set": 29515776.0,
+        "working_set": 55287808.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 1.2843412559242295,
+        "peak_private_bytes": 32141312
+      },
+      "raw": "memory/current/epub-02-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-02-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 37076992.0,
+        "private_working_set": 34455552.0,
+        "working_set": 60563456.0,
+        "handles": 243.0,
+        "idle_one_core_percent": 0.9658426924434609,
+        "peak_private_bytes": 37179392
+      },
+      "raw": "memory/current/epub-02-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-03-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 42811392.0,
+        "private_working_set": 39993344.0,
+        "working_set": 65097728.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.6455998250414143,
+        "peak_private_bytes": 42815488
+      },
+      "raw": "memory/current/epub-03-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-03-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 50307072.0,
+        "private_working_set": 47566848.0,
+        "working_set": 73003008.0,
+        "handles": 256.0,
+        "idle_one_core_percent": 0.9663386770608078,
+        "peak_private_bytes": 50544640
+      },
+      "raw": "memory/current/epub-03-double"
+    },
+    {
+      "version": "current",
+      "case": "azw3-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 33075200.0,
+        "private_working_set": 30396416.0,
+        "working_set": 55959552.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.3247781469058962,
+        "peak_private_bytes": 33103872
+      },
+      "raw": "memory/current/azw3-single"
+    },
+    {
+      "version": "current",
+      "case": "azw3-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 40280064.0,
+        "private_working_set": 37556224.0,
+        "working_set": 63287296.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.6463029732666753,
+        "peak_private_bytes": 40366080
+      },
+      "raw": "memory/current/azw3-double"
+    },
+    {
+      "version": "current",
+      "case": "mobi-hybrid",
+      "n": 3,
+      "result": {
+        "private_bytes": 26050560.0,
+        "private_working_set": 23699456.0,
+        "working_set": 48443392.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.6447740199109928,
+        "peak_private_bytes": 26202112
+      },
+      "raw": "memory/current/mobi-hybrid"
+    },
+    {
+      "version": "current",
+      "case": "fb2-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 24395776.0,
+        "private_working_set": 22061056.0,
+        "working_set": 46460928.0,
+        "handles": 253.0,
+        "idle_one_core_percent": 0.9644983338098386,
+        "peak_private_bytes": 24428544
+      },
+      "raw": "memory/current/fb2-single"
+    }
+  ]
+}

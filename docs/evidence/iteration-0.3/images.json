@@ -1,0 +1,116 @@
+[
+  {
+    "file": "ui-contents-light.png",
+    "sha256": "b3a0ea594eeaa3d77591c6520932e8e3b5765a45b05531a4fc0907dee4942206",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-scrolled.png",
+    "sha256": "6c53b9ba075e8c78d30d41547bf30aef52e4a01ca0e8a57ac3a88ef0ae8e7792",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-night.png",
+    "sha256": "f14bf26d218d7ffa2c00b03519a632a3007ef8fdcbbdd5603521fa4a84451ff4",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-narrow.png",
+    "sha256": "35b985eab51a7c0aad5d0a3fde28ea824ce34064206653f12590720004c7b3bf",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-narrow-scrolled.png",
+    "sha256": "a2bc71dfd833a33270f057b9cccba913d8272305347134b07779d1310617a734",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-scale-100.png",
+    "sha256": "71cdaa98f83c802094fe6886c987dac7c9ff24a09a36d5b5a1302b2b9f74cc97",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-scale-125.png",
+    "sha256": "abd591bc0be6211e0ff376166022a8f719c699d53df22a0d80dd737593039194",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-contents-scale-200.png",
+    "sha256": "9ed15a4b1d7738a9833c775d203c4c619d0acc6c8ecbb1b5b1b6d18688d34daa",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-dial-page.png",
+    "sha256": "b9d413ef1015bb88c97ac7cc4f944eb1670e800d751c9c6217710751924bc660",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-dial-rotated.png",
+    "sha256": "65d10c8fc1a2c16fd0e02851ff5fb23c23fbb846e06d372219f808f901212a0e",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-dial-fill.png",
+    "sha256": "7158eaeabca2fa504af096b76368d6fcded26c275dcd34aa886b2a1a24bfa4f4",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-fb2.png",
+    "sha256": "9440e67c9ea102ec7683bc72e2e10c86fb08b59ffda3b125047c730caa70cd34",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-fb2-night.png",
+    "sha256": "d76e3103d60f1ba433c8f3bc4996ea7392c2ad02c21b54a48b5199d238dfe9e3",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-azw3.png",
+    "sha256": "547233a9b9dc1eb176e1a19a4f6a07dd9d21f835be9a4270f5a0bd60734cd1d2",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-mobi.png",
+    "sha256": "52c71b93862c6ad13dfb7da9e9a615eaaa4959aa1859471f52e403e0dc3a292d",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-pdf-theme.png",
+    "sha256": "8605d0491d13a5dfd438502ef31ce11955caa8aa38aaf83410f20234bd973fda",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-ruby-math.png",
+    "sha256": "9217416068bcb020a0553d08ff5868111e40416e09ed539586f66c22af7f5341",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-pdf-toolbar.png",
+    "sha256": "291dd41e50ae76697fff40e2bd90a9404e9be9ed9a3b3e018164b328520e5065",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  },
+  {
+    "file": "ui-immersive.png",
+    "sha256": "05462e54d4b1ecd387ca33fc219125482e5367d78e7379b8534d22be2c2d2219",
+    "build": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c",
+    "capture": "native Slint software renderer; original CC0 fixture only"
+  }
+]

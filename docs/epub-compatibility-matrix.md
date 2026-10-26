@@ -5,7 +5,7 @@ Engine/binding versions will be recorded from the actual build. `待测` means n
 | ID | Priority / baseline | Sample | Status | Evidence / missing work |
 |---|---|---|---|---|
 | E01 | P0 EPUB2 OPF/manifest/spine/metadata/cover | core-epub2.epub | 原生生成样本通过；互操作待补 | g0-epub2、实书 3 本首屏；外部基准与完整元数据对照仍待补 |
-| E02 | P0 EPUB3 package/nav/multilevel TOC | core-epub3.epub | 部分验证 | 最终 Windows 窗口 Chapter 10 跳转至 74/241、返回 1/241 实测；完整多层待补 |
+| E02 | P0 EPUB3 package/nav/multilevel TOC | core-epub3.epub, catalog.epub | 原创 nav-only 多层回归通过；外部互操作待补 | 0.3 回归不依赖 NCX fallback，保留中英标签与层级，实际 URI 可定位；55 项长目录在窄窗口/受控缩放中换行显示。0.1 Chapter 10 跳转/返回证据仍保留 |
 | E03 | P0 CJK/English/mixed punctuation/wrapping | core-epub3.epub | 部分验证 | feedback/ui-paper-single.png；20 页实际 glyph/选择断言；严格禁则待补 |
 | E04 | P0 emphasis/sup/sub/headings/quotes/lists/alignment | core-epub3.epub | 部分验证 | feedback/ui-paper-double.png、ui-night.png 保留强调和层级 |
 | E05 | P0 cover/inline/standalone images/captions | core-epub3.epub, inline-svg-cover.epub | 普通图像通过；缩放交互待补 | 原生 20 页检图像；inline SVG 图片回归及三本实书非空封面像素；未从零文本块误判丢图 |

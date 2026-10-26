@@ -1,0 +1,446 @@
+{
+  "inputs": [
+    {
+      "case": "blank",
+      "bytes": 0,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "pdf-single",
+      "bytes": 64942,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "pdf-double",
+      "bytes": 64942,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-01-single",
+      "bytes": 403878,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-01-double",
+      "bytes": 403878,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-02-single",
+      "bytes": 573193,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-02-double",
+      "bytes": 573193,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "epub-03-single",
+      "bytes": 471781,
+      "spread": false,
+      "paired": true
+    },
+    {
+      "case": "epub-03-double",
+      "bytes": 471781,
+      "spread": true,
+      "paired": true
+    },
+    {
+      "case": "azw3-single",
+      "bytes": 3605858,
+      "spread": false,
+      "paired": false
+    },
+    {
+      "case": "azw3-double",
+      "bytes": 3605858,
+      "spread": true,
+      "paired": false
+    },
+    {
+      "case": "mobi-hybrid",
+      "bytes": 484776,
+      "spread": false,
+      "paired": false
+    },
+    {
+      "case": "fb2-single",
+      "bytes": 5600,
+      "spread": false,
+      "paired": false
+    }
+  ],
+  "builds": {
+    "production": {
+      "previous": {
+        "bytes": 23783424,
+        "sha256": "8fbe2148fb58c9f5a31a159a70ab99c7d9f700174303e9305ce17d0b14618a2c"
+      },
+      "current": {
+        "bytes": 24004608,
+        "sha256": "1d07778f4827150ba7cc529fef71a2699987190590a6e48e55a515973494c966"
+      }
+    },
+    "qa": {
+      "previous": {
+        "bytes": 23922688,
+        "sha256": "ed7e4f1f5031031ef206694948d73a1f0844ce6198d305e89d703e91d9dacade"
+      },
+      "current": {
+        "bytes": 24165888,
+        "sha256": "55ead1822dba2de7f6c2011feb179bbfcb1243dbc32ebeb78e26461b95e3f12c"
+      }
+    }
+  },
+  "memory": [
+    {
+      "version": "current",
+      "case": "blank",
+      "n": 3,
+      "result": {
+        "private_bytes": 14712832.0,
+        "private_working_set": 12423168.0,
+        "working_set": 34172928.0,
+        "handles": 250.0,
+        "idle_one_core_percent": 0.32327357017082664,
+        "peak_private_bytes": 14761984
+      },
+      "raw": "memory/current/blank"
+    },
+    {
+      "version": "current",
+      "case": "pdf-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 23199744.0,
+        "private_working_set": 20881408.0,
+        "working_set": 44777472.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 1.613852962657044,
+        "peak_private_bytes": 23273472
+      },
+      "raw": "memory/current/pdf-single"
+    },
+    {
+      "version": "current",
+      "case": "pdf-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 27541504.0,
+        "private_working_set": 25219072.0,
+        "working_set": 49197056.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.6470704336477622,
+        "peak_private_bytes": 27607040
+      },
+      "raw": "memory/current/pdf-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-01-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 37093376.0,
+        "private_working_set": 34553856.0,
+        "working_set": 59682816.0,
+        "handles": 239.0,
+        "idle_one_core_percent": 0.3221199512851555,
+        "peak_private_bytes": 37130240
+      },
+      "raw": "memory/current/epub-01-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-01-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 41869312.0,
+        "private_working_set": 39284736.0,
+        "working_set": 65290240.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.9689130325365646,
+        "peak_private_bytes": 42033152
+      },
+      "raw": "memory/current/epub-01-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-02-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 32129024.0,
+        "private_working_set": 29515776.0,
+        "working_set": 55287808.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 1.2843412559242295,
+        "peak_private_bytes": 32141312
+      },
+      "raw": "memory/current/epub-02-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-02-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 37076992.0,
+        "private_working_set": 34455552.0,
+        "working_set": 60563456.0,
+        "handles": 243.0,
+        "idle_one_core_percent": 0.9658426924434609,
+        "peak_private_bytes": 37179392
+      },
+      "raw": "memory/current/epub-02-double"
+    },
+    {
+      "version": "current",
+      "case": "epub-03-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 42811392.0,
+        "private_working_set": 39993344.0,
+        "working_set": 65097728.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.6455998250414143,
+        "peak_private_bytes": 42815488
+      },
+      "raw": "memory/current/epub-03-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-03-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 50307072.0,
+        "private_working_set": 47566848.0,
+        "working_set": 73003008.0,
+        "handles": 256.0,
+        "idle_one_core_percent": 0.9663386770608078,
+        "peak_private_bytes": 50544640
+      },
+      "raw": "memory/current/epub-03-double"
+    },
+    {
+      "version": "current",
+      "case": "azw3-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 33075200.0,
+        "private_working_set": 30396416.0,
+        "working_set": 55959552.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.3247781469058962,
+        "peak_private_bytes": 33103872
+      },
+      "raw": "memory/current/azw3-single"
+    },
+    {
+      "version": "current",
+      "case": "azw3-double",
+      "n": 3,
+      "result": {
+        "private_bytes": 40280064.0,
+        "private_working_set": 37556224.0,
+        "working_set": 63287296.0,
+        "handles": 258.0,
+        "idle_one_core_percent": 0.6463029732666753,
+        "peak_private_bytes": 40366080
+      },
+      "raw": "memory/current/azw3-double"
+    },
+    {
+      "version": "current",
+      "case": "mobi-hybrid",
+      "n": 3,
+      "result": {
+        "private_bytes": 26050560.0,
+        "private_working_set": 23699456.0,
+        "working_set": 48443392.0,
+        "handles": 254.0,
+        "idle_one_core_percent": 0.6447740199109928,
+        "peak_private_bytes": 26202112
+      },
+      "raw": "memory/current/mobi-hybrid"
+    },
+    {
+      "version": "current",
+      "case": "fb2-single",
+      "n": 3,
+      "result": {
+        "private_bytes": 24395776.0,
+        "private_working_set": 22061056.0,
+        "working_set": 46460928.0,
+        "handles": 253.0,
+        "idle_one_core_percent": 0.9644983338098386,
+        "peak_private_bytes": 24428544
+      },
+      "raw": "memory/current/fb2-single"
+    }
+  ],
+  "startup": [
+    {
+      "version": "previous",
+      "case": "blank",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 221.14339999999999,
+        "p95": 261.97769999999997,
+        "max": 456.71869999999996
+      },
+      "raw": "startup/previous/blank"
+    },
+    {
+      "version": "previous",
+      "case": "pdf-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 273.00355,
+        "p95": 302.2899,
+        "max": 335.47470000000004
+      },
+      "raw": "startup/previous/pdf-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-01-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 354.4026,
+        "p95": 405.2015,
+        "max": 407.1144
+      },
+      "raw": "startup/previous/epub-01-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-02-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 323.07545000000005,
+        "p95": 357.74440000000004,
+        "max": 382.6787
+      },
+      "raw": "startup/previous/epub-02-single"
+    },
+    {
+      "version": "previous",
+      "case": "epub-03-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 280.7032,
+        "p95": 350.1739,
+        "max": 369.68649999999997
+      },
+      "raw": "startup/previous/epub-03-single"
+    },
+    {
+      "version": "current",
+      "case": "blank",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 164.71805,
+        "p95": 190.3502,
+        "max": 193.5685
+      },
+      "raw": "startup/current/blank"
+    },
+    {
+      "version": "current",
+      "case": "pdf-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 229.03924999999998,
+        "p95": 298.7956,
+        "max": 317.4282
+      },
+      "raw": "startup/current/pdf-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-01-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 234.6257,
+        "p95": 264.47880000000004,
+        "max": 269.5435
+      },
+      "raw": "startup/current/epub-01-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-02-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 284.55460000000005,
+        "p95": 345.46349999999995,
+        "max": 379.8068
+      },
+      "raw": "startup/current/epub-02-single"
+    },
+    {
+      "version": "current",
+      "case": "epub-03-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 252.0984,
+        "p95": 269.2211,
+        "max": 279.5267
+      },
+      "raw": "startup/current/epub-03-single"
+    },
+    {
+      "version": "current",
+      "case": "azw3-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 326.91995,
+        "p95": 358.3553,
+        "max": 465.54859999999996
+      },
+      "raw": "startup/current/azw3-single"
+    },
+    {
+      "version": "current",
+      "case": "mobi-hybrid",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 254.02190000000002,
+        "p95": 293.5973,
+        "max": 295.8653
+      },
+      "raw": "startup/current/mobi-hybrid"
+    },
+    {
+      "version": "current",
+      "case": "fb2-single",
+      "n": 20,
+      "result": {
+        "n": 20,
+        "median": 237.29275,
+        "p95": 263.8546,
+        "max": 275.6477
+      },
+      "raw": "startup/current/fb2-single"
+    }
+  ]
+}

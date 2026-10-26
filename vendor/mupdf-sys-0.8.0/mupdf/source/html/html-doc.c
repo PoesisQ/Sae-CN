@@ -154,6 +154,31 @@ htdoc_lookup_bookmark(fz_context *ctx, fz_document *doc_, fz_bookmark mark)
 	return fz_make_location(0, fz_lookup_html_bookmark(ctx, doc->html, mark));
 }
 
+/* Sae Reader: persist a source-flow ordinal for native FB2/HTML as for EPUB.
+ * Never serialize the native bookmark pointer; reparsing CSS replaces the tree.
+ */
+uint32_t sae_html_flow_index(fz_html *html, fz_bookmark mark);
+fz_bookmark sae_html_flow_at(fz_html *html, uint32_t ordinal);
+uint64_t sae_htdoc_anchor_make(fz_context *ctx, fz_document *doc_, fz_location loc)
+{
+	html_document *doc;
+	uint32_t ordinal;
+	if (doc_->make_bookmark != htdoc_make_bookmark || loc.chapter != 0) return 0;
+	doc = (html_document *)doc_;
+	ordinal = sae_html_flow_index(doc->html, fz_make_html_bookmark(ctx, doc->html, loc.page));
+	return ordinal ? ((uint64_t)1 << 32) | ordinal : 0;
+}
+fz_location sae_htdoc_anchor_lookup(fz_context *ctx, fz_document *doc_, uint64_t anchor)
+{
+	html_document *doc;
+	fz_bookmark mark;
+	if (doc_->make_bookmark != htdoc_make_bookmark || (anchor >> 32) != 1 || !(uint32_t)anchor)
+		return fz_make_location(-1, -1);
+	doc = (html_document *)doc_;
+	mark = sae_html_flow_at(doc->html, (uint32_t)anchor);
+	return mark ? fz_make_location(0, fz_lookup_html_bookmark(ctx, doc->html, mark)) : fz_make_location(-1, -1);
+}
+
 static fz_page *
 htdoc_load_page(fz_context *ctx, fz_document *doc_, int chapter, int number)
 {

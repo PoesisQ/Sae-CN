@@ -27,7 +27,7 @@ root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
 parser.add_argument('--exe',type=Path,default=root/'target/x86_64-pc-windows-msvc/release/sae-reader.exe')
 parser.add_argument('--books',type=Path)
-parser.add_argument('--format',choices=['epub','pdf'],default='epub')
+parser.add_argument('--format',choices=['epub','pdf','azw3','mobi','fb2'],default='epub')
 parser.add_argument('--fixture',type=Path)
 parser.add_argument('--spread',action='store_true')
 parser.add_argument('--seconds',type=float,default=8)

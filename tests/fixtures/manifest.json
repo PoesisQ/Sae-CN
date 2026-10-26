@@ -3,6 +3,10 @@
     "sha256": "4c7d98b4dc36292c033f9c654b1ea5ce6054bd4b85f4c0acb1281fd1332ffaa4",
     "bytes": 3990
   },
+  "catalog.epub": {
+    "sha256": "1b1ae076afee862d32ed14b8038aa6d6d837c11dffc794277f06e730748a612e",
+    "bytes": 29538
+  },
   "core-epub2.epub": {
     "sha256": "3ae7a29a5cd6364197b7e32cf76fcfe518a9ee5c01c66df47d1ec609d2bf32dc",
     "bytes": 28902
@@ -62,6 +66,22 @@
   "invalid-encoding.txt": {
     "sha256": "ba778c0261008c8f71ae4061ad0162ffcbe63b52c91f89f236738131d1217ec7",
     "bytes": 3
+  },
+  "kindle-minimal.azw3": {
+    "sha256": "c2048ef2607b2bf9b9911e0a2df1bdb6aab2c5e23643913d5fd07d845907e306",
+    "bytes": 6549
+  },
+  "kindle-palmdoc.mobi": {
+    "sha256": "ab8622d6a050c5d80bcc2dca14b6ce3ab9707cc467c8ad11a18a4a40d6ae1334",
+    "bytes": 7212
+  },
+  "kindle-plain.mobi": {
+    "sha256": "206410819494b3d04c1725ef5c360bee5aa0bc8d209d8076cb4d062ef8e10368",
+    "bytes": 6527
+  },
+  "reading.fb2": {
+    "sha256": "6cb21c440a9cd8dda9632eb4c2a719f56ccd78b4453662cea191f6b5c3c75cb5",
+    "bytes": 5600
   },
   "reading.md": {
     "sha256": "bba4feb6121a1e27d0eccbc4aa70a825332dbc04ac6b6f77e188e6e5842f8513",

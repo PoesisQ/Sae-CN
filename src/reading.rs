@@ -27,6 +27,7 @@ pub struct ViewOptions {
     pub encoding: Option<String>,
     pub color: u8,
     pub fit_width: bool,
+    pub fit_cover: bool,
     pub pan: [f32; 2],
     pub search_hit: Option<(i32, usize)>,
 }
@@ -36,6 +37,7 @@ impl Default for ViewOptions {
             encoding: None,
             color: 0,
             fit_width: false,
+            fit_cover: false,
             pan: [0.5, 0.0],
             search_hit: None,
         }
@@ -77,6 +79,9 @@ pub struct Update {
     pub search_hit: Option<(i32, usize)>,
     pub encoding: Option<String>,
     pub pan: [f32; 2],
+    pub pdf_fit_width_zoom: f32,
+    pub pdf_fill_zoom: f32,
+    pub input_pan: [f32; 2],
 }
 struct Pending {
     request: Request,
@@ -194,6 +199,7 @@ impl Worker {
                                 request.pdf_zoom.to_bits(),
                                 request.spread as u32,
                                 request.view.fit_width as u32,
+                                request.view.fit_cover as u32,
                                 request.view.color as u32,
                                 colors[0],
                                 colors[1],
@@ -383,6 +389,16 @@ impl Worker {
                         } else {
                             None
                         };
+                        let pdf_fit_width_zoom = if b.reflowable {
+                            1.0
+                        } else {
+                            crate::zoom::width_stop(frame.page_size, column, request.height)
+                        };
+                        let pdf_fill_zoom = if b.reflowable {
+                            1.0
+                        } else {
+                            crate::zoom::fill_stop(frame.page_size, column, request.height)
+                        };
                         Ok(Update {
                             frame,
                             right,
@@ -404,6 +420,9 @@ impl Worker {
                             search_hit,
                             encoding: b.encoding.clone(),
                             pan,
+                            pdf_fit_width_zoom,
+                            pdf_fill_zoom,
+                            input_pan: request.view.pan,
                         })
                     })();
                     if inbox.current(g) {
@@ -447,7 +466,9 @@ impl Worker {
                                         // Magnified PDF views render on demand; do not prefetch
                                         // tiles that the next page may never use.
                                         if b.reflowable
-                                            || (request.pdf_zoom <= 1.0 && !request.view.fit_width)
+                                            || (request.pdf_zoom <= 1.0
+                                                && !request.view.fit_width
+                                                && !request.view.fit_cover)
                                         {
                                             let column = if step == 2 {
                                                 (request.width - 32.0) / 2.0
@@ -494,7 +515,9 @@ impl Drop for Worker {
 
 fn pdf_scale(bounds: mupdf::Rect, column: f32, height: f32, request: &Request) -> f32 {
     let width = column / (bounds.x1 - bounds.x0).max(1.0);
-    let fit = if request.view.fit_width {
+    let fit = if request.view.fit_cover {
+        width.max(height / (bounds.y1 - bounds.y0).max(1.0))
+    } else if request.view.fit_width {
         width
     } else {
         width.min(height / (bounds.y1 - bounds.y0).max(1.0))

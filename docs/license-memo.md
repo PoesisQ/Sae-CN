@@ -33,3 +33,21 @@ copied into runtime licenses, and checked during packaging. Original registry
 sources/checksums are not changed. The dwrote canonical-text and unavailable
 pathfinder_geometry VCS-commit exceptions are recorded explicitly in that manifest
 and README rather than being silently described as exact-commit files.
+
+## 2026-10-27 - libmobi native parser
+
+New statically linked native component: libmobi 0.12 maintenance snapshot,
+commit 906274205c11944b628da1c553b255acb1af7c55, LGPL-3.0-or-later. Upstream
+source/provenance is in vendor/libmobi; no DRM code, tools or libxml2 is built.
+The combined application remains AGPL-3.0-or-later and upstream library sources
+retain their notices. The runtime delivers both LGPLv3 and GPLv3 texts, upstream
+commit/archive checksum and a native-component inventory. The corresponding
+source ZIP includes the library, our C bridge/allocator, all Rust sources and
+locked registry inputs, plus complete rebuild scripts, so the library can be
+modified and the combined application rebuilt. No anti-relink restriction is
+added. Source packaging explicitly includes native/; it must not be omitted.
+
+The only new Cargo edge is a build dependency on cc 1.10.0, already in Cargo.lock.
+No new registry package, redistributed font or executable converter is added.
+Upstream ebook test payloads are local opt-in inputs, excluded from the public
+source/runtime archives and distinct from the original CC0 fixtures.

@@ -30,3 +30,17 @@ The repository is under staged development. Unverified features must not be adve
 - Uniform fixed viewport/publisher absolute-positioned content is covered by generated regression; mixed viewport sizes, per-item rendition overrides, automatic spine spread/page direction and full vertical writing are not accepted. Vertical requests are detected and shown as a visible limitation; see blocker options.
 - Temporary text/compatibility EPUB files are deleted after a normal engine close. A forced process termination can leave its temporary folder behind; no background cleanup service runs. Originals are never rewritten or shipped in the release.
 - Mapped fonts lower committed private storage, but touched file-backed pages still occupy physical RAM. The application cache budget excludes Slint's window backing store, active uncached pages, decoded native images, fonts and parser state. It is not a whole-process memory cap.
+
+## 0.3 format boundary
+
+The owner's format expansion now includes DRM-free AZW3/KF8, MOBI and FB2.
+See format-support.md for verified cases, parser/resource caps and scope. This
+does not expand support to KFX, AZW4, compressed FB2, Kindle apps/dictionary UI
+or every fixed-layout Kindle variant. Some large valid books exceed the explicit
+parser limits and are rejected rather than silently truncated. FB2 style changes
+can briefly retain the old and replacement native tree. Native parsing remains
+non-preemptible mid-call; the queue still holds only the latest request.
+
+The rotating dial is a visual/input affordance with magnetic stops, not physical
+haptic hardware. A finite input-triggered animation consumes a small amount of
+CPU while visible; no zero-cost animation or universal compatibility claim is made.

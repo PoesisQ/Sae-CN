@@ -1,7 +1,7 @@
 # 开发与构建
 
 Sae Reader 使用 Rust + Slint + 原生 MuPDF，目标为 Windows 10 / 11 x64。
-当前实际可用格式为 EPUB / PDF，其余功能状态见兼容性与已知限制文档。
+当前格式为 EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2；格式范围及资源边界见 [格式支持](format-support.md)。
 
 ## 构建
 
@@ -28,13 +28,13 @@ cargo build --release --locked --offline --bin sae-reader
 ## 测试与诊断
 
 ```powershell
-cargo test --release --locked --offline --features qa --no-fail-fast -- --nocapture
+cargo test --release --locked --offline --no-default-features --lib --tests -- --nocapture
 ```
 
 测试本地书籍时设置 `SAE_READER_TEST_BOOKS` 为自己的目录，再执行：
 
 ```powershell
-cargo test --release --locked --offline --features qa --test local_books -- --nocapture
+cargo test --release --locked --offline --no-default-features --test local_books -- --nocapture
 ```
 
 样本可通过 `python scripts/generate-fixtures.py` 重建，需要 `fonttools`。
@@ -47,19 +47,26 @@ cargo test --release --locked --offline --features qa --test local_books -- --no
 ## 打包
 
 ```powershell
-./scripts/package.ps1 -Name SaeReader-0.2.0-preview.1
-python scripts/verify-package.py --name SaeReader-0.2.0-preview.1
-python scripts/prepare-release.py --name SaeReader-0.2.0-preview.1
+./scripts/package.ps1 -Name SaeReader-0.3.0-preview.1
+python scripts/verify-package.py --name SaeReader-0.3.0-preview.1
+python scripts/prepare-release.py --name SaeReader-0.3.0-preview.1
 ```
 
 打包目录必须是全新名称，避免把个人便携数据带入发行包。
 输出包括 Windows 包、完整依赖源码、独立许可包、图标、更新说明和校验清单。
 源码不包含用户书籍、个人配置、工具链或构建缓存，也不分发 Windows 字体。
 源码 Git 检出使用 `.gitattributes` 保持编码样本、图标及原生源码的字节不被自动换行转换。
+小型 Windows 包保留说明文档和完整许可；历轮原始测量与截图放在完整源码包，文档中的
+相关链接转为对应版本的 GitHub 地址。程序自身不下载这些记录。
+
+0.3 窗口回归可用 `python scripts/validate-iteration.py` 重放，包括方向键/焦点、长目录、
+旋钮停靠、100/125/200% 受控缩放和连续操作。新旧内存与首屏对照使用
+`scripts/measure-iteration.py --books <本地目录> --upstream <libmobi tests/samples> --output <新目录>`；
+必须在可见桌面上顺序运行，测量时暂停编译。只输出匿名编号，不复制书籍。
 
 有本地已校验的完整源码 ZIP 时，可传入 `-ReuseRegistryFrom` 加快打包；
 脚本先验证旧包 SHA256、Cargo.lock 与依赖覆盖，实际程序及项目源码仍取当前文件。
-仅允许应用版本差异以及固定版本 Slint 到已存在 Winit crate 的 accessor 功能依赖边；所有包版本、校验和及其他依赖关系必须一致。
+仅允许应用版本、固定版本 Slint 到已存在 Winit crate 的 accessor 功能边，以及应用新增的已锁定 cc 构建依赖边；所有包版本、校验和及其他依赖关系必须一致。
 
 ## 工程记录
 

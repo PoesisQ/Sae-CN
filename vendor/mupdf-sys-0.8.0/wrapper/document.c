@@ -8,6 +8,8 @@
 void fz_purge_stored_html(fz_context *ctx, void *doc);
 uint64_t sae_epub_anchor_make(fz_context *ctx, fz_document *doc, fz_location loc);
 fz_location sae_epub_anchor_lookup(fz_context *ctx, fz_document *doc, uint64_t anchor);
+uint64_t sae_htdoc_anchor_make(fz_context *ctx, fz_document *doc, fz_location loc);
+fz_location sae_htdoc_anchor_lookup(fz_context *ctx, fz_document *doc, uint64_t anchor);
 
 void mupdf_sae_set_style(fz_context *ctx, fz_document *doc, const char *css, bool publisher_css, mupdf_error_t **errptr)
 {
@@ -27,6 +29,7 @@ uint64_t mupdf_sae_make_anchor(fz_context *ctx, fz_document *doc, int page, mupd
     {
         fz_location loc = fz_location_from_page_number(ctx, doc, page);
         result = sae_epub_anchor_make(ctx, doc, loc);
+        if (result == 0) result = sae_htdoc_anchor_make(ctx, doc, loc);
         if (result == 0) result = (uint64_t)page + 1;
     }
     fz_catch(ctx) { mupdf_save_error(ctx, errptr); }
@@ -40,6 +43,7 @@ int mupdf_sae_lookup_anchor(fz_context *ctx, fz_document *doc, uint64_t anchor, 
     {
         if (anchor >> 32) {
             fz_location loc = sae_epub_anchor_lookup(ctx, doc, anchor);
+            if (loc.chapter < 0) loc = sae_htdoc_anchor_lookup(ctx, doc, anchor);
             if (loc.chapter >= 0 && loc.page >= 0)
                 result = fz_page_number_from_location(ctx, doc, loc);
         } else if (anchor > 0 && anchor <= (uint64_t)fz_count_pages(ctx, doc)) {

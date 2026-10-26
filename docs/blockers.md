@@ -30,7 +30,7 @@ The owner selected AGPL-compatible open-source distribution in this chat on 2026
 |---|---|---|
 | G0 | 通过（生成样本范围） | Native EPUB2/3/PDF, five true layout changes, reopened logical anchors; raw evidence preserved |
 | G1 | 大部分原型证据已补，尚未全项通过 | 20 页 EPUB/PDF、坐标/锚点、双页、取消、句柄和窗口压力通过；实际多档系统 DPI/跨屏仍待补 |
-| G2 | 四格式与全文搜索已实施，未全项通过 | 真实文本/图文回归已补；P0 外链确认、脚注、宽表与完整互操作仍待补 |
+| G2 | 七格式与全文搜索已实施，未全项通过 | 0.3 按需加入 AZW3/MOBI/FB2；真实文本/图文回归已补，P0 外链确认、脚注、宽表与完整互操作仍待补 |
 | G3 | 沉浸浮层、旋钮与全屏已实施，未全项通过 | 最终截图、主题/窄屏/受控 DPI 检查；完整样式入口、独立美术与全键盘验收仍待补 |
 | G4 | 部分实施，未通过 | 基础 MathML/Ruby、同尺寸固定画布有原生回归；竖排等仍有已复现缺口 |
 | G5 | 部分实施，未通过 | 首屏/内存/CPU/窗口压力/初步 Sumatra 对照已有数据；冷启动、完整对照、干净 VM 等待补 |

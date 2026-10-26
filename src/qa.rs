@@ -2,6 +2,7 @@
 //! Reports contain timings and counters, never book paths, titles or text.
 use super::*;
 use serde_json::{Value, json};
+use slint::Model;
 use std::{cell::RefCell, fs, io::BufWriter, path::Path};
 
 pub struct Metrics {
@@ -109,6 +110,11 @@ struct Run {
     errors: Vec<String>,
     chrome_viewport: Option<(f32, f32)>,
     pan_origin: f32,
+    dial_last: Option<f32>,
+    dial_stops: [usize; 4],
+    dial_signature: Option<(f32, blake3::Hash)>,
+    dial_rotation_samples: usize,
+    navigation_expected: Option<i32>,
 }
 /// A QA-only timer is created only when an explicit report destination is set.
 /// The production binary has no diagnostic timer, environment parser or PNG codec.
@@ -184,6 +190,190 @@ pub fn start(
                     t.stop();
                 }
                 return;
+            }
+            if scenario == "navigation" {
+                use slint::platform::{Key, PointerEventButton, WindowEvent};
+                let phase = run.step % 27;
+                let book = run.step / 27;
+                let page = state.lock().unwrap().frame.as_ref().map_or(-1, |f| f.page);
+                if run.waiting {
+                    run.waiting = false;
+                    run.operations += 1;
+                    let step=run.step;
+                    if let Some(expected) = run.navigation_expected.take() {
+                        if page != expected { run.errors.push(format!("keyboard navigation step {step}: expected page {expected}, got {page}")); }
+                    }
+                    run.snapshots.push(json!({"step":step,"page":page,"spread":ui.get_effective_spread(),"zoom":ui.get_pdf_zoom()}));
+                }
+                if run.step == 111 {
+                    run.end=Some(counters()); finish(&ui,&state,&report,&scenario,&run);
+                    if let Some(t)=stop.upgrade(){t.stop();} return;
+                }
+                let key = |text: slint::SharedString| {
+                    ui.window().dispatch_event(WindowEvent::KeyPressed { text:text.clone() });
+                    ui.window().dispatch_event(WindowEvent::KeyReleased { text });
+                };
+                let click = |x,y| {
+                    let position=slint::LogicalPosition::new(x,y);
+                    ui.window().dispatch_event(WindowEvent::PointerPressed {position,button:PointerEventButton::Left});
+                    ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
+                };
+                let width=ui.get_viewport_width()+32.0;
+                let height=ui.get_viewport_height();
+                if run.step >= 108 {
+                    match run.step {
+                        108=>{ui.set_double_page(true);ui.invoke_mode_changed(true);ui.window().set_size(slint::LogicalSize::new(640.0,480.0));},
+                        109=>{key(Key::RightArrow.into());run.navigation_expected=Some(1);},
+                        110=>{key(Key::LeftArrow.into());run.navigation_expected=Some(0);},
+                        _=>unreachable!(),
+                    }
+                    run.step+=1;run.ready=Some(Instant::now()+Duration::from_millis(200));run.waiting=true;return;
+                }
+                match phase {
+                    0 => { ui.set_show_toolbar(true); click(width-148.0,38.0); },
+                    1|8|11|16|22 => { key(Key::RightArrow.into()); run.navigation_expected=Some(2); },
+                    2|9|12|17|23 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
+                    3 => { key(Key::DownArrow.into()); run.navigation_expected=Some(2); },
+                    4 => { key(Key::UpArrow.into()); run.navigation_expected=Some(0); },
+                    5 => { key(Key::PageDown.into()); run.navigation_expected=Some(2); },
+                    6 => { key(Key::PageUp.into()); run.navigation_expected=Some(0); },
+                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(width*0.5+171.0,height-43.0); } else { click(width-148.0,38.0); } },
+                    10|13 => key(Key::F11.into()),
+                    14 => ui.set_show_contents(true),
+                    15 => click((width*0.28).clamp(280.0,340.0)-22.0,104.0),
+                    18 => ui.invoke_focus_search(),
+                    19 => key("ab".into()),
+                    20 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(page); },
+                    21 => key(Key::Escape.into()),
+                    24 => { ui.set_show_toolbar(true); click(width-192.0,38.0); },
+                    25 => { key(Key::RightArrow.into()); run.navigation_expected=Some(1); },
+                    26 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
+                    _ => unreachable!(),
+                }
+                // Repeat the same native key/focus path for fixed PDF, EPUB,
+                // converted KF8 and native FB2. These original books exceed
+                // three pages at the default viewport.
+                if phase == 0 && book > 0 {
+                    let paths=["tests/fixtures/core.pdf","tests/fixtures/core-epub3.epub","tests/fixtures/kindle-minimal.azw3","tests/fixtures/reading.fb2"];
+                    open(PathBuf::from(paths[book]),&ui,&state,&mailbox);
+                }
+                run.step+=1;
+                run.ready=Some(Instant::now()+Duration::from_millis(200)); run.waiting=true;
+                return;
+            }
+            if scenario == "contents" {
+                use slint::platform::WindowEvent;
+                if run.waiting {
+                    run.waiting=false; run.operations+=1;
+                    if !ui.get_show_contents() { run.errors.push("contents overlay unexpectedly closed".into()); }
+                    let step=run.step;
+                    run.snapshots.push(json!({"step":step,"viewport":[ui.get_viewport_width(),ui.get_viewport_height()],"rows":ui.get_contents().row_count()}));
+                    if let Some(folder)=&screenshots {
+                        if let Err(e)=snapshot(&ui,&folder.join(format!("contents-{step:02}.png"))){run.errors.push(e.to_string());}
+                    }
+                }
+                let scroll=|delta_y| ui.window().dispatch_event(WindowEvent::PointerScrolled {position:slint::LogicalPosition::new(160.0,260.0),delta_x:0.0,delta_y});
+                match run.step {
+                    0=>{ui.set_show_contents(true);ui.set_show_toolbar(true);},
+                    1=>scroll(-400.0),
+                    2=>scroll(-10000.0),
+                    3=>ui.invoke_theme_changed(2),
+                    4=>scroll(10000.0),
+                    5=>ui.window().set_size(slint::LogicalSize::new(640.0,480.0)),
+                    6=>scroll(-10000.0),
+                    _=>{run.end=Some(counters());finish(&ui,&state,&report,&scenario,&run);if let Some(t)=stop.upgrade(){t.stop();}return;}
+                }
+                run.step+=1;run.waiting=true;run.ready=Some(Instant::now()+Duration::from_millis(350));
+                return;
+            }
+            if scenario == "detents" {
+                if run.waiting {
+                    run.waiting = false;
+                    run.operations += 1;
+                    let value = ui.get_pdf_zoom();
+                    let stop = ui.get_pdf_zoom_stop();
+                    let step = run.step;
+                    let spread = ui.get_effective_spread();
+                    if (3..=25).contains(&step) || (28..=50).contains(&step) {
+                        if run.dial_last.is_some_and(|last| value < last - 0.001) {
+                            run.errors.push("positive dial input moved zoom backwards".into());
+                        }
+                    }
+                    if (51..=73).contains(&step) && run.dial_last.is_some_and(|last| value > last + 0.001) {
+                        run.errors.push("negative dial input moved zoom forwards".into());
+                    }
+                    run.dial_last = Some(value);
+                    let s = state.lock().unwrap();
+                    if let Some(frame) = &s.frame {
+                        let column = if spread { (ui.get_viewport_width() - 32.0) * 0.5 } else { ui.get_viewport_width() };
+                        if stop == 1 && (frame.overflow.0 > 2.0 || frame.overflow.1 > 2.0) {
+                            run.errors.push("fit-page detent cropped a page".into());
+                        }
+                        if stop == 2 && (frame.display_width < column - 2.0 || frame.display_height < ui.get_viewport_height() - 2.0) {
+                            run.errors.push("fill detent did not fill the current page column".into());
+                        }
+                    }
+                    drop(s);
+                    if stop == 1 || stop == 2 {
+                        run.dial_stops[usize::from(spread)*2 + (stop as usize-1)] += 1;
+                    }
+                    run.snapshots.push(json!({"step":step,"zoom":value,"stop":stop,"spread":spread,
+                        "fill_ratio":ui.get_pdf_fill_zoom(),"width_ratio":ui.get_pdf_fit_width_zoom()}));
+                    // The ROI is the 24px dial, inside the fixed 560px footer.
+                    // It excludes the percent text and the document canvas.
+                    if stop == 0 && !spread {
+                        if let Ok(pixels) = ui.window().take_snapshot() {
+                            let dpi = ui.window().scale_factor();
+                            let cx = ((ui.get_viewport_width()+32.0)*0.5+132.0)*dpi;
+                            let cy = (ui.get_viewport_height()-43.0)*dpi;
+                            let mut hash = blake3::Hasher::new();
+                            for y in ((cy-13.0*dpi).max(0.0) as u32)..((cy+13.0*dpi) as u32).min(pixels.height()) {
+                                let a = ((y*pixels.width() + (cx-13.0*dpi).max(0.0) as u32)*4) as usize;
+                                let b = ((y*pixels.width() + ((cx+13.0*dpi) as u32).min(pixels.width()))*4) as usize;
+                                hash.update(&pixels.as_bytes()[a..b]);
+                            }
+                            let hash = hash.finalize();
+                            if let Some((previous, before)) = run.dial_signature {
+                                if (1.12..1.8).contains(&(value / previous)) {
+                                    run.dial_rotation_samples += 1;
+                                    if before == hash { run.errors.push("dial needle pixels did not rotate".into()); }
+                                }
+                            } else { run.dial_signature = Some((value, hash)); }
+                        }
+                    }
+                    if let Some(folder) = &screenshots {
+                        if matches!(step,1|4|6|26|30|33|73|75) {
+                            if let Err(e) = snapshot(&ui,&folder.join(format!("detent-{step:02}.png"))) { run.errors.push(e.to_string()); }
+                        }
+                    }
+                }
+                use slint::platform::WindowEvent;
+                let point = slint::LogicalPosition::new((ui.get_viewport_width()+32.0)*0.5+132.0,ui.get_viewport_height()-43.0);
+                match run.step {
+                    0 => { ui.set_show_toolbar(true); ui.set_double_page(false); ui.invoke_mode_changed(false); ui.invoke_typography("fit-page".into(),0.0); },
+                    1 | 26 => ui.invoke_typography("zoom".into(),0.8),
+                    2..=24 | 27..=49 => ui.window().dispatch_event(WindowEvent::PointerScrolled {position:point,delta_x:0.0,delta_y:120.0}),
+                    25 => { ui.set_double_page(true); ui.invoke_mode_changed(true); ui.invoke_typography("fit-page".into(),0.0); },
+                    50..=72 => ui.window().dispatch_event(WindowEvent::PointerScrolled {position:point,delta_x:0.0,delta_y:-120.0}),
+                    73 => ui.invoke_typography("fit-page".into(),0.0),
+                    74 => {
+                        use slint::platform::PointerEventButton;
+                        let from=slint::LogicalPosition::new(point.x+9.0,point.y);
+                        let to=slint::LogicalPosition::new(point.x,point.y+9.0);
+                        ui.window().dispatch_event(WindowEvent::PointerPressed {position:from,button:PointerEventButton::Left});
+                        ui.window().dispatch_event(WindowEvent::PointerMoved {position:to});
+                        ui.window().dispatch_event(WindowEvent::PointerReleased {position:to,button:PointerEventButton::Left});
+                    },
+                    _ => {
+                        if ui.get_pdf_zoom()<1.05 || ui.get_pdf_zoom_stop()!=2 { run.errors.push("circular dial drag did not turn clockwise into the fill stop".into()); }
+                        if run.dial_stops.contains(&0) { run.errors.push("page/fill detent was not reached in both single and double modes".into()); }
+                        if run.dial_rotation_samples == 0 { run.errors.push("dial pixel rotation was not sampled".into()); }
+                        run.end = Some(counters()); finish(&ui,&state,&report,&scenario,&run);
+                        if let Some(t) = stop.upgrade() { t.stop(); } return;
+                    }
+                }
+                run.step += 1; run.waiting = true;
+                run.ready = Some(Instant::now()+Duration::from_millis(180)); return;
             }
             if scenario == "chrome" {
                 let viewport=(ui.get_viewport_width(),ui.get_viewport_height());
@@ -379,8 +569,10 @@ pub fn start(
                     4 => {
                         ui.set_show_settings(false);
                         ui.invoke_theme_changed(2);
+                        ui.set_show_contents(true);
                     }
                     5 => {
+                        ui.set_show_contents(false);
                         ui.invoke_theme_changed(0);
                         ui.window().set_size(slint::LogicalSize::new(680.0, 760.0));
                     }

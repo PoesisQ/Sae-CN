@@ -64,3 +64,46 @@ Use Slint rectangles, thin borders and six tiny source SVG icons. No blur, bitma
 The top/bottom edge reveals each floating control independently. F10 pins both, and F11/Esc are handled before focused controls consume keys. A progress scrubber commits on release; PDF zoom accepts wheel/drag and coalesces native rendering after changes. Panning keeps at most one pending 40ms refresh while continuously updating the latest normalized position. The original left-button selection and link hit-testing remain; middle/right drag pans magnified pages. No idle timer is created for these controls.
 
 Fixed-page viewport/scale/theme changes clear obsolete cached images. A pan miss replaces the same page's preceding tile rather than accumulating adjacent viewport-sized bitmaps. The shared Slint frame may keep the previous tile until its replacement is displayed, so transient active-frame storage still exists outside the cache budget.
+
+## ADR 012 - Owner-authorized Kindle/FB2 expansion (2026-10-27)
+
+The owner's new request supersedes the original four-format non-goal for AZW3
+and one or two common alternatives. Add AZW3/KF8, MOBI and FB2 without changing
+the Rust + Slint + MuPDF architecture. Pin libmobi 0.12 maintenance commit
+906274205c11944b628da1c553b255acb1af7c55; statically compile parsing and the
+internal OPF writer only. Encryption, file-writing tools and libxml2 are unbuilt.
+Reuse existing zlib. Rust streams rebuilt parts into a temporary EPUB and frees
+the entire native parse before MuPDF opens it. A per-thread bounded allocator
+reclaims even abandoned malformed-input allocations on scope exit. No parser
+object, child converter, conversion cache or idle task exists for other formats.
+
+FB2 uses the existing native HTML handler. Rust validates/decode-checks XML and
+builds its TOC, adding missing IDs to a temporary copy only when necessary.
+Native HTML/FB2 anchors reuse source-flow ordinals, never pointer bookmarks.
+MuPDF HTML bakes CSS at parse time: initial CSS is installed before open, and
+style changes reparse on the existing document worker. Replacement can transiently
+hold both trees; neither a source buffer nor a second XML tree remains afterward.
+Resize reflows the current tree. Font/image/text semantics remain native.
+
+## ADR 013 - Damped zoom with no perpetual simulation
+
+Use a small log-space input state with two geometry-derived stops: contain the
+page and cover the column. Each PDF spread column computes its own native scale.
+The UI shows the first column's ratio; mixed page sizes can have different crops.
+A hysteresis band catches the stop and requires further input to leave it; it
+does not run a spring integrator. The vector needle has a 110ms ease-out after
+wheel events and direct drag updates. Native rendering uses an 80ms one-shot
+throttle with the latest replaceable request; no queued work or idle animation.
+TOC rows stay virtualized and use system fonts, not redistributed font assets.
+
+## ADR 014 - Check native startup geometry instead of always sleeping
+
+The 0.2 startup path waited 100ms before every CLI book open to avoid a temporary
+viewport/DPI. In 0.3, dispatch once to the event loop, then compare Slint's canvas
+with Winit's actual physical client area using Slint's effective scale factor.
+Matching geometry starts the document immediately. A mismatch retains the
+existing single 100ms fallback; no idle polling or initial low-resolution render
+is introduced. Effective Slint scale is deliberate: controlled scale tests can
+differ from Windows monitor DPI. First-frame/double-page/DPI checks and final
+binary measurements must be repeated after this change. Earlier measurements
+and exact binaries remain available for comparison.

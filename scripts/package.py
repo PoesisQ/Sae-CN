@@ -12,11 +12,12 @@ import re
 import shutil
 import subprocess
 import zipfile
+from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.2.0-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.3.0-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.3.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -57,9 +58,19 @@ for p in metadata['packages']:
     if in_build and not records and not packages[-1]['supplemental_notices']:
         raise RuntimeError(f'Missing license text for build dependency: {name}')
 shutil.copy2(root/'legal/third-party/sources.json',licenses/'supplemental-sources.json')
-inventory={'application':'AGPL-3.0-or-later','packages':packages,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
+native_license=licenses/'libmobi-0.12'
+native_license.mkdir()
+shutil.copy2(root/'vendor/libmobi/COPYING',native_license/'LGPL-3.0-or-later.txt')
+shutil.copy2(root/'vendor/libmobi/UPSTREAM.txt',native_license/'UPSTREAM.txt')
+gpl3=next(f for f in (licenses/'slint-1.18.1').rglob('GPL-3.0-only.txt'))
+shutil.copy2(gpl3,native_license/'GPL-3.0.txt')
+native_components=[{'name':'libmobi','version':'0.12','commit':'906274205c11944b628da1c553b255acb1af7c55',
+    'license':'LGPL-3.0-or-later','linkage':'static','source':'vendor/libmobi/src',
+    'build':'build.rs; native/kindle.c; native/kindle_alloc.c; encryption disabled; existing MuPDF zlib',
+    'notices':['licenses/libmobi-0.12/LGPL-3.0-or-later.txt','licenses/libmobi-0.12/GPL-3.0.txt','licenses/libmobi-0.12/UPSTREAM.txt']}]
+inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.1.0 preview
+notices='''Sae Reader 0.3.0 preview
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
@@ -69,6 +80,13 @@ terms in dependency-inventory.json and licenses/. Native MuPDF third-party
 notices are included recursively in licenses/mupdf-sys-0.8.0 and in source.
 License texts omitted from 18 published Cargo packages are supplemented from
 upstream; URLs, commits, exceptions and checksums: licenses/supplemental-sources.json.
+
+libmobi 0.12, commit 906274205c11944b628da1c553b255acb1af7c55, is statically
+linked under LGPL-3.0-or-later. Its source, our bridge/bounded allocator and the
+complete rebuild inputs are in the matching source ZIP (vendor/libmobi/, native/,
+build.rs). Encryption, writing tools and libxml2 are unbuilt; zlib is reused from
+MuPDF. Rebuild the combined application from those sources with modifications to
+libmobi as desired. License texts and upstream provenance: licenses/libmobi-0.12/.
 
 Windows fonts are loaded from the user's Windows installation and are not
 redistributed. The included test fixtures are original CC0 content. This package
@@ -80,11 +98,11 @@ corresponding source assets/ directory; it is not a CC0 test fixture.
 (runtime/'THIRD-PARTY-NOTICES.txt').write_text(notices,encoding='utf-8')
 readme='''Sae Reader · Windows x64 预览版
 
-双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD 路径作为命令行参数打开。
+双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2 路径作为命令行参数打开。
 点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，
 Ctrl+C 复制所选文字，F10 固定/自动收起工具栏，F11 全屏，Esc 退出全屏。
-鼠标靠近下沿显示进度拖动条与 PDF 缩放旋钮。旋钮支持滚轮或拖动，点击恢复适页；Ctrl+滚轮也可缩放。
+鼠标靠近下沿显示进度拖动条与缩放旋钮。旋钮随滚轮或拖动转动，在整页/铺满视区附近吸附，继续操作可脱离；点击恢复适页。
 PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
@@ -93,9 +111,9 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 便携数据：以 SaeReader.exe --portable 启动，写入程序目录的 data/。
 卸载：关闭后删除程序目录；如需删除个人历史，再自行删除上述数据目录。
 
-此版支持 EPUB/PDF/TXT/MD。文本支持自动检测和手动编码，Markdown 使用本地阅读视图。
+此版支持 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2，不含 DRM。Kindle 解析按需执行，转换树随即释放；FB2 使用原生引擎，缺少 ID 的目录使用临时副本补齐锚点。
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
-本次修复及实测结果见 docs/iteration-0.2.md 和 docs/performance-report.md。
+本次修复及实测结果见 docs/iteration-0.3.md 和 docs/performance-report.md。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
 依赖 Windows 系统 DLL 和 Microsoft Visual C++ v14 x64 运行库；
@@ -107,14 +125,35 @@ https://github.com/PoesisQ/Sae-CN/releases
 请下载与本版本对应的 *-source.zip；完整许可已包含在本 Windows 包中。
 '''
 (runtime/'使用说明.txt').write_text(readme,encoding='utf-8')
-shutil.copy2(root/'README.md',runtime/'README.md')
-shutil.copy2(root/'CHANGELOG.md',runtime/'CHANGELOG.md')
 (runtime/'assets').mkdir()
 shutil.copy2(root/'assets/window-icon.png',runtime/'assets/window-icon.png')
-shutil.copytree(root/'docs',runtime/'docs',dirs_exist_ok=True)
+# The small runtime contains human-readable documentation. Historical raw
+# measurements/screenshots stay in the full corresponding source ZIP and on the
+# versioned repository, rather than inflating every executable download.
+runtime_markdown=[root/'README.md',root/'CHANGELOG.md']+[
+    p for p in (root/'docs').rglob('*.md') if 'evidence' not in p.relative_to(root/'docs').parts]
+runtime_paths={p.resolve() for p in runtime_markdown}|{(root/'assets/window-icon.png').resolve()}
+def copy_runtime_markdown(path):
+    def link(match):
+        target=match.group(1)
+        if re.match(r'^[a-zA-Z][a-zA-Z0-9+.-]*:|^[/#]',target):return match.group(0)
+        relative,separator,fragment=target.partition('#')
+        resolved=(path.parent/relative).resolve()
+        if not resolved.is_file() or resolved in runtime_paths:return match.group(0)
+        try:rel=resolved.relative_to(root).as_posix()
+        except ValueError:return match.group(0)
+        url='https://github.com/PoesisQ/Sae-CN/blob/v'+args.name.removeprefix('SaeReader-')+'/'+quote(rel)
+        return ']('+url+(separator+fragment if separator else '')+')'
+    target=runtime/path.relative_to(root);target.parent.mkdir(parents=True,exist_ok=True)
+    target.write_text(re.sub(r'\]\(([^()\s]+)\)',link,path.read_text(encoding='utf-8')),encoding='utf-8')
+for path in runtime_markdown:copy_runtime_markdown(path)
+(runtime/'docs/README.txt').write_text(
+    'Raw measurements and original-fixture screenshots are in the matching full source ZIP.\n'
+    'Documentation links to those artifacts use the versioned GitHub repository.\n'
+    'The reader itself does not download or load these documents.\n',encoding='utf-8')
 source_zip=dist/f'{args.name}-source.zip'
 top=['AGENTS.md','Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','CHANGELOG.md','LICENSE','.gitignore','.gitattributes','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
-folders=['src','ui','assets','scripts','tests','docs','vendor','legal']
+folders=['src','ui','assets','scripts','tests','docs','vendor','legal','native']
 files=[]
 for item in top:
     path=root/item
@@ -161,6 +200,10 @@ with ExitStack() as stack:
         def dependency_lock(data):
             value=data.decode('utf-8-sig').replace('\r\n','\n')
             value=re.sub(r'(name = "sae-reader"\nversion = ")[^"]+("\n)',r'\1APPLICATION_VERSION\2',value)
+            # The sole new application edge is build-only cc, already locked.
+            # Package versions/checksums and all other edges remain verified.
+            value=re.sub(r'(\[\[package\]\]\nname = "sae-reader"\n)(.*?)(?=\n\[\[package\]\]|\Z)',
+                         lambda match:match.group(0).replace(' "cc",\n',''),value,flags=re.S)
             # Only this additional edge is permitted; the Winit package itself
             # was already present. All versions/checksums/other edges must match.
             value=re.sub(r'(\[\[package\]\]\nname = "slint"\n)(.*?)(?=\n\[\[package\]\]|\Z)',

@@ -1,4 +1,5 @@
 fn main() {
+    kindle_parser();
     #[cfg(feature = "native-ui")]
     {
         slint_build::compile("ui/reader.slint").expect("Slint UI compilation failed");
@@ -6,6 +7,50 @@ fn main() {
             windows_resources();
         }
     }
+}
+
+fn kindle_parser() {
+    // Reuse MuPDF's linked zlib. No converter process, DLL or second inflater.
+    let mut parser = cc::Build::new();
+    parser
+        .std("c11")
+        .include("vendor/libmobi/src")
+        .include("native")
+        .include("vendor/mupdf-sys-0.8.0/mupdf/thirdparty/zlib")
+        .define("USE_XMLWRITER", "1")
+        .define("USE_ZLIB", "1")
+        .define("PACKAGE_VERSION", "\"0.12\"")
+        .define("MOBI_INLINE", "inline")
+        .define("_CRT_SECURE_NO_WARNINGS", None)
+        .warnings(false);
+    if std::env::var("CARGO_CFG_TARGET_ENV").as_deref() == Ok("msvc") {
+        parser.flag("/FIkindle_alloc.h");
+    } else {
+        parser.flag("-include").flag("kindle_alloc.h");
+    }
+    for source in [
+        "buffer",
+        "compression",
+        "index",
+        "memory",
+        "meta",
+        "parse_rawml",
+        "read",
+        "structure",
+        "util",
+        "opf",
+        "xmlwriter",
+    ] {
+        parser.file(format!("vendor/libmobi/src/{source}.c"));
+    }
+    parser.file("native/kindle.c").compile("sae_kindle");
+    cc::Build::new()
+        .std("c11")
+        .include("native")
+        .file("native/kindle_alloc.c")
+        .compile("sae_kindle_alloc");
+    println!("cargo:rerun-if-changed=vendor/libmobi/src");
+    println!("cargo:rerun-if-changed=native");
 }
 
 #[cfg(feature = "native-ui")]

@@ -1,6 +1,6 @@
 [package]
 name = "sae-reader"
-version = "0.2.0-preview.1"
+version = "0.3.0-preview.1"
 edition = "2024"
 rust-version = "1.92"
 publish = false
@@ -32,6 +32,7 @@ arboard = { version = "3.7", default-features = false, optional = true }
 png = { version = "0.18", optional = true }
 
 [build-dependencies]
+cc = "=1.10.0"
 slint-build = { version = "=1.18.1", optional = true }
 
 [[bin]]

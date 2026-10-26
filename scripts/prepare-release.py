@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.2.0-preview.1')
+parser.add_argument('--name', default='SaeReader-0.3.0-preview.1')
 args = parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+', args.name):
     raise ValueError('Invalid package name')

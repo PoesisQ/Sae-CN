@@ -51,3 +51,18 @@ Targeted Ruby/MathML SVG conversion and fixed-canvas selection live in applicati
 # 0.2 context isolation
 
 `mupdf/source/fitz/context.c`: copy-on-write style storage for cloned contexts, used by both CSS setters. This fixes concurrent CSS replacement without duplicating the native resource store. An allocation failure keeps the previous CSS valid. Upstream copyright and AGPL notices remain intact.
+
+# 0.3 native format adapters
+
+`html-doc.c` and `wrapper/document.c` extend the existing source-flow ordinal
+anchor helpers to native HTML/FB2, guarded by the concrete handler callback.
+FB2 CSS is installed before parse; the application reparses it on style changes
+and sets the native page background as well as body colors. No pixel recoloring
+is used for its theme.
+
+`libmobi/` is a separately pinned LGPL-3.0-or-later parser. Its provenance and
+archive checksum are in `libmobi/UPSTREAM.txt`. The application statically builds
+only reading/reconstruction and the internal OPF writer, with a streaming Rust
+bridge and bounded thread-local allocator in `native/`; existing zlib is reused.
+Upstream ebook test payloads are excluded. See the root license memo and build
+scripts for the exact source list and corresponding-source distribution.

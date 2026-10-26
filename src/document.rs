@@ -22,6 +22,7 @@ pub struct Book {
     viewport: (i32, i32),
     chapters: Vec<Option<i32>>,
     next_chapter: usize,
+    native_html: bool,
     contents: Option<Arc<Vec<ContentsItem>>>,
 }
 
@@ -61,14 +62,23 @@ impl Book {
         let mut converted = None;
         let mut fixed_viewport = None;
         let mut conversion_style = None;
+        let mut supplied_contents = None;
         match extension.as_str() {
-            "epub" => {
-                let report = security::inspect_epub(path)?;
-                converted = crate::epub_compat::convert(path, &report, typography)?;
-                if let Some(compat) = &converted {
-                    notice = compat.notice.clone();
+            "epub" | "azw3" | "mobi" => {
+                if extension != "epub" {
+                    converted = Some(crate::kindle_adapter::convert(path)?);
+                    notice = converted.as_ref().unwrap().notice.clone();
+                }
+                let source = converted.as_ref().map_or(path, |c| c.path.as_path());
+                let report = security::inspect_epub(source)?;
+                if let Some(compat) = crate::epub_compat::convert(source, &report, typography)? {
+                    if !notice.is_empty() {
+                        notice.push_str(" · ");
+                    }
+                    notice.push_str(&compat.notice);
                     conversion_style =
                         Some((typography.foreground.clone(), typography.family.clone()));
+                    converted = Some(compat);
                 }
                 if report.repaired_html > 0 {
                     if !notice.is_empty() {
@@ -93,12 +103,17 @@ impl Book {
                 }
             }
             "pdf" => {}
+            "fb2" => {
+                let (adapted, contents) = crate::fb2_adapter::prepare(path)?;
+                converted = adapted;
+                supplied_contents = Some(contents);
+            }
             "txt" | "md" => {
                 let document = crate::text_adapter::convert(path, encoding)?;
                 notice = document.notice.clone();
                 converted = Some(document);
             }
-            _ => bail!("仅支持 EPUB、PDF、TXT 和 Markdown 四种格式"),
+            _ => bail!("支持 EPUB、PDF、TXT、Markdown、AZW3、MOBI 和 FB2（不含 DRM）"),
         }
         let native_path = converted
             .as_ref()
@@ -106,6 +121,11 @@ impl Book {
             .unwrap_or(path)
             .to_str()
             .context("文件路径包含无法表示的 Unicode，请先重命名文件")?;
+        if extension == "fb2" {
+            // Native HTML computes CSS when parsed, not on layout(). Do this on
+            // the serialized document thread, before the first FB2 parse.
+            mupdf::Context::get().set_user_css(&crate::fb2_adapter::style_css(typography))?;
+        }
         let mut engine = Document::open(native_path).context("原生引擎无法打开此文件")?;
         ensure!(
             !engine.needs_password()?,
@@ -142,11 +162,16 @@ impl Book {
                 .map(|c| c.encoding.clone()),
             conversion_style,
             _converted: converted,
-            style: None,
+            style: if extension == "fb2" {
+                Some(typography.clone())
+            } else {
+                None
+            },
             viewport: (0, 0),
             chapters: Vec::new(),
             next_chapter: 0,
-            contents: None,
+            native_html: extension == "fb2",
+            contents: supplied_contents,
         })
     }
 
@@ -173,7 +198,21 @@ impl Book {
         };
         if self.reflowable {
             if self.style.as_ref() != Some(style) {
-                self.engine.set_style(&style.css(), true)?;
+                let css = if self.native_html {
+                    crate::fb2_adapter::style_css(style)
+                } else {
+                    style.css()
+                };
+                self.engine.set_style(&css, true)?;
+                if self.native_html && self.style.is_some() {
+                    let source = self
+                        ._converted
+                        .as_ref()
+                        .map_or(self.path.as_path(), |c| c.path.as_path());
+                    // A short-lived replacement parse is necessary for real
+                    // family/leading/margin changes. No source buffer stays resident.
+                    self.engine = Document::open(source.to_str().context("FB2 路径无效")?)?;
+                }
             }
             self.engine.layout(
                 dimensions.0.max(120) as f32,

@@ -32,6 +32,7 @@ struct State {
     count: i32,
     pagination_complete: bool,
     wheel: WheelPager,
+    zoom: sae_reader::zoom::ZoomControl,
     preferences: Preferences,
     config: PathBuf,
     identity: Option<String>,
@@ -67,6 +68,7 @@ fn viewport(ui: &ReaderWindow, request: &mut Request) {
     ui.set_effective_spread(request.spread && request.width >= 800.0);
 }
 fn turn(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, direction: i32, ui: &ReaderWindow) {
+    ui.set_selected_content_uri("".into());
     submit(state, mailbox, |r| {
         let step = if r.spread && ui.get_effective_spread() {
             2
@@ -100,10 +102,11 @@ fn follow(
         }
         return;
     }
-    if uri.contains(':') {
+    if uri.split('#').next().unwrap_or("").contains(':') {
         ui.set_status("此链接协议不受支持".into());
         return;
     }
+    ui.set_selected_content_uri(uri.clone().into());
     {
         let mut s = state.lock().unwrap();
         let a = source.unwrap_or(s.anchor);
@@ -145,21 +148,43 @@ fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f
         || name.starts_with("fit-")
         || (matches!(name, "delta-size" | "size") && is_pdf)
     {
-        if let Some(r) = s.request.as_mut() {
-            if name.starts_with("fit-") || name == "size" {
-                r.pdf_zoom = 1.0;
-                r.view.fit_width = name == "fit-width";
-                r.view.pan = [0.5, 0.0];
-            } else {
-                r.pdf_zoom = (r.pdf_zoom
-                    * if name == "zoom" {
-                        value
-                    } else {
-                        1.0 + value * 0.1
-                    })
-                .clamp(0.25, 8.0);
+        use sae_reader::zoom::{Position, Stop};
+        let width_stop = ui.get_pdf_fit_width_zoom();
+        let fill_stop = ui.get_pdf_fill_zoom();
+        let position = if name.starts_with("fit-") || name == "size" {
+            s.zoom.reset();
+            Position {
+                value: if name == "fit-width" { width_stop } else { 1.0 },
+                stop: if name == "fit-width" {
+                    sae_reader::zoom::position(width_stop, fill_stop).stop
+                } else {
+                    Stop::Page
+                },
             }
-            ui.set_pdf_zoom(r.pdf_zoom);
+        } else {
+            s.zoom.adjust(
+                ui.get_pdf_zoom(),
+                fill_stop,
+                if name == "zoom" {
+                    value
+                } else {
+                    1.0 + value * 0.1
+                },
+            )
+        };
+        if let Some(r) = s.request.as_mut() {
+            r.view.fit_width = name == "fit-width";
+            r.view.fit_cover = !r.view.fit_width && position.stop == Stop::Fill;
+            r.pdf_zoom = if r.view.fit_width || r.view.fit_cover {
+                1.0
+            } else {
+                position.value
+            };
+            if position.stop != Stop::Free {
+                r.view.pan = [0.5, 0.0];
+            }
+            ui.set_pdf_zoom(position.value);
+            ui.set_pdf_zoom_stop(position.stop as i32);
         }
         return;
     }
@@ -233,6 +258,7 @@ fn run() -> anyhow::Result<()> {
         count: 0,
         pagination_complete: false,
         wheel: WheelPager::default(),
+        zoom: Default::default(),
         preferences,
         config,
         identity: None,
@@ -285,6 +311,23 @@ fn run() -> anyhow::Result<()> {
                     ui.set_has_document(true);
                     ui.set_book_title(update.title.into());
                     ui.set_reflowable(update.reflowable);
+                    ui.set_pdf_fit_width_zoom(update.pdf_fit_width_zoom);
+                    ui.set_pdf_fill_zoom(update.pdf_fill_zoom);
+                    if !update.reflowable {
+                        if let Some(request) = &s.request {
+                            let actual = request.pdf_zoom
+                                * if request.view.fit_cover {
+                                    update.pdf_fill_zoom
+                                } else if request.view.fit_width {
+                                    update.pdf_fit_width_zoom
+                                } else {
+                                    1.0
+                                };
+                            let position = sae_reader::zoom::position(actual, update.pdf_fill_zoom);
+                            ui.set_pdf_zoom(actual);
+                            ui.set_pdf_zoom_stop(position.stop as i32);
+                        }
+                    }
                     ui.set_pdf_pannable(
                         !update.reflowable
                             && (frame.overflow.0 > 1.0
@@ -307,8 +350,14 @@ fn run() -> anyhow::Result<()> {
                                 .contents
                                 .iter()
                                 .map(|c| TocRow {
-                                    title: format!("{}{}", "  ".repeat(c.depth), c.title).into(),
+                                    title: c.title.clone().into(),
                                     uri: c.uri.clone().into(),
+                                    depth: c.depth.min(12) as i32,
+                                    latin: !c.title.chars().any(|ch| {
+                                        matches!(ch,
+                                        '\u{2e80}'..='\u{9fff}' | '\u{ac00}'..='\u{d7af}' |
+                                        '\u{f900}'..='\u{faff}' | '\u{20000}'..='\u{323af}')
+                                    }),
                                 })
                                 .collect::<Vec<_>>(),
                         )));
@@ -344,7 +393,12 @@ fn run() -> anyhow::Result<()> {
                         request.page = frame.page;
                         request.navigation = Navigation::Keep;
                         request.view.search_hit = update.search_hit;
-                        request.view.pan = update.pan;
+                        // A prior render can finish while a throttled gesture
+                        // has newer input waiting. Preserve that input instead
+                        // of snapping it back to the older render's position.
+                        if request.view.pan == update.input_pan {
+                            request.view.pan = update.pan;
+                        }
                     }
                 }
                 Err(error) => {
@@ -476,7 +530,10 @@ fn run() -> anyhow::Result<()> {
         let mailbox = mailbox.clone();
         ui.on_open_file(move || {
             if let Some(path) = rfd::FileDialog::new()
-                .add_filter("阅读文档", &["epub", "pdf", "txt", "md"])
+                .add_filter(
+                    "电子书与文档",
+                    &["epub", "pdf", "txt", "md", "azw3", "mobi", "fb2"],
+                )
                 .pick_file()
             {
                 if let Some(ui) = weak.upgrade() {
@@ -585,15 +642,25 @@ fn run() -> anyhow::Result<()> {
         let mailbox = mailbox.clone();
         let timer = style_timer.clone();
         ui.on_typography(move |name, value| {
+            let fixed_action = name.as_str() == "zoom"
+                || name.starts_with("fit-")
+                || weak.upgrade().is_some_and(|u| {
+                    !u.get_reflowable() && matches!(name.as_str(), "size" | "delta-size")
+                });
             if let Some(ui) = weak.upgrade() {
                 edit_style(&state, &ui, name.as_str(), value);
+            }
+            // Throttle zoom while dragging so the page follows the knob. This
+            // one-shot submits the latest bounded request, then goes dormant.
+            if fixed_action && timer.running() {
+                return;
             }
             let state = state.clone();
             let mailbox = mailbox.clone();
             let weak = weak.clone();
             timer.start(
                 slint::TimerMode::SingleShot,
-                Duration::from_millis(150),
+                Duration::from_millis(if fixed_action { 80 } else { 150 }),
                 move || {
                     if let Some(ui) = weak.upgrade() {
                         submit(&state, &mailbox, |r| viewport(&ui, r));
@@ -892,15 +959,36 @@ fn run() -> anyhow::Result<()> {
         .skip(1)
         .find(|a| !a.to_string_lossy().starts_with("--"))
     {
-        // Initial Winit DPI/client-size notifications arrive asynchronously.
-        // Let that geometry settle once before the first document layout.
+        // Defer to the event loop, then compare Slint's viewport with the real
+        // native client area. The old unconditional 100ms floor penalized every
+        // command-line open even when both were already settled. Keep that
+        // one-shot fallback for a late geometry notification; never poll idle.
         ui.set_status("正在打开…".into());
         let weak = ui.as_weak();
         let state = state.clone();
         let mailbox = mailbox.clone();
-        slint::Timer::single_shot(Duration::from_millis(100), move || {
+        slint::Timer::single_shot(Duration::ZERO, move || {
             if let Some(ui) = weak.upgrade() {
-                open(PathBuf::from(path), &ui, &state, &mailbox);
+                let dpi = ui.window().scale_factor().max(0.1);
+                let settled = ui
+                    .window()
+                    .with_winit_window(|window| {
+                        let native = window.inner_size();
+                        (native.width as f32 / dpi - ui.get_viewport_width() - 32.0).abs() < 2.0
+                            && (native.height as f32 / dpi - ui.get_viewport_height()).abs() < 2.0
+                            && ui.get_viewport_width() >= 160.0
+                            && ui.get_viewport_height() >= 160.0
+                    })
+                    .unwrap_or(false);
+                if settled {
+                    open(PathBuf::from(path), &ui, &state, &mailbox);
+                } else {
+                    slint::Timer::single_shot(Duration::from_millis(100), move || {
+                        if let Some(ui) = weak.upgrade() {
+                            open(PathBuf::from(path), &ui, &state, &mailbox);
+                        }
+                    });
+                }
             }
         });
     }
@@ -944,11 +1032,16 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
             .is_some_and(|e| e.eq_ignore_ascii_case("txt") || e.eq_ignore_ascii_case("md")),
     );
     ui.set_pdf_zoom(1.0);
+    ui.set_pdf_fit_width_zoom(1.0);
+    ui.set_pdf_fill_zoom(1.0);
+    ui.set_pdf_zoom_stop(1);
     ui.set_pdf_pannable(false);
     ui.set_search_status("".into());
     ui.set_page_label("".into());
+    ui.set_selected_content_uri("".into());
     let identity = storage::fingerprint(&path).ok();
     let mut s = state.lock().unwrap();
+    s.zoom.reset();
     let anchor = identity
         .as_ref()
         .and_then(|id| s.preferences.books.get(id))

@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.2.0-preview.1')
+parser.add_argument('--name', default='SaeReader-0.3.0-preview.1')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -38,8 +38,9 @@ for kind in ('source', 'windows-x64'):
             assert parts[1] not in {'target', 'data', 'artifacts'}, name
             if len(parts)>1 and parts[1] not in {'dependencies', 'vendor'}:
                 assert not name.endswith('/state.json'), name
-            if name.endswith(('.epub', '.pdf', '.txt', '.md')) and '/tests/fixtures/' in name:
+            if name.endswith(('.epub', '.pdf', '.txt', '.md', '.azw3', '.mobi', '.fb2')) and '/tests/fixtures/' in name:
                 assert (root / 'tests/fixtures' / PurePosixPath(name).name).is_file(), name
+            assert '/vendor/libmobi/tests/' not in name, 'upstream ebook payloads are local opt-in inputs'
         assert archive.testzip() is None, 'CRC failure'
         checked[kind] = {'entries': len(names), 'crc': 'all passed'}
         if kind == 'source':
@@ -47,8 +48,13 @@ for kind in ('source', 'windows-x64'):
                         'assets/icon-original.png', 'assets/window-icon.png', 'assets/app-icon.ico',
                         'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py',
                         'src/reading.rs', 'src/rendering.rs', 'src/text_adapter.rs', 'src/epub_compat.rs',
+                        'src/kindle_adapter.rs', 'src/fb2_adapter.rs', 'src/zoom.rs',
+                        'native/kindle.c', 'native/kindle_alloc.c', 'native/kindle_alloc.h',
+                        'vendor/libmobi/src/mobi.h', 'vendor/libmobi/COPYING', 'vendor/libmobi/UPSTREAM.txt',
                         'src/fonts.rs', 'assets/icons/dial.svg', 'assets/icons/fullscreen.svg',
                         'vendor/mupdf-sys-0.8.0/mupdf/source/fitz/context.c',
+                        'vendor/mupdf-sys-0.8.0/mupdf/source/html/html-doc.c',
+                        'vendor/mupdf-sys-0.8.0/wrapper/document.c',
                         'vendor/mupdf-sys-0.8.0/wrapper/font.c', 'vendor/mupdf-sys-0.8.0/wrapper/page.c',
                         'legal/third-party/sources.json']
             for rel in required:
@@ -61,7 +67,12 @@ for kind in ('source', 'windows-x64'):
             checked[kind]['registry_source_directories'] = len(dependency_dirs)
         else:
             assert archive.read(args.name + '/SaeReader.exe') == (dist / args.name / 'SaeReader.exe').read_bytes()
+            assert not any('/docs/evidence/' in n for n in names), 'raw evidence belongs in the full source archive'
+            assert archive.read(args.name+'/docs/README.txt')
             inventory=json.loads(archive.read(args.name+'/dependency-inventory.json'))
+            for component in inventory['native_components']:
+                for notice in component['notices']: assert archive.read(args.name+'/'+notice), notice
+            assert any(c['name']=='libmobi' for c in inventory['native_components'])
             for p in inventory['packages']:
                 if p['default_windows_build']:
                     assert p['notices'] or p['supplemental_notices'], p['name']
