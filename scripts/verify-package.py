@@ -76,6 +76,8 @@ for kind in ('source', 'windows-x64'):
             for p in inventory['packages']:
                 if p['default_windows_build']:
                     assert p['notices'] or p['supplemental_notices'], p['name']
+            assert archive.read(args.name+'/licenses/slint-1.18.1/LICENSES/GPL-3.0-only.txt')
+            assert archive.read(args.name+'/licenses/libmobi-0.12/GPL-3.0.txt')
             supplements=json.loads(archive.read(args.name+'/licenses/supplemental-sources.json'))
             for record in supplements['records']:
                 data=archive.read(args.name+'/licenses/'+record['file'])

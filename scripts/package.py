@@ -43,8 +43,10 @@ for p in metadata['packages']:
     in_build=(p['name'],p['version']) in used
     records=[]
     for f in folder.rglob('*'):
-        if not f.is_file() or not re.match(r'^(licen[cs]e|copying|notice|copyright)',f.name,re.I):continue
+        if not f.is_file():continue
         rel=f.relative_to(folder)
+        if not (re.match(r'^(licen[cs]e|copying|notice|copyright)',f.name,re.I)
+                or any(re.fullmatch(r'licen[cs]es?',part,re.I) for part in rel.parts[:-1])):continue
         records.append(str(rel).replace('\\','/'))
         if in_build:
             target=licenses/name/rel;target.parent.mkdir(parents=True,exist_ok=True);shutil.copy2(f,target)
