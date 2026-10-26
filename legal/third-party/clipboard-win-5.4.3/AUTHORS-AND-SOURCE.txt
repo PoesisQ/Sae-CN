@@ -1,0 +1,8 @@
+Supplemental license texts for clipboard-win-5.4.3
+
+Cargo package license expression: BSL-1.0
+Official repository: https://github.com/DoumanAsh/clipboard-win
+Cargo authors: Douman <douman@gmx.se>
+
+Original source headers (retained in full corresponding source):
+

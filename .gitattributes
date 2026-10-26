@@ -1,0 +1,10 @@
+# Preserve exact bytes of native sources, encoded fixtures, fonts and evidence.
+# In particular, the host's core.autocrlf must not change fixture hashes.
+* -text
+*.epub binary
+*.pdf binary
+*.png binary
+*.ico binary
+*.ttf binary
+*.otf binary
+*.zip binary

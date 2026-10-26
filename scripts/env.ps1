@@ -1,0 +1,11 @@
+$ErrorActionPreference = 'Stop'
+$readerRoot = Split-Path -Parent $PSScriptRoot
+$env:CARGO_HOME = Join-Path $readerRoot '.tools\cargo'
+$env:RUSTUP_HOME = Join-Path $readerRoot '.tools\rustup'
+$env:LIBCLANG_PATH = Join-Path $readerRoot '.tools\python\clang\native'
+$env:PATH = (Join-Path $env:CARGO_HOME 'bin') + ';' + $env:PATH
+$env:CARGO_TARGET_DIR = Join-Path $readerRoot 'target'
+$env:CARGO_HTTP_MULTIPLEXING = 'false'
+$env:RUSTUP_USE_CURL = '1'
+$env:MUPDF_MSVC_PLATFORM_TOOLSET = 'v143'
+$env:MUPDF_MSVC_WINDOWS_TARGET_PLATFORM_VERSION = '10.0.22621.0'

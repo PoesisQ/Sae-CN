@@ -1,0 +1,167 @@
+{
+  "baseline": null,
+  "count": 303,
+  "document": true,
+  "dpi": 1.5,
+  "end": null,
+  "errors": [],
+  "first_counters": {
+    "cpu_ms": 343.75,
+    "handles": 255,
+    "peak_pagefile": 71008256,
+    "peak_working_set": 89882624,
+    "private_bytes": 49594368,
+    "private_working_set": 47095808,
+    "working_set": 70852608
+  },
+  "first_frame_assigned_ms": 206.4812,
+  "frames": [
+    {
+      "at_ms": 206.4812,
+      "cache_bytes": 3487240,
+      "cache_hits": 0,
+      "cache_misses": 1,
+      "display": [
+        720.0,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        1080,
+        1074
+      ],
+      "right_page": null,
+      "worker_ms": 52.0827
+    },
+    {
+      "at_ms": 370.23539999999997,
+      "cache_bytes": 6970378,
+      "cache_hits": 1,
+      "cache_misses": 2,
+      "display": [
+        720.0,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 1,
+      "pixels": [
+        1080,
+        1074
+      ],
+      "right_page": null,
+      "worker_ms": 0.0343
+    },
+    {
+      "at_ms": 868.5643,
+      "cache_bytes": 5395864,
+      "cache_hits": 1,
+      "cache_misses": 5,
+      "display": [
+        557.3333129882812,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        836,
+        1074
+      ],
+      "right_page": 1,
+      "worker_ms": 15.875799999999998
+    },
+    {
+      "at_ms": 1489.2535,
+      "cache_bytes": 4312472,
+      "cache_hits": 1,
+      "cache_misses": 9,
+      "display": [
+        445.3333435058594,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        668,
+        1074
+      ],
+      "right_page": 1,
+      "worker_ms": 8.7053
+    },
+    {
+      "at_ms": 2012.8817,
+      "cache_bytes": 4054412,
+      "cache_hits": 1,
+      "cache_misses": 13,
+      "display": [
+        418.6666564941406,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        628,
+        1074
+      ],
+      "right_page": 1,
+      "worker_ms": 9.3181
+    },
+    {
+      "at_ms": 2561.0458,
+      "cache_bytes": 5395864,
+      "cache_hits": 1,
+      "cache_misses": 17,
+      "display": [
+        557.3333129882812,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        836,
+        1074
+      ],
+      "right_page": 1,
+      "worker_ms": 16.338600000000003
+    },
+    {
+      "at_ms": 3059.7001,
+      "cache_bytes": 2787944,
+      "cache_hits": 3,
+      "cache_misses": 20,
+      "display": [
+        648.0,
+        636.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        972,
+        954
+      ],
+      "right_page": null,
+      "worker_ms": 9.4186
+    }
+  ],
+  "idle_cpu_ms": null,
+  "idle_start": null,
+  "idle_wall_ms": null,
+  "instrumentation": "qa feature; 25ms wakeup during QA only; CPU includes probe overhead",
+  "max_cache_bytes": 6970378,
+  "native_snapshot_ready_ms": 267.50669999999997,
+  "operations": 0,
+  "page": 0,
+  "right_page": null,
+  "samples": [],
+  "scenario": "visual",
+  "schema": 1,
+  "spread": false,
+  "viewport": [
+    648.0,
+    636.0
+  ],
+  "sample": "fixture",
+  "run": 0,
+  "process_total_ms": 4079.6030000000005,
+  "exit_code": 0
+}

@@ -1,0 +1,8 @@
+Supplemental license texts for lyon_geom-1.0.20
+
+Cargo package license expression: MIT OR Apache-2.0
+Official repository: https://github.com/nical/lyon
+Cargo authors: Nicolas Silva <nical@fastmail.com>
+
+Original source headers (retained in full corresponding source):
+

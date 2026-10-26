@@ -1,0 +1,26 @@
+[
+  {
+    "sample": "fixture",
+    "scenario": "stress",
+    "spread_requested": false,
+    "native_snapshot_ready_ms": {
+      "n": 1,
+      "median": 278.18159999999995,
+      "p95": 278.18159999999995,
+      "max": 278.18159999999995
+    },
+    "first_frame_assigned_ms": {
+      "n": 1,
+      "median": 222.1172,
+      "p95": 222.1172,
+      "max": 222.1172
+    },
+    "process_total_ms": {
+      "n": 1,
+      "median": 55213.425200000005,
+      "p95": 55213.425200000005,
+      "max": 55213.425200000005
+    },
+    "failures": 0
+  }
+]

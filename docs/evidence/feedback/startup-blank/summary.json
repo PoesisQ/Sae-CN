@@ -1,0 +1,21 @@
+[
+  {
+    "sample": "blank",
+    "scenario": "startup",
+    "spread_requested": false,
+    "native_snapshot_ready_ms": {
+      "n": 20,
+      "median": 233.13440000000003,
+      "p95": 256.8739,
+      "max": 292.1065
+    },
+    "first_frame_assigned_ms": null,
+    "process_total_ms": {
+      "n": 20,
+      "median": 309.7861500000001,
+      "p95": 332.0474,
+      "max": 374.1679
+    },
+    "failures": 0
+  }
+]

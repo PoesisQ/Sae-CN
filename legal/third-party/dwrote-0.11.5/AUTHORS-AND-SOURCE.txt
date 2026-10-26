@@ -1,0 +1,10 @@
+Supplemental license texts for dwrote-0.11.5
+
+Cargo package license expression: MPL-2.0
+Official repository: https://github.com/servo/dwrote-rs
+Cargo authors: The Servo Project Developers, Vladimir Vukicevic <vladimir@pobox.com>
+
+Original source headers (retained in full corresponding source):
+/* This Source Code Form is subject to the terms of the Mozilla Public
+ * License, v. 2.0. If a copy of the MPL was not distributed with this
+ * file, You can obtain one at http://mozilla.org/MPL/2.0/. */

@@ -1,0 +1,38 @@
+Single wheel: 1 / 241 -> 2 / 241.
+Double wheel: 1–2 / 333 -> 3–4 / 333.
+Window: "Sae Reader · core-epub3.epub · Sae Reader", App: sae-reader-qa.exe.
+	0 区域 Sae Reader · core-epub3.epub · Sae Reader Secondary Actions: Raise
+		1 标题栏 (settable, string) Value: Sae Reader · core-epub3.epub · Sae Reader
+			2 菜单栏 系统 ID: MenuBar
+				3 菜单项 系统
+			4 按钮 最小化
+			5 按钮 最大化
+			6 按钮 关闭
+		7 文本 Sae
+		8 按钮 打开
+			9 文本 打开
+		10 文本 Sae Reader · core-epub3.epub
+		11 按钮 返回
+			12 文本 返回
+		13 按钮 目录
+			14 文本 目录
+		15 按钮 查找
+			16 文本 查找
+		17 按钮 单页
+			18 文本 单页
+		19 按钮 双页
+			20 文本 双页
+		21 按钮 排版
+			22 文本 排版
+		23 文本
+		24 图像
+		32 图像
+		25 文本 滚轮整页翻阅
+		26 按钮 上一页
+			27 文本 ‹
+		28 文本 3–4 / 333
+		29 按钮 下一页
+			30 文本 ›
+		31 文本 双页
+
+The focused UI element is 19 按钮 双页.

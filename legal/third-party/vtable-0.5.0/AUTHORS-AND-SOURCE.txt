@@ -1,0 +1,9 @@
+Supplemental license texts for vtable-0.5.0
+
+Cargo package license expression: MIT OR Apache-2.0
+Official repository: https://github.com/slint-ui/slint
+Cargo authors: Slint Developers <info@slint.dev>
+
+Original source headers (retained in full corresponding source):
+// Copyright © SixtyFPS GmbH <info@slint.dev>
+// SPDX-License-Identifier: MIT OR Apache-2.0

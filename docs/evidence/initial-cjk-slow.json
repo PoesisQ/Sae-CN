@@ -1,0 +1,7 @@
+{
+  "reason": "Baseline CJK EPUB exceeded five minutes before rendering; aborted for font investigation",
+  "cpu_seconds": 253.625,
+  "private_bytes": 157196288,
+  "working_set": 204341248,
+  "observed_local": "2026-10-25 Asia/Shanghai"
+}

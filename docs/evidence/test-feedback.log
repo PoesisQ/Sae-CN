@@ -1,0 +1,23 @@
+   Compiling mupdf-sys v0.8.0 (S:\SaeCN\vendor\mupdf-sys-0.8.0)
+   Compiling sae-reader v0.1.0 (S:\SaeCN)
+   Compiling mupdf v0.8.0 (S:\SaeCN\vendor\mupdf-0.8.0)
+    Finished `release` profile [optimized] target(s) in 5m 47s
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\release\deps\sae_reader-9a10a7437f599039.exe)
+
+running 6 tests
+test paging::tests::one_notch_or_trackpad_gesture_turns_one_whole_view ... ok
+test settings::tests::untrusted_settings_are_bounded_and_cannot_inject_css ... ok
+test security::tests::malformed_book_html_is_recoverable_without_allowing_entities_or_depth_bombs ... ok
+test security::tests::entities_and_deep_xml_are_rejected ... ok
+test storage::tests::replace_existing_settings_atomically ... ok
+test security::tests::hostile_paths_and_expansion_are_rejected_before_engine ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.05s
+
+     Running tests\g1_native.rs (target\x86_64-pc-windows-msvc\release\deps\g1_native-8017039d5965efa6.exe)
+
+running 1 test
+test real_documents_relayout_cancel_and_release ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+

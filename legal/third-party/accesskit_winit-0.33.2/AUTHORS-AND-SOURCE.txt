@@ -1,0 +1,10 @@
+Supplemental license texts for accesskit_winit-0.33.2
+
+Cargo package license expression: Apache-2.0
+Official repository: https://github.com/AccessKit/accesskit
+Cargo authors: The AccessKit contributors
+
+Original source headers (retained in full corresponding source):
+// Copyright 2022 The AccessKit Authors. All rights reserved.
+// Licensed under the Apache License, Version 2.0 (found in
+// the LICENSE-APACHE file).

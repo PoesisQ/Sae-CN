@@ -1,0 +1,16 @@
+Supplemental license texts for pathfinder_simd-0.5.6
+
+Cargo package license expression: MIT OR Apache-2.0
+Official repository: https://github.com/servo/pathfinder
+Cargo authors: Patrick Walton <pcwalton@mimiga.net>
+
+Original source headers (retained in full corresponding source):
+// pathfinder/simd/src/lib.rs
+//
+// Copyright © 2019 The Pathfinder Project Developers.
+//
+// Licensed under the Apache License, Version 2.0 <LICENSE-APACHE or
+// http://www.apache.org/licenses/LICENSE-2.0> or the MIT license
+// <LICENSE-MIT or http://opensource.org/licenses/MIT>, at your
+// option. This file may not be copied, modified, or distributed
+// except according to those terms.

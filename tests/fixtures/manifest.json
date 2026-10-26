@@ -1,0 +1,70 @@
+{
+  "advanced.epub": {
+    "sha256": "4c7d98b4dc36292c033f9c654b1ea5ce6054bd4b85f4c0acb1281fd1332ffaa4",
+    "bytes": 3990
+  },
+  "core-epub2.epub": {
+    "sha256": "3ae7a29a5cd6364197b7e32cf76fcfe518a9ee5c01c66df47d1ec609d2bf32dc",
+    "bytes": 28902
+  },
+  "core-epub3.epub": {
+    "sha256": "d7aefcb1803d861bf85e4bfd321043043e7765f159b4ca806bacdc40c972b0aa",
+    "bytes": 28945
+  },
+  "core-gb18030.txt": {
+    "sha256": "a600b60bf2e75838551a94a238a92afbef992ad451c8dd05333eb8435bcd53cc",
+    "bytes": 31190
+  },
+  "core-utf-16.txt": {
+    "sha256": "26e71e17efc7781df6ee3f4140bc5e2c198fe04e792d1a9b3fb0781d243fb681",
+    "bytes": 47182
+  },
+  "core-utf-8.txt": {
+    "sha256": "4443fdd3b425a40cd1e6e57e18f30b19bcedf890f613c3a4ee5bf5d3cb151a83",
+    "bytes": 38790
+  },
+  "core.md": {
+    "sha256": "ef6f8af74d97ffbddac9e190d9f4b3049e250f6a276b2d950279e77381372701",
+    "bytes": 603
+  },
+  "core.pdf": {
+    "sha256": "d8511c902ae346fbcb040d72571d86f9021744cd4027259cb611890e15603406",
+    "bytes": 64942
+  },
+  "fixed.epub": {
+    "sha256": "c38e4c4e57e3ff03f0beea3a3fe9a14fd0b1c2354f0d4ae72e357be2f240ccc7",
+    "bytes": 3852
+  },
+  "fixture-font.ttf": {
+    "sha256": "95b0111c942a1f89f454e87f050216e96eb3011c3910f1ffa881f3ffa786dee0",
+    "bytes": 1340
+  },
+  "fonts.epub": {
+    "sha256": "0cfc569b671867b8122597f5c26365b3ab4b060f9f76fd902aa145a929369c4c",
+    "bytes": 3731
+  },
+  "hostile-ratio.epub": {
+    "sha256": "fc3b599c3bec646b7009d7cfa059c223af5a57f5021ccce9cfe3a2217cd762af",
+    "bytes": 2187
+  },
+  "hostile-traversal.epub": {
+    "sha256": "2c414a9ace8b5a5f4fbbafb97d07478e21814567b0b1e74b9303b82bacf1fbc6",
+    "bytes": 270
+  },
+  "illustration.png": {
+    "sha256": "2922e5915fdad8884c7efaff1c49f12c4a030302eb1ff36b26f8fb5dc3daa5d9",
+    "bytes": 640
+  },
+  "inline-svg-cover.epub": {
+    "sha256": "2e4bafdab4bb8e9da17e09c3f23204e5074593adbc821d7d39352015015dd7f8",
+    "bytes": 3728
+  },
+  "invalid-encoding.txt": {
+    "sha256": "ba778c0261008c8f71ae4061ad0162ffcbe63b52c91f89f236738131d1217ec7",
+    "bytes": 3
+  },
+  "vertical.epub": {
+    "sha256": "5d5b18e1395845ea3cb59ba15d12e1208590d30908ad2b2098e7f2802be50738",
+    "bytes": 3859
+  }
+}

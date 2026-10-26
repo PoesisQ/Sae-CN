@@ -1,0 +1,48 @@
+{
+  "baseline": null,
+  "count": 0,
+  "document": false,
+  "dpi": 1.5,
+  "end": {
+    "cpu_ms": 125.0,
+    "handles": 247,
+    "peak_pagefile": 32129024,
+    "peak_working_set": 49913856,
+    "private_bytes": 14446592,
+    "private_working_set": 12152832,
+    "working_set": 33091584
+  },
+  "errors": [],
+  "first_counters": {
+    "cpu_ms": 109.375,
+    "handles": 234,
+    "peak_pagefile": 32129024,
+    "peak_working_set": 49913856,
+    "private_bytes": 14241792,
+    "private_working_set": 11952128,
+    "working_set": 32079872
+  },
+  "first_frame_assigned_ms": null,
+  "frames": [],
+  "idle_cpu_ms": null,
+  "idle_start": null,
+  "idle_wall_ms": null,
+  "instrumentation": "qa feature; 25ms wakeup during QA only; CPU includes probe overhead",
+  "max_cache_bytes": 0,
+  "native_snapshot_ready_ms": 244.5165,
+  "operations": 0,
+  "page": null,
+  "right_page": null,
+  "samples": [],
+  "scenario": "startup",
+  "schema": 1,
+  "spread": false,
+  "viewport": [
+    1148.0,
+    716.0
+  ],
+  "sample": "blank",
+  "run": 6,
+  "process_total_ms": 325.4988000000001,
+  "exit_code": 0
+}

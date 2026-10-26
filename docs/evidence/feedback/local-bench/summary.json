@@ -1,0 +1,131 @@
+[
+  {
+    "sample": "epub-01",
+    "file_bytes": 403878,
+    "elapsed_ms": 655.3876999999999,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 336.0219,
+        "private_bytes": 1785856,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 386.2676,
+        "private_bytes": 2437120,
+        "private_working_set": 581632,
+        "working_set": 4788224
+      },
+      {
+        "ms": 441.86220000000003,
+        "private_bytes": 23977984,
+        "private_working_set": 21319680,
+        "working_set": 27209728
+      },
+      {
+        "ms": 491.8686000000001,
+        "private_bytes": 27725824,
+        "private_working_set": 25714688,
+        "working_set": 33435648
+      },
+      {
+        "ms": 546.007,
+        "private_bytes": 32673792,
+        "private_working_set": 30568448,
+        "working_set": 38289408
+      },
+      {
+        "ms": 598.3305999999999,
+        "private_bytes": 26910720,
+        "private_working_set": 25128960,
+        "working_set": 33009664
+      }
+    ]
+  },
+  {
+    "sample": "epub-02",
+    "file_bytes": 573193,
+    "elapsed_ms": 289.3,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.81120000000002,
+        "private_bytes": 1781760,
+        "private_working_set": 90112,
+        "working_set": 2072576
+      },
+      {
+        "ms": 63.89289999999992,
+        "private_bytes": 36286464,
+        "private_working_set": 23269376,
+        "working_set": 28991488
+      },
+      {
+        "ms": 127.2972,
+        "private_bytes": 11857920,
+        "private_working_set": 9940992,
+        "working_set": 15863808
+      },
+      {
+        "ms": 179.4998,
+        "private_bytes": 39374848,
+        "private_working_set": 31399936,
+        "working_set": 46927872
+      },
+      {
+        "ms": 234.53580000000008,
+        "private_bytes": 50470912,
+        "private_working_set": 48443392,
+        "working_set": 79077376
+      }
+    ]
+  },
+  {
+    "sample": "epub-03",
+    "file_bytes": 471781,
+    "elapsed_ms": 349.80690000000016,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 11.56299999999999,
+        "private_bytes": 1777664,
+        "private_working_set": 118784,
+        "working_set": 2105344
+      },
+      {
+        "ms": 66.7504000000001,
+        "private_bytes": 7729152,
+        "private_working_set": 4091904,
+        "working_set": 9736192
+      },
+      {
+        "ms": 119.00070000000018,
+        "private_bytes": 26165248,
+        "private_working_set": 23851008,
+        "working_set": 29728768
+      },
+      {
+        "ms": 170.8263000000001,
+        "private_bytes": 52084736,
+        "private_working_set": 41586688,
+        "working_set": 61300736
+      },
+      {
+        "ms": 235.71490000000006,
+        "private_bytes": 45506560,
+        "private_working_set": 43376640,
+        "working_set": 63131648
+      },
+      {
+        "ms": 288.5371000000001,
+        "private_bytes": 30814208,
+        "private_working_set": 28540928,
+        "working_set": 48304128
+      }
+    ]
+  }
+]

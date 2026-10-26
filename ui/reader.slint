@@ -1,0 +1,391 @@
+import { Slider, LineEdit, ComboBox, CheckBox, ScrollView, ListView, Palette } from "std-widgets.slint";
+
+export struct Mark { x:float, y:float, w:float, h:float }
+export struct TocRow { title:string, uri:string }
+
+export global ReaderTheme {
+    in-out property <bool> dark: false;
+    in-out property <color> paper: #f8f6f1;
+    out property <color> chrome: dark ? #1b1f1d : #f3f4ef;
+    out property <color> ink: dark ? #e7e9e5 : #262a27;
+    out property <color> muted: dark ? #a1aaa2 : #707971;
+    out property <color> line: dark ? #343b35 : #dde1d8;
+    out property <color> accent: dark ? #a4c1aa : #506c60;
+    out property <color> tint: dark ? #a4c1aa20 : #506c6016;
+}
+
+component QuietButton inherits Rectangle {
+    in property <string> text;
+    in property <string> label: root.text;
+    in property <bool> selected: false;
+    in property <bool> enabled: true;
+    callback clicked();
+    height: 32px; min-width: 44px;
+    preferred-width: caption.preferred-width + 24px;
+    horizontal-stretch: 0;
+    border-radius: 4px;
+    background: root.selected || touch.pressed ? ReaderTheme.tint : touch.has-hover ? ReaderTheme.tint : transparent;
+    border-width: focus.has-focus ? 1px : 0px;
+    border-color: ReaderTheme.accent;
+    opacity: root.enabled ? 1 : 0.4;
+    accessible-role: button;
+    accessible-label: root.label;
+    accessible-enabled: root.enabled;
+    accessible-action-default => { if root.enabled { root.clicked(); } }
+    forward-focus: focus;
+    caption := Text {
+        text: root.text;
+        color: root.selected ? ReaderTheme.accent : ReaderTheme.ink;
+        font-size: 13px;
+        min-width: 0px; overflow: elide;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+    focus := FocusScope {
+        enabled: root.enabled;
+        key-pressed(event) => {
+            if event.text == Key.Return || event.text == " " {
+                if root.enabled { root.clicked(); } return accept;
+            }
+            return reject;
+        }
+    }
+    touch := TouchArea { enabled: root.enabled; clicked => { focus.focus(); root.clicked(); } }
+}
+
+component SettingField inherits Rectangle {
+    in property <string> label;
+    in property <string> unit;
+    in property <float> minimum;
+    in property <float> maximum;
+    in-out property <float> value;
+    in property <bool> enabled: true;
+    callback edited(float);
+    callback entered(string);
+    height: 63px;
+    opacity: root.enabled ? 1 : 0.45;
+    VerticalLayout {
+        spacing: 3px;
+        HorizontalLayout {
+            Text { text: root.label; color: ReaderTheme.ink; font-size: 12px; horizontal-stretch: 1; }
+            LineEdit {
+                width: 59px; height: 27px; enabled: root.enabled;
+                text: "" + (round(root.value * 100) / 100);
+                accepted => { root.entered(self.text); }
+            }
+            Text { width: 28px; text: root.unit; color: ReaderTheme.muted; font-size: 11px; vertical-alignment: center; }
+        }
+        Slider {
+            enabled: root.enabled; minimum: root.minimum; maximum: root.maximum;
+            value <=> root.value;
+            changed(v) => { root.edited(v); }
+        }
+    }
+}
+
+component PagePane inherits Rectangle {
+    in property <image> source;
+    in property <float> page-width;
+    in property <float> page-height;
+    in property <[Mark]> selection;
+    in property <[Mark]> matches;
+    callback select-text(float,float,float,float);
+    callback hit(float,float);
+    callback wheel(float);
+    min-width: 0px; min-height: 0px;
+    preferred-width: 0px; preferred-height: 0px;
+    horizontal-stretch: 1; vertical-stretch: 1;
+    clip: true;
+    TouchArea { scroll-event(event) => { root.wheel(event.delta-y / 1px); return accept; } }
+    image := Image {
+        x: (parent.width - self.width) / 2;
+        y: max(0px, (parent.height - self.height) / 2);
+        width: root.page-width * 1px; height: root.page-height * 1px;
+        source: root.source; image-fit: contain;
+        for mark in root.matches: Rectangle {
+            x: mark.x * 1px; y: mark.y * 1px; width: mark.w * 1px; height: mark.h * 1px;
+            background: #c9aa3658;
+        }
+        for mark in root.selection: Rectangle {
+            x: mark.x * 1px; y: mark.y * 1px; width: mark.w * 1px; height: mark.h * 1px;
+            background: #648d7855;
+        }
+        touch := TouchArea {
+            property <float> start-x;
+            property <float> start-y;
+            pointer-event(event) => {
+                if event.kind == PointerEventKind.down {
+                    self.start-x = self.mouse-x / 1px; self.start-y = self.mouse-y / 1px;
+                }
+                if event.kind == PointerEventKind.up {
+                    if abs(self.mouse-x / 1px - self.start-x) + abs(self.mouse-y / 1px - self.start-y) < 4 {
+                        root.hit(self.mouse-x / 1px,self.mouse-y / 1px);
+                    } else {
+                        root.select-text(self.start-x,self.start-y,self.mouse-x / 1px,self.mouse-y / 1px);
+                    }
+                }
+            }
+            scroll-event(event) => { root.wheel(event.delta-y / 1px); return accept; }
+        }
+    }
+}
+
+export component ReaderWindow inherits Window {
+    title: root.book-title == "" ? "Sae Reader" : root.book-title + " · Sae Reader";
+    icon: @image-url("../assets/window-icon.png");
+    preferred-width: 1180px; preferred-height: 840px;
+    min-width: 640px; min-height: 480px;
+    default-font-family: "Microsoft YaHei UI";
+    background: ReaderTheme.chrome;
+    in-out property <bool> dark <=> ReaderTheme.dark;
+    in-out property <color> canvas-color <=> ReaderTheme.paper;
+    in property <int> design-variant: 0;
+    init => { Palette.color-scheme = root.dark ? ColorScheme.dark : ColorScheme.light; }
+    changed dark => { Palette.color-scheme = root.dark ? ColorScheme.dark : ColorScheme.light; }
+
+    in property <image> page-image;
+    in property <image> right-image;
+    in property <string> book-title: "";
+    in property <string> status: "";
+    in property <string> notice: "";
+    in property <string> page-label: "";
+    in property <float> progress: 0;
+    in property <bool> has-document: false;
+    in property <bool> reflowable: true;
+    in property <float> image-width: 0;
+    in property <float> image-height: 0;
+    in property <float> right-width: 0;
+    in property <float> right-height: 0;
+    in property <[Mark]> highlights;
+    in property <[Mark]> right-highlights;
+    in property <[Mark]> search-marks;
+    in property <[Mark]> right-search-marks;
+    in property <[TocRow]> contents;
+    in property <[string]> fonts;
+    in property <string> family-label: "默认衬线";
+    in-out property <int> theme-index: 0;
+    in-out property <bool> double-page: false;
+    in-out property <bool> show-contents: false;
+    in-out property <bool> show-settings: false;
+    in-out property <bool> show-search: false;
+    in-out property <bool> show-toolbar: true;
+    in-out property <bool> show-progress: true;
+    in-out property <bool> justified: false;
+    in-out property <float> font-size-pt: 18;
+    in-out property <float> line-height: 1.55;
+    in-out property <float> paragraph-before: 0;
+    in-out property <float> paragraph-after: 0.6;
+    in-out property <float> indent: 1.5;
+    in-out property <float> text-width: 720;
+    in-out property <float> margin-top: 28;
+    in-out property <float> margin-right: 40;
+    in-out property <float> margin-bottom: 28;
+    in-out property <float> margin-left: 40;
+    out property <float> viewport-width: max(0,canvas.width / 1px - 32);
+    out property <float> viewport-height: canvas.height / 1px;
+    in property <bool> effective-spread: false;
+    callback open-file(); callback next-page(int); callback back();
+    callback typography(string,float); callback resized(); callback follow-link(string);
+    callback setting-text(string,string); callback mode-changed(bool); callback theme-changed(int);
+    callback fonts-needed(); callback wheel(float);
+    callback select-text(int,float,float,float,float); callback hit(int,float,float); callback copy-text();
+    callback search(string); callback fullscreen();
+    changed viewport-width => { root.resized(); }
+    changed viewport-height => { root.resized(); }
+    changed show-settings => { if root.show-settings { root.fonts-needed(); } }
+    forward-focus: keyboard;
+
+    keyboard := FocusScope {
+        key-pressed(event) => {
+            if event.modifiers.control && (event.text == "o" || event.text == "O") { root.open-file(); return accept; }
+            if event.modifiers.control && (event.text == "f" || event.text == "F") { root.show-search = true; query.focus(); return accept; }
+            if event.modifiers.control && (event.text == "c" || event.text == "C") { root.copy-text(); return accept; }
+            if event.text == Key.RightArrow || event.text == Key.PageDown || event.text == " " { root.next-page(1); return accept; }
+            if event.text == Key.LeftArrow || event.text == Key.PageUp { root.next-page(-1); return accept; }
+            if event.text == Key.Escape { root.show-contents=false; root.show-settings=false; root.show-search=false; root.search(""); return accept; }
+            if event.text == Key.F11 { root.fullscreen(); return accept; }
+            if event.text == Key.F10 { root.show-toolbar = !root.show-toolbar; return accept; }
+            if event.modifiers.control && (event.text == "+" || event.text == "=") { root.typography("delta-size",1); return accept; }
+            if event.modifiers.control && event.text == "-" { root.typography("delta-size",-1); return accept; }
+            if event.modifiers.control && event.text == "0" { root.typography("size",18); return accept; }
+            return reject;
+        }
+        VerticalLayout {
+            spacing: 0px;
+            header := Rectangle {
+                height: root.show-toolbar ? (root.design-variant == 1 ? 66px : 56px) : 0px;
+                visible: root.show-toolbar; clip: true;
+                background: root.design-variant == 1 ? ReaderTheme.paper : ReaderTheme.chrome;
+                HorizontalLayout {
+                    padding-left: 22px; padding-right: 18px; padding-top: 10px; padding-bottom: 10px; spacing: 8px;
+                    Rectangle { width: 2px; height: 20px; y: 8px; background: ReaderTheme.accent; }
+                    Text { width: 58px; text: "Sae"; font-size: 19px; font-family: "Segoe UI"; font-weight: 500; color: ReaderTheme.ink; vertical-alignment: center; }
+                    QuietButton { text: "打开"; clicked => { root.open-file(); } }
+                    Rectangle { width: 1px; height: 18px; y: 9px; background: ReaderTheme.line; }
+                    Text {
+                        text: root.has-document ? root.book-title : "给阅读留一点安静";
+                        color: root.has-document ? ReaderTheme.ink : ReaderTheme.muted;
+                        font-size: root.design-variant == 1 ? 16px : 13px;
+                        font-family: root.design-variant == 1 ? "SimSun" : "Microsoft YaHei UI";
+                        horizontal-stretch: 1; min-width: 0px; overflow: elide;
+                        horizontal-alignment: root.design-variant == 1 ? center : left;
+                        vertical-alignment: center;
+                    }
+                    QuietButton { text: "返回"; enabled: root.has-document; clicked => { root.back(); } }
+                    QuietButton { text: "目录"; selected: root.show-contents; enabled: root.has-document; clicked => { root.show-contents = !root.show-contents; root.show-settings = false; } }
+                    QuietButton { text: "查找"; selected: root.show-search; enabled: root.has-document; clicked => { root.show-search = !root.show-search; if root.show-search { query.focus(); } } }
+                    Rectangle { width: 1px; height: 18px; y: 9px; background: ReaderTheme.line; }
+                    QuietButton { text: "单页"; selected: !root.double-page; clicked => { root.double-page=false; root.mode-changed(false); } }
+                    QuietButton { text: "双页"; selected: root.double-page; clicked => { root.double-page=true; root.mode-changed(true); } }
+                    QuietButton { text: "排版"; selected: root.show-settings; clicked => { root.show-settings = !root.show-settings; root.show-contents = false; } }
+                }
+                Rectangle { y: parent.height - 1px; height: 1px; background: ReaderTheme.line; }
+            }
+            searchbar := Rectangle {
+                height: root.show-search ? 44px : 0px; visible: root.show-search; clip: true;
+                HorizontalLayout {
+                    padding-left: 22px; padding-right: 22px; padding-top: 5px; padding-bottom: 5px; spacing: 8px;
+                    Text { text: "当前页面"; color: ReaderTheme.muted; font-size: 12px; vertical-alignment: center; }
+                    query := LineEdit { placeholder-text: "输入文字，Enter 查找"; accepted => { root.search(self.text); } }
+                    QuietButton { text: "查找"; clicked => { root.search(query.text); } }
+                    QuietButton { text: "关闭"; clicked => { root.show-search=false; root.search(""); } }
+                }
+            }
+            Rectangle {
+                height: 26px;
+                clip: true;
+                Text {
+                    x: 24px; width: parent.width - 48px;
+                    text: root.status != "" ? root.status : root.notice;
+                    color: ReaderTheme.muted; font-size: 12px; overflow: elide; vertical-alignment: center;
+                }
+            }
+            HorizontalLayout {
+                spacing: 0px;
+                if root.design-variant == 2: Rectangle {
+                    width: 54px; background: ReaderTheme.chrome;
+                    VerticalLayout {
+                        padding-top: 28px; spacing: 12px;
+                        QuietButton { text: "目"; label: "目录"; clicked => { root.show-contents = !root.show-contents; } }
+                        QuietButton { text: "字"; label: "排版"; clicked => { root.show-settings = !root.show-settings; } }
+                        Rectangle { vertical-stretch: 1; }
+                    }
+                }
+                if root.show-contents: Rectangle {
+                    width: 224px; background: ReaderTheme.chrome;
+                    Rectangle { x: parent.width - 1px; y: 0px; width: 1px; background: ReaderTheme.line; }
+                    VerticalLayout {
+                        padding: 16px; spacing: 12px;
+                        Text { height: 28px; text: "目 录"; font-size: 13px; font-weight: 500; color: ReaderTheme.ink; }
+                        ListView {
+                            for row in root.contents: QuietButton {
+                                width: parent.width; height: 35px;
+                                text: row.title;
+                                clicked => { root.follow-link(row.uri); }
+                            }
+                        }
+                    }
+                }
+                canvas := Rectangle {
+                    background: ReaderTheme.paper;
+                    min-width: 0px; min-height: 0px;
+                    preferred-width: 0px; preferred-height: 0px;
+                    horizontal-stretch: 1; vertical-stretch: 1; clip: true;
+                    if !root.has-document: VerticalLayout {
+                        alignment: center; spacing: 22px;
+                        Text { text: "Sae"; font-family: "Segoe UI"; font-size: 48px; color: ReaderTheme.accent; horizontal-alignment: center; }
+                        Text { text: "把一页书，留给此刻。"; font-family: "SimSun"; font-size: 20px; color: ReaderTheme.ink; horizontal-alignment: center; }
+                        HorizontalLayout {
+                            alignment: center;
+                            QuietButton { text: "打开书籍"; selected: true; clicked => { root.open-file(); } }
+                        }
+                        Text { text: "EPUB  /  PDF     ·     Ctrl + O"; color: ReaderTheme.muted; font-size: 12px; horizontal-alignment: center; }
+                    }
+                    if root.has-document: HorizontalLayout {
+                        spacing: root.effective-spread ? 32px : 0px;
+                        padding-left: 16px; padding-right: 16px;
+                        PagePane {
+                            source: root.page-image; page-width: root.image-width; page-height: root.image-height;
+                            selection: root.highlights; matches: root.search-marks;
+                            select-text(a,b,c,d) => { root.select-text(0,a,b,c,d); }
+                            hit(a,b) => { root.hit(0,a,b); }
+                            wheel(d) => { root.wheel(d); }
+                        }
+                        if root.effective-spread: PagePane {
+                            source: root.right-image; page-width: root.right-width; page-height: root.right-height;
+                            selection: root.right-highlights; matches: root.right-search-marks;
+                            select-text(a,b,c,d) => { root.select-text(1,a,b,c,d); }
+                            hit(a,b) => { root.hit(1,a,b); }
+                            wheel(d) => { root.wheel(d); }
+                        }
+                    }
+                    if root.effective-spread && root.has-document: Rectangle {
+                        x: parent.width / 2; y: 30px; width: 1px; height: max(0px,parent.height - 60px);
+                        background: ReaderTheme.line;
+                    }
+                    if !root.show-toolbar: QuietButton {
+                        x: parent.width - 64px; y: 8px; text: "菜单";
+                        clicked => { root.show-toolbar=true; }
+                    }
+                }
+                if root.show-settings: Rectangle {
+                    width: 278px; background: ReaderTheme.chrome;
+                    Rectangle { x: 0px; y: 0px; width: 1px; background: ReaderTheme.line; }
+                    ScrollView {
+                        x: 18px; y: 12px; width: parent.width - 36px; height: parent.height - 24px;
+                        VerticalLayout {
+                            spacing: 10px;
+                            HorizontalLayout {
+                                Text { text: "阅读排版"; font-size: 14px; font-weight: 500; color: ReaderTheme.ink; horizontal-stretch: 1; vertical-alignment: center; }
+                                QuietButton { text: "收起"; clicked => { root.show-settings=false; } }
+                            }
+                            Text { text: "主题"; color: ReaderTheme.muted; font-size: 11px; }
+                            HorizontalLayout {
+                                spacing: 4px;
+                                QuietButton { text: "暖纸"; selected: root.theme-index==0; clicked => { root.theme-changed(0); } }
+                                QuietButton { text: "白纸"; selected: root.theme-index==1; clicked => { root.theme-changed(1); } }
+                                QuietButton { text: "夜读"; selected: root.theme-index==2; clicked => { root.theme-changed(2); } }
+                            }
+                            Rectangle { height: 1px; background: ReaderTheme.line; }
+                            Text { text: root.reflowable ? "文字" : "PDF 为固定版式，文字排版不可重排"; color: ReaderTheme.muted; font-size: 11px; wrap: word-wrap; }
+                            ComboBox { enabled: root.reflowable; model: root.fonts; current-value: root.family-label; selected(value) => { root.setting-text("family",value); } }
+                            SettingField { label: "字号"; unit: "pt"; minimum:12; maximum:36; value <=> root.font-size-pt; enabled:root.reflowable; edited(v)=>{root.typography("size",v);} entered(s)=>{root.setting-text("size",s);} }
+                            SettingField { label: "行距"; unit: "倍"; minimum:1.15; maximum:2.2; value <=> root.line-height; enabled:root.reflowable; edited(v)=>{root.typography("line",v);} entered(s)=>{root.setting-text("line",s);} }
+                            Text { text: "段落"; color: ReaderTheme.muted; font-size: 11px; }
+                            SettingField { label: "段前"; unit: "em"; minimum:0; maximum:2; value <=> root.paragraph-before; enabled:root.reflowable; edited(v)=>{root.typography("before",v);} entered(s)=>{root.setting-text("before",s);} }
+                            SettingField { label: "段后"; unit: "em"; minimum:0; maximum:2; value <=> root.paragraph-after; enabled:root.reflowable; edited(v)=>{root.typography("paragraph",v);} entered(s)=>{root.setting-text("paragraph",s);} }
+                            SettingField { label: "首行缩进"; unit: "em"; minimum:0; maximum:2.5; value <=> root.indent; enabled:root.reflowable; edited(v)=>{root.typography("indent",v);} entered(s)=>{root.setting-text("indent",s);} }
+                            CheckBox { text: "两端对齐"; enabled:root.reflowable; checked <=> root.justified; toggled => {root.typography("justify",self.checked?1:0);} }
+                            Text { text: "页面"; color: ReaderTheme.muted; font-size: 11px; }
+                            SettingField { label: "正文宽度"; unit: "px"; minimum:260; maximum:1200; value <=> root.text-width; enabled:root.reflowable; edited(v)=>{root.typography("width",v);} entered(s)=>{root.setting-text("width",s);} }
+                            SettingField { label: "上边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-top; enabled:root.reflowable; edited(v)=>{root.typography("top",v);} entered(s)=>{root.setting-text("top",s);} }
+                            SettingField { label: "下边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-bottom; enabled:root.reflowable; edited(v)=>{root.typography("bottom",v);} entered(s)=>{root.setting-text("bottom",s);} }
+                            SettingField { label: "左边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-left; enabled:root.reflowable; edited(v)=>{root.typography("left",v);} entered(s)=>{root.setting-text("left",s);} }
+                            SettingField { label: "右边距"; unit: "pt"; minimum:0; maximum:100; value <=> root.margin-right; enabled:root.reflowable; edited(v)=>{root.typography("right",v);} entered(s)=>{root.setting-text("right",s);} }
+                            if !root.reflowable: HorizontalLayout {
+                                QuietButton { text: "PDF 缩小"; clicked=>{root.typography("zoom",0.9);} }
+                                QuietButton { text: "PDF 放大"; clicked=>{root.typography("zoom",1.1);} }
+                            }
+                            CheckBox { text: "显示阅读进度"; checked <=> root.show-progress; toggled=>{root.typography("progress",self.checked?1:0);} }
+                            Text { text: "F10 隐藏工具栏 · F11 全屏\n滚轮整页翻阅，双页时翻动一整跨页"; color:ReaderTheme.muted;font-size:11px;wrap:word-wrap; }
+                            QuietButton { text: "恢复默认排版"; clicked=>{root.typography("reset",0);} }
+                        }
+                    }
+                }
+            }
+            footer := Rectangle {
+                height: root.show-progress ? 42px : 0px; visible: root.show-progress; clip: true;
+                background: ReaderTheme.chrome;
+                Rectangle { x: 0px; y: 0px; height: 1px; background: ReaderTheme.line; }
+                Rectangle { x: 0px; y: 0px; height: 1px; width: parent.width * clamp(root.progress,0,1); background: ReaderTheme.accent; }
+                HorizontalLayout {
+                    padding-left: 20px; padding-right: 20px; padding-top: 5px; padding-bottom: 5px;
+                    Text { text: root.double-page && !root.effective-spread ? "窄窗口暂用单页" : "滚轮整页翻阅"; color:ReaderTheme.muted;font-size:11px;horizontal-stretch:1;overflow:elide;vertical-alignment:center; }
+                    QuietButton { text: "‹"; label:"上一页"; enabled:root.has-document;clicked=>{root.next-page(-1);} }
+                    Text { min-width:120px;text:root.page-label;color:ReaderTheme.muted;font-family:"Segoe UI";font-size:12px;horizontal-alignment:center;vertical-alignment:center; }
+                    QuietButton { text:"›";label:"下一页";enabled:root.has-document;clicked=>{root.next-page(1);} }
+                    Text { text:root.effective-spread?"双页":"单页";color:ReaderTheme.muted;font-size:11px;horizontal-stretch:1;horizontal-alignment:right;vertical-alignment:center; }
+                }
+            }
+        }
+    }
+}

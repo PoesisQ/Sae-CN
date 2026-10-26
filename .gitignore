@@ -1,0 +1,15 @@
+/target/
+/.tools/
+/dist/
+/artifacts/
+*.tmp
+*.pdb
+__pycache__/
+*.py[cod]
+/.vs/
+/data/
+/state.json
+.env
+.env.*
+/artifacts-build-engine.log
+/Textured gouache reader emblem.png

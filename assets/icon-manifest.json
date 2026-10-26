@@ -1,0 +1,24 @@
+{
+  "source": "icon-original.png",
+  "source_sha256": "128cbe771bb9ca245ee08d0065a556eee40910fe06c89d1ea1b4bffba1d3c64c",
+  "source_pixels": [
+    1284,
+    1225
+  ],
+  "window_pixels": [
+    128,
+    128
+  ],
+  "window_rgba_bytes": 65536,
+  "ico_sizes": [
+    16,
+    20,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ],
+  "transformation": "proportional Lanczos scaling; transparent square padding"
+}

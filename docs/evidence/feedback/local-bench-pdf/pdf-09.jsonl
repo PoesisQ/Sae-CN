@@ -1,0 +1,10 @@
+{"event":"begin","stage":"native-open"}
+{"event":"end","ms":31.6913,"stage":"native-open"}
+{"event":"begin","stage":"first-page"}
+{"blocks":0,"height":1144,"non_paper_pixels":907978,"width":794}
+{"event":"end","ms":51.466,"stage":"first-page"}
+{"event":"begin","stage":"full-page-count"}
+{"event":"end","ms":0.009000000000000001,"stage":"full-page-count"}
+{"event":"begin","stage":"resolved-contents"}
+{"event":"end","ms":0.0073,"stage":"resolved-contents"}
+{"outline_roots":0,"pages":114}

@@ -1,0 +1,88 @@
+Production SHA256 1667915d07455154338eb3a969227fdcbf33233267d580b95168927a36db49a7
+TOC Chapter 10: 74 / 241, header Chapter 10; Back: 1 / 241, Chapter 01.
+Current-page search Quiet: correct two visible highlight locations.
+Window: "Sae Reader · core-epub3.epub · Sae Reader", App: SaeReader.exe.
+	0 区域 Sae Reader · core-epub3.epub · Sae Reader Secondary Actions: Raise
+		1 标题栏 (settable, string) Value: Sae Reader · core-epub3.epub · Sae Reader
+			2 菜单栏 系统 ID: MenuBar
+				3 菜单项 系统
+			4 按钮 最小化
+			5 按钮 最大化
+			6 按钮 关闭
+		7 文本 Sae
+		8 按钮 打开
+			9 文本 打开
+		10 文本 Sae Reader · core-epub3.epub
+		11 按钮 返回
+			12 文本 返回
+		13 按钮 目录
+			14 文本 目录
+		15 按钮 查找
+			16 文本 查找
+		17 按钮 单页
+			18 文本 单页
+		19 按钮 双页
+			20 文本 双页
+		21 按钮 排版
+			22 文本 排版
+		72 文本 当前页面
+		73 编辑 (settable, string) Value: Quiet
+			78 图像
+		74 按钮 查找
+			75 文本 查找
+		76 按钮 关闭
+			77 文本 关闭
+		23 文本
+		32 文本 目 录
+		33 列表
+			34 按钮 Chapter 01
+				35 文本 Chapter 01
+			36 按钮 Chapter 02
+				37 文本 Chapter 02
+			38 按钮 Chapter 03
+				39 文本 Chapter 03
+			40 按钮 Chapter 04
+				41 文本 Chapter 04
+			42 按钮 Chapter 05
+				43 文本 Chapter 05
+			44 按钮 Chapter 06
+				45 文本 Chapter 06
+			46 按钮 Chapter 07
+				47 文本 Chapter 07
+			48 按钮 Chapter 08
+				49 文本 Chapter 08
+			50 按钮 Chapter 09
+				51 文本 Chapter 09
+			52 按钮 Chapter 10
+				53 文本 Chapter 10
+			54 按钮 Chapter 11
+				55 文本 Chapter 11
+			56 按钮 Chapter 12
+				57 文本 Chapter 12
+			58 按钮 Chapter 13
+				59 文本 Chapter 13
+			60 按钮 Chapter 14
+				61 文本 Chapter 14
+			62 按钮 Chapter 15
+				63 文本 Chapter 15
+			64 按钮 Chapter 16
+				65 文本 Chapter 16
+			66 按钮 Chapter 17
+				67 文本 Chapter 17
+			68 按钮 Chapter 18
+		24 图像
+		25 文本 滚轮整页翻阅
+		26 按钮 上一页
+			27 文本 ‹
+		28 文本 1 / 243
+		29 按钮 下一页
+			30 文本 ›
+		31 文本 单页
+
+Document text: ```
+Quiet
+```
+Night theme applied; reset restored warm paper and theme selection.
+Double mode Right arrow: 1–2 / 333 -> 3–4 / 333.
+Book link hit: Chapter 02 at 13–14 / 333; Back returned 3–4 / 333. Window closed normally.
+Reopened production process: double mode restored, 3–4 / 333 and identical source content.

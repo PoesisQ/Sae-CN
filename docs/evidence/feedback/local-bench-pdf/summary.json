@@ -1,0 +1,344 @@
+[
+  {
+    "sample": "pdf-01",
+    "file_bytes": 19616867,
+    "elapsed_ms": 535.0158,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 353.486,
+        "private_bytes": 1781760,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 414.925,
+        "private_bytes": 2772992,
+        "private_working_set": 1126400,
+        "working_set": 5591040
+      },
+      {
+        "ms": 479.48539999999997,
+        "private_bytes": 12931072,
+        "private_working_set": 9437184,
+        "working_set": 15163392
+      }
+    ]
+  },
+  {
+    "sample": "pdf-02",
+    "file_bytes": 31386374,
+    "elapsed_ms": 387.3578,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.321099999999971,
+        "private_bytes": 1777664,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 56.65779999999998,
+        "private_bytes": 2768896,
+        "private_working_set": 1122304,
+        "working_set": 5566464
+      },
+      {
+        "ms": 108.0255,
+        "private_bytes": 5894144,
+        "private_working_set": 4231168,
+        "working_set": 9912320
+      },
+      {
+        "ms": 163.0579,
+        "private_bytes": 6123520,
+        "private_working_set": 4452352,
+        "working_set": 10158080
+      },
+      {
+        "ms": 215.20850000000002,
+        "private_bytes": 6123520,
+        "private_working_set": 4452352,
+        "working_set": 10158080
+      },
+      {
+        "ms": 265.6899,
+        "private_bytes": 6123520,
+        "private_working_set": 4317184,
+        "working_set": 10039296
+      },
+      {
+        "ms": 323.7962000000001,
+        "private_bytes": 6123520,
+        "private_working_set": 4337664,
+        "working_set": 10059776
+      }
+    ]
+  },
+  {
+    "sample": "pdf-03",
+    "file_bytes": 31520565,
+    "elapsed_ms": 447.1376,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 10.250599999999999,
+        "private_bytes": 1781760,
+        "private_working_set": 102400,
+        "working_set": 2080768
+      },
+      {
+        "ms": 71.31759999999998,
+        "private_bytes": 3276800,
+        "private_working_set": 1654784,
+        "working_set": 6451200
+      },
+      {
+        "ms": 125.5649000000001,
+        "private_bytes": 6135808,
+        "private_working_set": 4468736,
+        "working_set": 10215424
+      },
+      {
+        "ms": 177.4667000000001,
+        "private_bytes": 6135808,
+        "private_working_set": 4468736,
+        "working_set": 10215424
+      },
+      {
+        "ms": 228.49129999999997,
+        "private_bytes": 6135808,
+        "private_working_set": 4472832,
+        "working_set": 10219520
+      },
+      {
+        "ms": 282.9762,
+        "private_bytes": 6135808,
+        "private_working_set": 4366336,
+        "working_set": 10129408
+      },
+      {
+        "ms": 337.8428,
+        "private_bytes": 6135808,
+        "private_working_set": 4378624,
+        "working_set": 10141696
+      },
+      {
+        "ms": 392.08050000000003,
+        "private_bytes": 3002368,
+        "private_working_set": 1466368,
+        "working_set": 7438336
+      }
+    ]
+  },
+  {
+    "sample": "pdf-04",
+    "file_bytes": 25615910,
+    "elapsed_ms": 229.5612,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.990300000000119,
+        "private_bytes": 1773568,
+        "private_working_set": 81920,
+        "working_set": 2060288
+      },
+      {
+        "ms": 65.69409999999998,
+        "private_bytes": 2768896,
+        "private_working_set": 1126400,
+        "working_set": 5586944
+      },
+      {
+        "ms": 120.91470000000015,
+        "private_bytes": 2768896,
+        "private_working_set": 1126400,
+        "working_set": 5586944
+      },
+      {
+        "ms": 174.70549999999997,
+        "private_bytes": 8994816,
+        "private_working_set": 6422528,
+        "working_set": 11534336
+      }
+    ]
+  },
+  {
+    "sample": "pdf-05",
+    "file_bytes": 3594597,
+    "elapsed_ms": 171.24549999999994,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 8.16719999999993,
+        "private_bytes": 1785856,
+        "private_working_set": 102400,
+        "working_set": 2080768
+      },
+      {
+        "ms": 61.544800000000066,
+        "private_bytes": 2772992,
+        "private_working_set": 1126400,
+        "working_set": 5570560
+      },
+      {
+        "ms": 116.73840000000001,
+        "private_bytes": 10375168,
+        "private_working_set": 8687616,
+        "working_set": 13844480
+      }
+    ]
+  },
+  {
+    "sample": "pdf-06",
+    "file_bytes": 15074462,
+    "elapsed_ms": 166.32750000000019,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.002500000000024,
+        "private_bytes": 1781760,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 59.094499999999826,
+        "private_bytes": 2781184,
+        "private_working_set": 1130496,
+        "working_set": 5574656
+      },
+      {
+        "ms": 114.5202999999999,
+        "private_bytes": 8040448,
+        "private_working_set": 5689344,
+        "working_set": 10805248
+      }
+    ]
+  },
+  {
+    "sample": "pdf-07",
+    "file_bytes": 5904929,
+    "elapsed_ms": 164.59739999999988,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 8.434199999999947,
+        "private_bytes": 1781760,
+        "private_working_set": 86016,
+        "working_set": 2060288
+      },
+      {
+        "ms": 61.31850000000006,
+        "private_bytes": 2772992,
+        "private_working_set": 1126400,
+        "working_set": 5570560
+      },
+      {
+        "ms": 113.01300000000003,
+        "private_bytes": 8687616,
+        "private_working_set": 7008256,
+        "working_set": 12132352
+      }
+    ]
+  },
+  {
+    "sample": "pdf-08",
+    "file_bytes": 7062631,
+    "elapsed_ms": 269.56349999999986,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.469599999999634,
+        "private_bytes": 1777664,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 60.4473999999997,
+        "private_bytes": 2760704,
+        "private_working_set": 1118208,
+        "working_set": 5595136
+      },
+      {
+        "ms": 111.41459999999981,
+        "private_bytes": 7405568,
+        "private_working_set": 5750784,
+        "working_set": 10506240
+      },
+      {
+        "ms": 166.49219999999997,
+        "private_bytes": 18382848,
+        "private_working_set": 15777792,
+        "working_set": 21463040
+      },
+      {
+        "ms": 217.42139999999966,
+        "private_bytes": 2146304,
+        "private_working_set": 589824,
+        "working_set": 6340608
+      }
+    ]
+  },
+  {
+    "sample": "pdf-09",
+    "file_bytes": 2749720,
+    "elapsed_ms": 175.06329999999969,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 8.870699999999676,
+        "private_bytes": 1781760,
+        "private_working_set": 77824,
+        "working_set": 2052096
+      },
+      {
+        "ms": 61.97069999999982,
+        "private_bytes": 2768896,
+        "private_working_set": 1118208,
+        "working_set": 5586944
+      },
+      {
+        "ms": 116.7243,
+        "private_bytes": 7360512,
+        "private_working_set": 5226496,
+        "working_set": 10350592
+      }
+    ]
+  },
+  {
+    "sample": "pdf-10",
+    "file_bytes": 14831916,
+    "elapsed_ms": 174.6892,
+    "exit_code": 0,
+    "timed_out": false,
+    "memory_samples": [
+      {
+        "ms": 9.653300000000087,
+        "private_bytes": 1785856,
+        "private_working_set": 122880,
+        "working_set": 2109440
+      },
+      {
+        "ms": 65.19870000000027,
+        "private_bytes": 2777088,
+        "private_working_set": 1126400,
+        "working_set": 5591040
+      },
+      {
+        "ms": 119.42910000000006,
+        "private_bytes": 2899968,
+        "private_working_set": 1224704,
+        "working_set": 6516736
+      }
+    ]
+  }
+]

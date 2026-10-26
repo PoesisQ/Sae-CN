@@ -1,0 +1,58 @@
+[package]
+name = "sae-reader"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.92"
+publish = false
+license = "AGPL-3.0-or-later"
+description = "Native Windows reading engine validation and reader"
+build = "build.rs"
+default-run = "sae-reader"
+
+[features]
+default = ["native-ui"]
+native-ui = ["dep:slint", "dep:slint-build", "dep:rfd", "dep:arboard"]
+qa = ["native-ui", "dep:png"]
+
+[dependencies]
+anyhow = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+mupdf = { version = "=0.8.0", default-features = false, features = ["epub", "html", "svg", "img", "system-fonts", "base14-fonts"] }
+zip = { version = "2.4", default-features = false, features = ["deflate"] }
+roxmltree = "0.20"
+encoding_rs = "0.8"
+chardetng = "0.1"
+pulldown-cmark = { version = "0.13", default-features = false, features = ["html"] }
+blake3 = "1.8"
+font-kit = "0.14"
+slint = { version = "=1.18.1", default-features = false, features = ["std", "backend-winit", "renderer-software", "compat-1-2", "accessibility"], optional = true }
+rfd = { version = "0.15", default-features = false, optional = true }
+arboard = { version = "3.7", default-features = false, optional = true }
+png = { version = "0.18", optional = true }
+
+[build-dependencies]
+slint-build = { version = "=1.18.1", optional = true }
+
+[[bin]]
+name = "sae-reader"
+path = "src/main.rs"
+required-features = ["native-ui"]
+
+[[bin]]
+name = "engine-probe"
+path = "src/bin/engine-probe.rs"
+
+[[bin]]
+name = "load-bench"
+path = "src/bin/load-bench.rs"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = "symbols"
+panic = "unwind"
+
+[patch.crates-io]
+mupdf = { path = "vendor/mupdf-0.8.0" }
+mupdf-sys = { path = "vendor/mupdf-sys-0.8.0" }

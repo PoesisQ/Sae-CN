@@ -1,0 +1,16 @@
+{"event":"begin","stage":"preflight"}
+{"event":"end","ms":3.6222,"stage":"preflight"}
+{"event":"begin","stage":"native-open"}
+{"event":"end","ms":3.8333999999999997,"stage":"native-open"}
+{"event":"begin","stage":"style"}
+{"event":"end","ms":0.0261,"stage":"style"}
+{"event":"begin","stage":"layout"}
+{"event":"end","ms":0.0104,"stage":"layout"}
+{"event":"begin","stage":"first-page"}
+{"blocks":0,"height":720,"non_paper_pixels":272466,"width":720}
+{"event":"end","ms":82.6557,"stage":"first-page"}
+{"event":"begin","stage":"full-page-count"}
+{"event":"end","ms":125.6677,"stage":"full-page-count"}
+{"event":"begin","stage":"resolved-contents"}
+{"event":"end","ms":0.0248,"stage":"resolved-contents"}
+{"outline_roots":9,"pages":129}

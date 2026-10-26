@@ -1,0 +1,3 @@
+info: downloading component rustfmt
+warn: RUSTUP_USE_CURL is set; the curl backend is deprecated,
+            please file an issue if the default download backend does not work for your use case

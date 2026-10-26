@@ -1,0 +1,52 @@
+Microsoft (R) COFF/PE Dumper Version 14.41.34120.0
+Copyright (C) Microsoft Corporation.  All rights reserved.
+
+
+Dump of file target\x86_64-pc-windows-msvc\release\sae-reader.exe
+
+File Type: EXECUTABLE IMAGE
+
+  Image has the following dependencies:
+
+    KERNEL32.dll
+    PSAPI.DLL
+    shlwapi.dll
+    oleaut32.dll
+    user32.dll
+    uiautomationcore.dll
+    dwrite.dll
+    gdi32.dll
+    ole32.dll
+    dwmapi.dll
+    comctl32.dll
+    shell32.dll
+    combase.dll
+    ntdll.dll
+    api-ms-win-core-winrt-error-l1-1-0.dll
+    uxtheme.dll
+    api-ms-win-core-synch-l1-2-0.dll
+    bcryptprimitives.dll
+    advapi32.dll
+    imm32.dll
+    kernel32.dll
+    VCRUNTIME140.dll
+    VCRUNTIME140_1.dll
+    api-ms-win-crt-string-l1-1-0.dll
+    api-ms-win-crt-runtime-l1-1-0.dll
+    api-ms-win-crt-math-l1-1-0.dll
+    api-ms-win-crt-heap-l1-1-0.dll
+    api-ms-win-crt-stdio-l1-1-0.dll
+    api-ms-win-crt-time-l1-1-0.dll
+    api-ms-win-crt-filesystem-l1-1-0.dll
+    api-ms-win-crt-utility-l1-1-0.dll
+    api-ms-win-crt-convert-l1-1-0.dll
+    api-ms-win-crt-environment-l1-1-0.dll
+    api-ms-win-crt-locale-l1-1-0.dll
+
+  Summary
+
+      152000 .data
+       66000 .pdata
+      752000 .rdata
+        F000 .reloc
+      C40000 .text

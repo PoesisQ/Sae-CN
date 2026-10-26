@@ -1,0 +1,67 @@
+{
+  "baseline": null,
+  "count": 1,
+  "document": true,
+  "dpi": 1.5,
+  "end": {
+    "cpu_ms": 312.5,
+    "handles": 256,
+    "peak_pagefile": 81399808,
+    "peak_working_set": 101314560,
+    "private_bytes": 59375616,
+    "private_working_set": 54386688,
+    "working_set": 87973888
+  },
+  "errors": [],
+  "first_counters": {
+    "cpu_ms": 296.875,
+    "handles": 256,
+    "peak_pagefile": 81399808,
+    "peak_working_set": 101314560,
+    "private_bytes": 59375616,
+    "private_working_set": 46981120,
+    "working_set": 73101312
+  },
+  "first_frame_assigned_ms": 254.7624,
+  "frames": [
+    {
+      "at_ms": 254.7624,
+      "cache_bytes": 3479760,
+      "cache_hits": 0,
+      "cache_misses": 1,
+      "display": [
+        720.0,
+        716.0
+      ],
+      "dpi": 1.5,
+      "page": 0,
+      "pixels": [
+        1080,
+        1074
+      ],
+      "right_page": null,
+      "worker_ms": 61.0407
+    }
+  ],
+  "idle_cpu_ms": null,
+  "idle_start": null,
+  "idle_wall_ms": null,
+  "instrumentation": "qa feature; 25ms wakeup during QA only; CPU includes probe overhead",
+  "max_cache_bytes": 3479760,
+  "native_snapshot_ready_ms": 298.8116,
+  "operations": 0,
+  "page": 0,
+  "right_page": null,
+  "samples": [],
+  "scenario": "startup",
+  "schema": 1,
+  "spread": false,
+  "viewport": [
+    1148.0,
+    716.0
+  ],
+  "sample": "epub-03",
+  "run": 9,
+  "process_total_ms": 369.0055000000001,
+  "exit_code": 0
+}

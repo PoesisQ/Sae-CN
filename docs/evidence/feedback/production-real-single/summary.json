@@ -1,0 +1,1019 @@
+[
+  {
+    "sample": "epub-01",
+    "run": 0,
+    "spread_requested": false,
+    "instrumentation": "external Win32 process counters; no QA timer",
+    "unexpected_exit": null,
+    "terminated_by_profiler": true,
+    "samples": [
+      {
+        "ms": 0.044199999999994244,
+        "private_bytes": 1818624,
+        "private_working_set": 77824,
+        "working_set": 2052096,
+        "peak_working_set": 2052096,
+        "peak_pagefile": 1818624,
+        "cpu_ms": 0.0,
+        "handles": 3
+      },
+      {
+        "ms": 246.66530000000003,
+        "private_bytes": 25329664,
+        "private_working_set": 20836352,
+        "working_set": 43053056,
+        "peak_working_set": 43053056,
+        "peak_pagefile": 25337856,
+        "cpu_ms": 140.625,
+        "handles": 235
+      },
+      {
+        "ms": 504.9646000000001,
+        "private_bytes": 58552320,
+        "private_working_set": 55963648,
+        "working_set": 79728640,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 375.0,
+        "handles": 240
+      },
+      {
+        "ms": 756.3417999999999,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 390.625,
+        "handles": 240
+      },
+      {
+        "ms": 1007.0911,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 390.625,
+        "handles": 240
+      },
+      {
+        "ms": 1263.9428,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 390.625,
+        "handles": 240
+      },
+      {
+        "ms": 1515.0207,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 390.625,
+        "handles": 240
+      },
+      {
+        "ms": 1771.5126,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 2023.2886000000003,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 2277.4526,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 2538.2627,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 2802.5407,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 3059.5735,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 3315.1766000000002,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 421.875,
+        "handles": 240
+      },
+      {
+        "ms": 3572.1229000000003,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 453.125,
+        "handles": 240
+      },
+      {
+        "ms": 3839.2364999999995,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 453.125,
+        "handles": 240
+      },
+      {
+        "ms": 4089.2792,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 453.125,
+        "handles": 240
+      },
+      {
+        "ms": 4340.7657,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 453.125,
+        "handles": 240
+      },
+      {
+        "ms": 4592.3577,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 4850.0907,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 5104.0509,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 5355.910599999999,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 5608.0378,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 5858.9827,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 6113.4182,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 6377.1938,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 6628.2697,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 6884.171399999999,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 7140.110099999999,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 7392.3556,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 7643.6042,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 468.75,
+        "handles": 240
+      },
+      {
+        "ms": 7895.025599999999,
+        "private_bytes": 58597376,
+        "private_working_set": 56020992,
+        "working_set": 79785984,
+        "peak_working_set": 83206144,
+        "peak_pagefile": 62091264,
+        "cpu_ms": 484.375,
+        "handles": 240
+      }
+    ],
+    "steady_median": {
+      "private_bytes": 58597376.0,
+      "private_working_set": 56020992.0,
+      "working_set": 79785984.0,
+      "handles": 240.0
+    },
+    "idle_wall_ms": 4835.452099999999,
+    "idle_cpu_ms": 62.5,
+    "idle_one_core_percent": 1.292536844693385
+  },
+  {
+    "sample": "epub-02",
+    "run": 0,
+    "spread_requested": false,
+    "instrumentation": "external Win32 process counters; no QA timer",
+    "unexpected_exit": null,
+    "terminated_by_profiler": true,
+    "samples": [
+      {
+        "ms": 0.04919999999941638,
+        "private_bytes": 1818624,
+        "private_working_set": 77824,
+        "working_set": 2052096,
+        "peak_working_set": 2052096,
+        "peak_pagefile": 1818624,
+        "cpu_ms": 0.0,
+        "handles": 3
+      },
+      {
+        "ms": 250.1723999999985,
+        "private_bytes": 30093312,
+        "private_working_set": 27115520,
+        "working_set": 50196480,
+        "peak_working_set": 70721536,
+        "peak_pagefile": 50642944,
+        "cpu_ms": 203.125,
+        "handles": 254
+      },
+      {
+        "ms": 513.3191999999998,
+        "private_bytes": 76476416,
+        "private_working_set": 73818112,
+        "working_set": 120668160,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 343.75,
+        "handles": 261
+      },
+      {
+        "ms": 768.0926999999987,
+        "private_bytes": 76546048,
+        "private_working_set": 73883648,
+        "working_set": 120741888,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 1019.9065999999988,
+        "private_bytes": 76546048,
+        "private_working_set": 73883648,
+        "working_set": 120741888,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 1277.5518999999988,
+        "private_bytes": 76546048,
+        "private_working_set": 73883648,
+        "working_set": 120741888,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 1531.5466999999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 1783.3127999999992,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 2047.3603999999987,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 2298.1783999999993,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 2559.6971999999987,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 2810.5095999999994,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 3068.2352,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 375.0,
+        "handles": 261
+      },
+      {
+        "ms": 3322.441099999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 390.625,
+        "handles": 261
+      },
+      {
+        "ms": 3583.048699999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 390.625,
+        "handles": 261
+      },
+      {
+        "ms": 3846.5280999999986,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 390.625,
+        "handles": 261
+      },
+      {
+        "ms": 4098.580099999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 390.625,
+        "handles": 261
+      },
+      {
+        "ms": 4352.6153,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 4610.576199999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 4862.437999999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 5112.624799999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 5364.374699999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 5621.887699999998,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 5874.524399999998,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 6125.0720999999985,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 6379.286999999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 6630.817299999999,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 6881.7954,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 7142.9411,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 7394.316199999998,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 7647.500399999998,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      },
+      {
+        "ms": 7897.316399999998,
+        "private_bytes": 76558336,
+        "private_working_set": 73900032,
+        "working_set": 120758272,
+        "peak_working_set": 124145664,
+        "peak_pagefile": 80023552,
+        "cpu_ms": 406.25,
+        "handles": 261
+      }
+    ],
+    "steady_median": {
+      "private_bytes": 76558336.0,
+      "private_working_set": 73900032.0,
+      "working_set": 120758272.0,
+      "handles": 261.0
+    },
+    "idle_wall_ms": 4829.081199999998,
+    "idle_cpu_ms": 31.25,
+    "idle_one_core_percent": 0.6471210299797819
+  },
+  {
+    "sample": "epub-03",
+    "run": 0,
+    "spread_requested": false,
+    "instrumentation": "external Win32 process counters; no QA timer",
+    "unexpected_exit": null,
+    "terminated_by_profiler": true,
+    "samples": [
+      {
+        "ms": 0.058899999999084685,
+        "private_bytes": 1814528,
+        "private_working_set": 90112,
+        "working_set": 2072576,
+        "peak_working_set": 2072576,
+        "peak_pagefile": 1814528,
+        "cpu_ms": 0.0,
+        "handles": 5
+      },
+      {
+        "ms": 252.2999999999982,
+        "private_bytes": 25092096,
+        "private_working_set": 22708224,
+        "working_set": 45604864,
+        "peak_working_set": 48582656,
+        "peak_pagefile": 28151808,
+        "cpu_ms": 203.125,
+        "handles": 253
+      },
+      {
+        "ms": 514.3160999999985,
+        "private_bytes": 76161024,
+        "private_working_set": 73388032,
+        "working_set": 109387776,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 390.625,
+        "handles": 259
+      },
+      {
+        "ms": 766.1963000000007,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 1021.5247000000005,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 1277.2465000000004,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 1536.6645999999982,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 1795.6094999999978,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 2051.249500000001,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 406.25,
+        "handles": 259
+      },
+      {
+        "ms": 2301.442699999999,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 437.5,
+        "handles": 259
+      },
+      {
+        "ms": 2554.0214999999976,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 437.5,
+        "handles": 259
+      },
+      {
+        "ms": 2812.127099999998,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 437.5,
+        "handles": 259
+      },
+      {
+        "ms": 3075.205099999998,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 437.5,
+        "handles": 259
+      },
+      {
+        "ms": 3329.3484999999982,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 468.75,
+        "handles": 259
+      },
+      {
+        "ms": 3582.5134,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 468.75,
+        "handles": 259
+      },
+      {
+        "ms": 3847.9111999999986,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 468.75,
+        "handles": 259
+      },
+      {
+        "ms": 4098.769000000001,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 484.375,
+        "handles": 259
+      },
+      {
+        "ms": 4359.395100000001,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 484.375,
+        "handles": 259
+      },
+      {
+        "ms": 4616.788700000001,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 484.375,
+        "handles": 259
+      },
+      {
+        "ms": 4880.532299999999,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 484.375,
+        "handles": 259
+      },
+      {
+        "ms": 5145.2113,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 500.0,
+        "handles": 259
+      },
+      {
+        "ms": 5408.802599999998,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 500.0,
+        "handles": 259
+      },
+      {
+        "ms": 5662.560499999998,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 500.0,
+        "handles": 259
+      },
+      {
+        "ms": 5919.872999999999,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 500.0,
+        "handles": 259
+      },
+      {
+        "ms": 6180.8087,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 6432.0230999999985,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 6689.7573,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 6945.355,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 7195.4496,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 7447.5154,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 7712.3801,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      },
+      {
+        "ms": 7968.0596000000005,
+        "private_bytes": 76161024,
+        "private_working_set": 73400320,
+        "working_set": 109408256,
+        "peak_working_set": 112865280,
+        "peak_pagefile": 79699968,
+        "cpu_ms": 515.625,
+        "handles": 259
+      }
+    ],
+    "steady_median": {
+      "private_bytes": 76161024.0,
+      "private_working_set": 73400320.0,
+      "working_set": 109408256.0,
+      "handles": 259.0
+    },
+    "idle_wall_ms": 4892.854500000003,
+    "idle_cpu_ms": 78.125,
+    "idle_one_core_percent": 1.5967161909269927
+  }
+]

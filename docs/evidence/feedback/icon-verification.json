@@ -1,0 +1,117 @@
+{
+  "binary_sha256": "386f8f97ff1f57a1952680c32be801422a6cf4611bf32ccd09c133436980f75e",
+  "binary_bytes": 22404608,
+  "comparison_binary_sha256": "1667915d07455154338eb3a969227fdcbf33233267d580b95168927a36db49a7",
+  "comparison_binary_bytes": 22207488,
+  "original_copy_identical": true,
+  "window_pixels": [
+    128,
+    128
+  ],
+  "source_ico_sizes": [
+    16,
+    20,
+    24,
+    32,
+    48,
+    64,
+    128,
+    256
+  ],
+  "native_titlebar_qa": {
+    "status": "pending",
+    "error": "failed to activate captured window",
+    "attempts": 2
+  },
+  "method": "External production process counters, 8 seconds per run; medians after 3 seconds; CPU resolution 15.625 ms. Profiler terminates only its own child. No QA timer.",
+  "icon-before-blank": [
+    {
+      "sample": "blank",
+      "run": 0,
+      "private_MiB": 13.80859375,
+      "private_WS_MiB": 11.609375,
+      "total_WS_MiB": 32.37890625,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4831.6515
+    },
+    {
+      "sample": "blank",
+      "run": 1,
+      "private_MiB": 13.828125,
+      "private_WS_MiB": 11.62890625,
+      "total_WS_MiB": 31.54296875,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4857.958699999997
+    },
+    {
+      "sample": "blank",
+      "run": 2,
+      "private_MiB": 13.86328125,
+      "private_WS_MiB": 11.66015625,
+      "total_WS_MiB": 31.546875,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4827.7477
+    }
+  ],
+  "icon-after-blank": [
+    {
+      "sample": "blank",
+      "run": 0,
+      "private_MiB": 13.890625,
+      "private_WS_MiB": 11.69921875,
+      "total_WS_MiB": 31.828125,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4835.173499999999
+    },
+    {
+      "sample": "blank",
+      "run": 1,
+      "private_MiB": 13.73046875,
+      "private_WS_MiB": 11.56640625,
+      "total_WS_MiB": 31.15625,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4835.794
+    },
+    {
+      "sample": "blank",
+      "run": 2,
+      "private_MiB": 13.9296875,
+      "private_WS_MiB": 11.73046875,
+      "total_WS_MiB": 31.84765625,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4835.435600000001
+    }
+  ],
+  "icon-after-double": [
+    {
+      "sample": "epub-01",
+      "run": 0,
+      "private_MiB": 61.68359375,
+      "private_WS_MiB": 59.16796875,
+      "total_WS_MiB": 81.984375,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4835.5685
+    },
+    {
+      "sample": "epub-02",
+      "run": 0,
+      "private_MiB": 78.4609375,
+      "private_WS_MiB": 75.9921875,
+      "total_WS_MiB": 120.21484375,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4875.0566
+    },
+    {
+      "sample": "epub-03",
+      "run": 0,
+      "private_MiB": 84.1875,
+      "private_WS_MiB": 81.4453125,
+      "total_WS_MiB": 115.859375,
+      "idle_cpu_ms": 0.0,
+      "idle_wall_ms": 4829.690400000001
+    }
+  ],
+  "blank_private_median_before_MiB": 13.828125,
+  "blank_private_median_after_MiB": 13.890625,
+  "blank_private_median_delta_MiB": 0.0625
+}

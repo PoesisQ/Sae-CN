@@ -1,0 +1,12 @@
+   Compiling sae-reader v0.1.0 (S:\SaeCN)
+error[E0502]: cannot borrow `run` as immutable because it is also borrowed as mutable
+  --> src\qa.rs:86:96
+   |
+86 |                 if run.operations%50==0{let c=counters();run.snapshots.push(json!({"operation":run.operations,"counters":c}));}
+   |                                                          ---           ----                    ^^^ immutable borrow occurs here
+   |                                                          |             |
+   |                                                          |             mutable borrow later used by call
+   |                                                          mutable borrow occurs here
+
+For more information about this error, try `rustc --explain E0502`.
+error: could not compile `sae-reader` (bin "sae-reader") due to 1 previous error

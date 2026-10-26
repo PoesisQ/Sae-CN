@@ -1,0 +1,16 @@
+    Blocking waiting for file lock on build directory
+   Compiling sae-reader v0.1.0 (S:\SaeCN)
+    Finished `release` profile [optimized] target(s) in 1m 56s
+     Running tests\local_books.rs (target\x86_64-pc-windows-msvc\release\deps\local_books-1a61e72d83c049b1.exe)
+
+running 1 test
+sample=1 spread=false first_frame_ms=69.32 worker_ms=68.94 pixels=900x925 cache_bytes=2497500
+sample=1 spread=true first_frame_ms=48.40 worker_ms=29.43 pixels=667x925 cache_bytes=3705730
+sample=2 spread=false first_frame_ms=104.81 worker_ms=103.85 pixels=900x925 cache_bytes=2497500
+sample=2 spread=true first_frame_ms=38.36 worker_ms=36.66 pixels=667x925 cache_bytes=3704430
+sample=3 spread=false first_frame_ms=110.79 worker_ms=79.16 pixels=900x925 cache_bytes=2497500
+sample=3 spread=true first_frame_ms=64.28 worker_ms=63.65 pixels=667x925 cache_bytes=3701850
+test local_epubs_show_real_pixels_in_single_and_double_pages ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.44s
+
