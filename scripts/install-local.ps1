@@ -5,15 +5,43 @@ default choices are made in Settings, never by writing protected UserChoice keys
 #>
 [CmdletBinding()]
 param(
-    [string]$PackageDirectory = $PSScriptRoot,
+    [string]$PackageDirectory,
     [string]$InstallDirectory = (Join-Path $env:LOCALAPPDATA 'Programs\Sae Reader'),
     [string]$ExpectedSHA256,
     [switch]$OpenDefaults
 )
 $ErrorActionPreference = 'Stop'
+# Resolve script-relative defaults after binding, including PowerShell 5.1 -File.
+$readerScriptPath = $PSCommandPath
+if (-not $readerScriptPath) { $readerScriptPath = $MyInvocation.MyCommand.Path }
+$readerScriptDirectory = Split-Path -Parent $readerScriptPath
+if (-not $PackageDirectory) { $PackageDirectory = $readerScriptDirectory }
 
-$readerSource = (Resolve-Path -LiteralPath $PackageDirectory).ProviderPath
-$readerTarget = [IO.Path]::GetFullPath($InstallDirectory)
+function Resolve-ReaderDirectory([string]$Directory) {
+    $readerResolved = [IO.Path]::GetFullPath($Directory)
+    for ($readerLinkDepth = 0; $readerLinkDepth -lt 16; $readerLinkDepth++) {
+        $readerDirectoryItem = Get-Item -LiteralPath $readerResolved -Force -ErrorAction SilentlyContinue
+        if (-not $readerDirectoryItem -or $readerDirectoryItem.LinkType -notin @('Junction', 'SymbolicLink')) {
+            if ($readerResolved.Length -gt [IO.Path]::GetPathRoot($readerResolved).Length) {
+                $readerResolved = $readerResolved.TrimEnd([IO.Path]::DirectorySeparatorChar, [IO.Path]::AltDirectorySeparatorChar)
+            }
+            return $readerResolved
+        }
+        $readerDirectoryTargets = @($readerDirectoryItem.Target)
+        if ($readerDirectoryTargets.Count -ne 1 -or -not $readerDirectoryTargets[0]) {
+            throw 'Cannot resolve the program directory link safely.'
+        }
+        $readerNextDirectory = $readerDirectoryTargets[0]
+        if (-not [IO.Path]::IsPathRooted($readerNextDirectory)) {
+            $readerNextDirectory = Join-Path (Split-Path -Parent $readerResolved) $readerNextDirectory
+        }
+        $readerResolved = [IO.Path]::GetFullPath($readerNextDirectory)
+    }
+    throw 'The program directory contains a link cycle or too many links.'
+}
+
+$readerSource = Resolve-ReaderDirectory ((Resolve-Path -LiteralPath $PackageDirectory).ProviderPath)
+$readerTarget = Resolve-ReaderDirectory $InstallDirectory
 $readerSourceExe = Join-Path $readerSource 'SaeReader.exe'
 $readerTargetExe = Join-Path $readerTarget 'SaeReader.exe'
 foreach ($readerRequired in @('SaeReader.exe', 'LICENSE', 'THIRD-PARTY-NOTICES.txt', 'licenses')) {
@@ -27,7 +55,11 @@ $readerHash = (Get-FileHash -LiteralPath $readerSourceExe -Algorithm SHA256).Has
 if ($ExpectedSHA256 -and $readerHash -ne $ExpectedSHA256) { throw 'Executable checksum mismatch.' }
 if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::OrdinalIgnoreCase)) {
     $readerRunning = @(Get-Process -Name SaeReader -ErrorAction SilentlyContinue | Where-Object {
-        $_.Path -and [string]::Equals($_.Path, $readerTargetExe, [StringComparison]::OrdinalIgnoreCase)
+        if ($_.Path) {
+            $readerRunningDirectory = Resolve-ReaderDirectory (Split-Path -Parent $_.Path)
+            $readerRunningExe = Join-Path $readerRunningDirectory (Split-Path -Leaf $_.Path)
+            [string]::Equals($readerRunningExe, $readerTargetExe, [StringComparison]::OrdinalIgnoreCase)
+        }
     })
     if ($readerRunning.Count) { throw 'Close the installed Sae Reader normally before updating.' }
     New-Item -ItemType Directory -Path $readerTarget -Force | Out-Null
@@ -46,8 +78,9 @@ if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::Ordi
     }
 }
 $readerInstalledScript = Join-Path $readerTarget 'Install.ps1'
-if (-not [string]::Equals($PSCommandPath, $readerInstalledScript, [StringComparison]::OrdinalIgnoreCase)) {
-    Copy-Item -LiteralPath $PSCommandPath -Destination $readerInstalledScript -Force
+$readerCurrentScript = Join-Path (Resolve-ReaderDirectory $readerScriptDirectory) (Split-Path -Leaf $readerScriptPath)
+if (-not [string]::Equals($readerCurrentScript, $readerInstalledScript, [StringComparison]::OrdinalIgnoreCase)) {
+    Copy-Item -LiteralPath $readerScriptPath -Destination $readerInstalledScript -Force
 }
 
 function Set-ReaderRegistryString([string]$Key, [string]$Name, [string]$Value) {
