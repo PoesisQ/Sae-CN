@@ -46,7 +46,7 @@ for kind in ('source', 'windows-x64'):
         if kind == 'source':
             required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
                         'assets/icon-original.png', 'assets/window-icon.png', 'assets/app-icon.ico',
-                        'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py',
+                        'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py', 'scripts/install-local.ps1',
                         'src/reading.rs', 'src/rendering.rs', 'src/text_adapter.rs', 'src/epub_compat.rs',
                         'src/kindle_adapter.rs', 'src/fb2_adapter.rs', 'src/zoom.rs',
                         'native/kindle.c', 'native/kindle_alloc.c', 'native/kindle_alloc.h',
@@ -67,6 +67,7 @@ for kind in ('source', 'windows-x64'):
             checked[kind]['registry_source_directories'] = len(dependency_dirs)
         else:
             assert archive.read(args.name + '/SaeReader.exe') == (dist / args.name / 'SaeReader.exe').read_bytes()
+            assert archive.read(args.name + '/Install.ps1') == (root / 'scripts/install-local.ps1').read_bytes()
             assert not any('/docs/evidence/' in n for n in names), 'raw evidence belongs in the full source archive'
             assert archive.read(args.name+'/docs/README.txt')
             inventory=json.loads(archive.read(args.name+'/dependency-inventory.json'))

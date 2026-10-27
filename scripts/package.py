@@ -27,6 +27,7 @@ if runtime.exists():raise RuntimeError('Output folder already exists; choose a n
 runtime.mkdir()
 shutil.copy2(args.exe,runtime/'SaeReader.exe')
 shutil.copy2(root/'LICENSE',runtime/'LICENSE')
+shutil.copy2(root/'scripts/install-local.ps1',runtime/'Install.ps1')
 metadata=json.loads((root/'artifacts/cargo-metadata.json').read_text(encoding='utf-8-sig'))
 deps=root/'artifacts/distribution-dependencies'
 if not deps.is_dir():raise RuntimeError('Run cargo vendor before packaging')
@@ -111,6 +112,8 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 
 默认数据：%LOCALAPPDATA%\\SaeReader\\state.json。
 便携数据：以 SaeReader.exe --portable 启动，写入程序目录的 data/。
+默认打开方式：可在 PowerShell 中运行 .\\Install.ps1 -OpenDefaults，安装到当前用户固定目录后在 Windows 界面确认。
+以后更新时先正常关闭程序，再从新版完整包运行安装脚本，继续使用同一路径；个人数据保留。
 卸载：关闭后删除程序目录；如需删除个人历史，再自行删除上述数据目录。
 
 此版支持 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2，不含 DRM。Kindle 解析按需执行，转换树随即释放；FB2 使用原生引擎，缺少 ID 的目录使用临时副本补齐锚点。
