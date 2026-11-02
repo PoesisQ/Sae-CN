@@ -1,6 +1,7 @@
 import { Slider, LineEdit, ComboBox, CheckBox, ScrollView, ListView, Palette } from "std-widgets.slint";
 
 export struct Mark { x:float, y:float, w:float, h:float }
+export struct PageTile { source:image, w:float, h:float, selection:[Mark], matches:[Mark] }
 export struct TocRow { title:string, uri:string, depth:int, latin:bool }
 
 export global ReaderTheme {
@@ -285,6 +286,10 @@ export component ReaderWindow inherits Window {
     init => { Palette.color-scheme = root.dark ? ColorScheme.dark : ColorScheme.light; }
     changed dark => { Palette.color-scheme = root.dark ? ColorScheme.dark : ColorScheme.light; }
 
+    in property <[PageTile]> pages;
+    in property <int> grid-rows: 1;
+    in property <int> visible-count: 1;
+    in-out property <bool> pdf-multi: false;
     in property <image> page-image;
     in property <image> right-image;
     in property <string> book-title: "";
@@ -346,6 +351,7 @@ export component ReaderWindow inherits Window {
     callback open-file(); callback next-page(int); callback back();
     callback typography(string,float); callback resized(); callback follow-link(string);
     callback setting-text(string,string); callback mode-changed(bool); callback theme-changed(int);
+    callback multi-mode();
     callback fonts-needed(); callback wheel(float);
     callback select-text(int,float,float,float,float); callback hit(int,float,float); callback copy-text();
     callback search(string); callback search-next(int); callback fullscreen();
@@ -400,29 +406,28 @@ export component ReaderWindow inherits Window {
                 }
                 Text { text: "EPUB · PDF · TXT · Markdown · AZW3 · MOBI · FB2"; color: ReaderTheme.muted; font-size: 11px; horizontal-alignment: center; }
             }
-            if root.has-document: HorizontalLayout {
-                spacing: root.effective-spread ? 32px : 0px;
-                padding-left: 16px; padding-right: 16px;
-                PagePane {
-                    source: root.page-image; page-width: root.image-width; page-height: root.image-height;
-                    selection: root.highlights; matches: root.search-marks; pannable: root.pdf-pannable;
-                    turn-mode: root.effective-spread ? -1 : 0;
-                    select-text(a,b,c,d) => { keyboard.focus(); root.select-text(0,a,b,c,d); }
-                    hit(a,b) => { keyboard.focus(); root.hit(0,a,b); }
-                    wheel-xy(x,y,s,c) => { root.wheel-xy(x,y,s,c); }
-                    pan(x,y) => { root.pan(x,y); }
-                    navigate(d) => { keyboard.focus(); root.next-page(d); }
-                }
-                if root.effective-spread: PagePane {
-                    source: root.right-image; page-width: root.right-width; page-height: root.right-height;
-                    selection: root.right-highlights; matches: root.right-search-marks; pannable: root.pdf-pannable;
-                    turn-mode: 1;
-                    select-text(a,b,c,d) => { keyboard.focus(); root.select-text(1,a,b,c,d); }
-                    hit(a,b) => { keyboard.focus(); root.hit(1,a,b); }
-                    wheel-xy(x,y,s,c) => { root.wheel-xy(x,y,s,c); }
-                    pan(x,y) => { root.pan(x,y); }
-                    navigate(d) => { keyboard.focus(); root.next-page(d); }
-                }
+            if root.has-document && root.grid-rows == 2: TouchArea {
+                clicked => { keyboard.focus(); root.next-page(self.mouse-x < self.width / 2 ? -1 : 1); }
+                scroll-event(e) => { root.wheel-xy(e.delta-x / 1px,e.delta-y / 1px,e.modifiers.shift,e.modifiers.control); return accept; }
+            }
+            for tile[i] in root.pages: PagePane {
+                x: i == 1 || i == 3 ? parent.width / 2 + 16px : 16px;
+                y: i >= 2 ? (parent.height + 16px) / 2 : 0px;
+                width: root.effective-spread ? (parent.width - 64px) / 2 : parent.width - 32px;
+                height: root.grid-rows == 2 ? (parent.height - 16px) / 2 : parent.height;
+                source: tile.source; page-width: tile.w; page-height: tile.h;
+                selection: tile.selection; matches: tile.matches; pannable: root.pdf-pannable;
+                turn-mode: root.effective-spread ? (i == 0 || i == 2 ? -1 : 1) : 0;
+                select-text(a,b,c,d) => { keyboard.focus(); root.select-text(i,a,b,c,d); }
+                hit(a,b) => { keyboard.focus(); root.hit(i,a,b); }
+                wheel-xy(x,y,s,c) => { root.wheel-xy(x,y,s,c); }
+                pan(x,y) => { root.pan(x,y); }
+                navigate(d) => { keyboard.focus(); root.next-page(d); }
+            }
+            // Created only while a side panel is open. It consumes the complete
+            // first gesture, so closing cannot also follow a link or turn a page.
+            if root.show-settings || root.show-contents || root.show-search: TouchArea {
+                clicked => { root.show-settings = false; root.show-contents = false; root.show-search = false; keyboard.focus(); }
             }
         }
 
@@ -446,10 +451,11 @@ export component ReaderWindow inherits Window {
                 QuietButton { icon: @image-url("../assets/icons/search.svg"); label: "全文查找"; selected: root.show-search; enabled: root.has-document; clicked => { if root.show-search { root.show-search = false; } else { root.focus-search(); } } }
                 Rectangle { width: 8px; }
                 Rectangle {
-                    width: 96px; height: 32px; border-radius: 6px; background: ReaderTheme.tint;
+                    width: root.reflowable ? 96px : 144px; height: 32px; border-radius: 6px; background: ReaderTheme.tint;
                     HorizontalLayout { padding: 2px; spacing: 0px;
-                        QuietButton { min-width: 44px; text: "单页"; selected: !root.double-page; clicked => { root.double-page = false; root.mode-changed(false); keyboard.focus(); } }
-                        QuietButton { min-width: 44px; text: "双页"; selected: root.double-page; clicked => { root.double-page = true; root.mode-changed(true); keyboard.focus(); } }
+                        QuietButton { min-width: 44px; text: "单页"; selected: !root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = false; root.mode-changed(false); keyboard.focus(); } }
+                        QuietButton { min-width: 44px; text: "双页"; selected: root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = true; root.mode-changed(true); keyboard.focus(); } }
+                        if !root.reflowable: QuietButton { min-width: 44px; text: "多页"; selected: root.pdf-multi; clicked => { root.pdf-multi = true; root.multi-mode(); keyboard.focus(); } }
                     }
                 }
                 QuietButton { icon: @image-url("../assets/icons/settings.svg"); label: "阅读设置"; selected: root.show-settings; clicked => { root.show-settings = !root.show-settings; root.show-contents = false; root.show-search = false; if !root.show-settings { keyboard.focus(); } } }
