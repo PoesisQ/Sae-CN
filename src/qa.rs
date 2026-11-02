@@ -27,7 +27,7 @@ impl Metrics {
         self.frames.push(
             json!({"at_ms":now,"worker_ms":u.elapsed_ms,"page":u.frame.page,
             "pixels":[u.frame.width,u.frame.height],"display":[u.frame.display_width,u.frame.display_height],"dpi":u.frame.dpi,
-            "right_page":u.right.as_ref().map(|f|f.page),"cache_bytes":u.cache_bytes,
+            "right_page":u.right.as_ref().map(|f|f.page),"extra_pages":u.extra.iter().map(|f|f.page).collect::<Vec<_>>(),"rows":u.rows,"step":u.step,"cache_bytes":u.cache_bytes,
             "cache_hits":u.cache_hit,"cache_misses":u.cache_miss}),
         );
     }
@@ -110,6 +110,7 @@ struct Run {
     errors: Vec<String>,
     chrome_viewport: Option<(f32, f32)>,
     pan_origin: f32,
+    panel_generation: Option<u64>,
     dial_last: Option<f32>,
     dial_stops: [usize; 4],
     dial_signature: Option<(f32, blake3::Hash)>,
@@ -183,6 +184,55 @@ pub fn start(
             if Instant::now() < run.ready.unwrap() {
                 return;
             }
+            if scenario == "multipage" {
+                use slint::platform::{Key, PointerEventButton, WindowEvent};
+                let click = |x,y| {
+                    let position=slint::LogicalPosition::new(x,y);
+                    ui.window().dispatch_event(WindowEvent::PointerPressed {position,button:PointerEventButton::Left});
+                    ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
+                };
+                let page=state.lock().unwrap().frame.as_ref().map_or(-1,|f|f.page);
+                let width=ui.get_viewport_width()+32.0; let height=ui.get_viewport_height();
+                if run.waiting {
+                    run.waiting=false;run.operations+=1;
+                    let step=run.step;
+                    if matches!(step,3|5|7) {
+                        if ui.get_show_settings() || ui.get_show_contents() || ui.get_show_search() {run.errors.push(format!("outside click left a panel open at {step}"));}
+                        if state.lock().unwrap().generation != run.panel_generation.unwrap() {run.errors.push("outside click invoked document work".into());}
+                        if page != 0 {run.errors.push("outside click also turned a page".into());}
+                    }
+                    let expected=match step {8=>Some(4),9=>Some(8),10=>Some(4),11=>Some(0),_=>None};
+                    if expected.is_some_and(|p|page!=p){run.errors.push(format!("grid navigation {step}: {page}"));}
+                    if matches!(step,1|8|9|10|11|12|13|14|18) && ui.get_visible_count()!=4 {run.errors.push(format!("expected four-page grid at {step}"));}
+                    if matches!(step,15) && ui.get_visible_count()!=2 {run.errors.push("dual fallback failed".into());}
+                    if matches!(step,16|17) && ui.get_visible_count()!=1 {run.errors.push("single/narrow fallback failed".into());}
+                    if step==11 && ui.get_pages().row_data(3).is_none_or(|t| t.matches.row_count()==0) {run.errors.push("fourth-page search highlight missing".into());}
+                    run.snapshots.push(json!({"step":step,"page":page,"rows":ui.get_grid_rows(),"slots":ui.get_pages().row_count(),"generation":state.lock().unwrap().generation}));
+                    if let Some(folder)=&screenshots { if matches!(step,1|2|3|12|15|17|18) {let _=snapshot(&ui,&folder.join(format!("grid-{step:02}.png")));} }
+                }
+                match run.step {
+                    0=>{ui.window().set_size(slint::LogicalSize::new(1280.0,920.0));ui.set_pdf_multi(true);ui.invoke_multi_mode();},
+                    1=>{ui.set_show_settings(true);run.panel_generation=Some(state.lock().unwrap().generation);},
+                    2=>click(160.0,180.0),
+                    3=>{ui.set_show_contents(true);run.panel_generation=Some(state.lock().unwrap().generation);},
+                    4=>click(4.0,height*0.7),
+                    5=>{ui.set_show_search(true);run.panel_generation=Some(state.lock().unwrap().generation);},
+                    6=>click(width*0.6,height*0.7),
+                    7=>ui.invoke_next_page(1),
+                    8=>ui.invoke_next_page(1),
+                    9=>{ui.window().dispatch_event(WindowEvent::KeyPressed{text:Key::LeftArrow.into()});ui.window().dispatch_event(WindowEvent::KeyReleased{text:Key::LeftArrow.into()});},
+                    10=>ui.invoke_search("PAGE-04".into()),
+                    11=>{ui.invoke_search("".into());ui.invoke_typography("zoom".into(),2.0);},
+                    12=>ui.invoke_pan(120.0,120.0),
+                    13=>{ui.invoke_typography("fit-page".into(),1.0);},
+                    14=>{ui.set_double_page(true);ui.invoke_mode_changed(true);},
+                    15=>{ui.set_double_page(false);ui.invoke_mode_changed(false);},
+                    16=>{ui.window().set_size(slint::LogicalSize::new(640.0,480.0));ui.set_pdf_multi(true);ui.invoke_multi_mode();},
+                    17=>{ui.window().set_size(slint::LogicalSize::new(1280.0,920.0));ui.set_show_toolbar(true);},
+                    _=>{run.end=Some(counters());finish(&ui,&state,&report,&scenario,&run);if let Some(t)=stop.upgrade(){t.stop();}return;}
+                }
+                run.step+=1;run.waiting=true;run.ready=Some(Instant::now()+Duration::from_millis(220));return;
+            }
             if scenario == "startup" {
                 run.end = Some(counters());
                 finish(&ui, &state, &report, &scenario, &run);
@@ -230,14 +280,14 @@ pub fn start(
                     run.step+=1;run.ready=Some(Instant::now()+Duration::from_millis(200));run.waiting=true;return;
                 }
                 match phase {
-                    0 => { ui.set_show_toolbar(true); click(width-148.0,38.0); },
+                    0 => { ui.set_show_toolbar(true); click(width-148.0-if ui.get_reflowable(){0.0}else{48.0},38.0); },
                     1|8|11|16|22 => { key(Key::RightArrow.into()); run.navigation_expected=Some(2); },
                     2|9|12|17|23 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     3 => { key(Key::DownArrow.into()); run.navigation_expected=Some(2); },
                     4 => { key(Key::UpArrow.into()); run.navigation_expected=Some(0); },
                     5 => { key(Key::PageDown.into()); run.navigation_expected=Some(2); },
                     6 => { key(Key::PageUp.into()); run.navigation_expected=Some(0); },
-                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(width*0.5+171.0,height-43.0); } else { click(width-148.0,38.0); } },
+                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(width*0.5+171.0,height-43.0); } else { click(width-148.0-if ui.get_reflowable(){0.0}else{48.0},38.0); } },
                     10|13 => key(Key::F11.into()),
                     14 => ui.set_show_contents(true),
                     15 => click((width*0.28).clamp(280.0,340.0)-22.0,104.0),
@@ -245,7 +295,7 @@ pub fn start(
                     19 => key("ab".into()),
                     20 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(page); },
                     21 => key(Key::Escape.into()),
-                    24 => { ui.set_show_toolbar(true); click(width-192.0,38.0); },
+                    24 => { ui.set_show_toolbar(true); click(width-192.0-if ui.get_reflowable(){0.0}else{48.0},38.0); },
                     25 => { key(Key::RightArrow.into()); run.navigation_expected=Some(1); },
                     26 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     _ => unreachable!(),

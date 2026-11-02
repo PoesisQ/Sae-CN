@@ -7,7 +7,7 @@ use sae_reader::{
     storage::{self, BookState, Preferences},
 };
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
-use slint::{ComponentHandle, Image, ModelRc, VecModel};
+use slint::{ComponentHandle, Image, Model, ModelRc, VecModel};
 use std::{
     path::PathBuf,
     rc::Rc,
@@ -24,6 +24,8 @@ struct State {
     completed_generation: u64,
     frame: Option<Arc<Frame>>,
     right: Option<Arc<Frame>>,
+    extra: Vec<Arc<Frame>>,
+    extra_anchors: Vec<u64>,
     anchor: u64,
     right_anchor: Option<u64>,
     back: Vec<u64>,
@@ -65,16 +67,11 @@ fn viewport(ui: &ReaderWindow, request: &mut Request) {
     request.width = ui.get_viewport_width().max(160.0);
     request.height = ui.get_viewport_height().max(160.0);
     request.dpi = ui.window().scale_factor();
-    ui.set_effective_spread(request.spread && request.width >= 800.0);
 }
 fn turn(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, direction: i32, ui: &ReaderWindow) {
     ui.set_selected_content_uri("".into());
     submit(state, mailbox, |r| {
-        let step = if r.spread && ui.get_effective_spread() {
-            2
-        } else {
-            1
-        };
+        let step = ui.get_visible_count().max(1);
         r.page = (r.page + direction * step).max(0);
         r.navigation = Navigation::Page(r.page);
         r.view.pan = [0.5, 0.0];
@@ -238,6 +235,7 @@ fn run() -> anyhow::Result<()> {
     let ui = ReaderWindow::new()?;
     sync_style(&ui, &preferences.typography);
     ui.set_double_page(preferences.spread);
+    ui.set_pdf_multi(preferences.pdf_multi);
     ui.set_theme_index(preferences.theme as i32);
     ui.set_page_color(preferences.page_color as i32);
     ui.set_fonts(ModelRc::new(VecModel::from(vec!["默认衬线".into()])));
@@ -250,6 +248,8 @@ fn run() -> anyhow::Result<()> {
         completed_generation: 0,
         frame: None,
         right: None,
+        extra: Vec::new(),
+        extra_anchors: Vec::new(),
         anchor: 0,
         right_anchor: None,
         back: Vec::new(),
@@ -287,6 +287,57 @@ fn run() -> anyhow::Result<()> {
                             (Some(a), Some(b)) => !Arc::ptr_eq(a, b),
                             _ => true,
                         };
+                    let changed = changed
+                        || s.extra.len() != update.extra.len()
+                        || s.extra
+                            .iter()
+                            .zip(&update.extra)
+                            .any(|(a, b)| !Arc::ptr_eq(a, b));
+                    let layout_changed =
+                        ui.get_grid_rows() != update.rows || ui.get_visible_count() != update.step;
+                    ui.set_grid_rows(update.rows);
+                    ui.set_visible_count(update.step);
+                    ui.set_effective_spread(update.step > 1);
+                    let previous_tiles = ui.get_pages();
+                    let tiles = std::iter::once(&update.frame)
+                        .chain(update.right.iter())
+                        .chain(update.extra.iter())
+                        .enumerate()
+                        .map(|(i, f)| PageTile {
+                            source: f.pixels.image(),
+                            w: f.display_width,
+                            h: f.display_height,
+                            selection: if changed {
+                                marks(Vec::new())
+                            } else {
+                                previous_tiles
+                                    .row_data(i)
+                                    .map(|t| t.selection)
+                                    .unwrap_or_default()
+                            },
+                            matches: marks(match i {
+                                0 => update.search.clone(),
+                                1 => update.right_search.clone(),
+                                _ => update.extra_search[i - 2].clone(),
+                            }),
+                        })
+                        .collect::<Vec<_>>();
+                    if layout_changed {
+                        ui.set_pages(ModelRc::new(VecModel::from(tiles)));
+                    } else if let Some(model) =
+                        previous_tiles.as_any().downcast_ref::<VecModel<PageTile>>()
+                    {
+                        if model.row_count() == tiles.len() {
+                            for (i, tile) in tiles.into_iter().enumerate() {
+                                model.set_row_data(i, tile);
+                            }
+                        } else {
+                            model.set_vec(tiles);
+                        }
+                    } else {
+                        ui.set_pages(ModelRc::new(VecModel::from(tiles)));
+                    }
+
                     if changed {
                         ui.set_page_image(frame.pixels.image());
                         ui.set_image_width(frame.display_width);
@@ -333,6 +384,10 @@ fn run() -> anyhow::Result<()> {
                             && (frame.overflow.0 > 1.0
                                 || frame.overflow.1 > 1.0
                                 || update
+                                    .extra
+                                    .iter()
+                                    .any(|f| f.overflow.0 > 1.0 || f.overflow.1 > 1.0)
+                                || update
                                     .right
                                     .as_ref()
                                     .is_some_and(|f| f.overflow.0 > 1.0 || f.overflow.1 > 1.0)),
@@ -363,7 +418,12 @@ fn run() -> anyhow::Result<()> {
                         )));
                         s.contents = Some(update.contents.clone());
                     }
-                    let last = update.right.as_ref().map(|f| f.page).unwrap_or(frame.page);
+                    let last = update
+                        .extra
+                        .last()
+                        .or(update.right.as_ref())
+                        .map(|f| f.page)
+                        .unwrap_or(frame.page);
                     let range = if last > frame.page {
                         format!("{}–{}", frame.page + 1, last + 1)
                     } else {
@@ -386,6 +446,8 @@ fn run() -> anyhow::Result<()> {
                     s.right_anchor = update.right_anchor;
                     s.frame = Some(update.frame.clone());
                     s.right = update.right;
+                    s.extra = update.extra;
+                    s.extra_anchors = update.extra_anchors;
                     s.count = update.count;
                     s.pagination_complete = update.pagination_complete;
                     s.completed_generation = generation;
@@ -430,6 +492,7 @@ fn run() -> anyhow::Result<()> {
                     .frame
                     .iter()
                     .chain(s.right.iter())
+                    .chain(s.extra.iter())
                     .fold((0.0f32, 0.0f32), |a, f| {
                         (a.0.max(f.overflow.0), a.1.max(f.overflow.1))
                     });
@@ -605,17 +668,38 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         let mailbox = mailbox.clone();
         ui.on_mode_changed(move |spread| {
-            state.lock().unwrap().preferences.spread = spread;
+            {
+                let mut s = state.lock().unwrap();
+                s.preferences.spread = spread;
+                s.preferences.pdf_multi = false;
+            }
             if let Some(ui) = weak.upgrade() {
-                ui.set_effective_spread(spread && ui.get_viewport_width() >= 800.0);
+                ui.set_pdf_multi(false);
                 submit(&state, &mailbox, |r| {
                     r.spread = spread;
+                    r.view.multi = false;
                     r.navigation = Navigation::Keep;
                     viewport(&ui, r);
                 });
             }
         });
     }
+    {
+        let weak = ui.as_weak();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        ui.on_multi_mode(move || {
+            state.lock().unwrap().preferences.pdf_multi = true;
+            if let Some(ui) = weak.upgrade() {
+                submit(&state, &mailbox, |r| {
+                    r.view.multi = true;
+                    r.navigation = Navigation::Keep;
+                    viewport(&ui, r);
+                });
+            }
+        });
+    }
+
     {
         let state = state.clone();
         let mailbox = mailbox.clone();
@@ -745,16 +829,32 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         ui.on_select_text(move |slot, x0, y0, x1, y1| {
             let mut s = state.lock().unwrap();
-            let frame = if slot == 1 {
-                s.right.clone()
-            } else {
-                s.frame.clone()
+            let frame = match slot {
+                0 => s.frame.clone(),
+                1 => s.right.clone(),
+                _ => s.extra.get((slot - 2) as usize).cloned(),
             };
             if let Some(frame) = frame {
                 let (text, boxes) = frame.select((x0, y0), (x1, y1));
                 s.selected = text;
                 if let Some(ui) = weak.upgrade() {
-                    if slot == 1 {
+                    let tiles = ui.get_pages();
+                    if let Some(model) = tiles.as_any().downcast_ref::<VecModel<PageTile>>() {
+                        for i in 0..slint::Model::row_count(model) {
+                            if let Some(mut tile) = slint::Model::row_data(model, i) {
+                                tile.selection = if i == slot as usize {
+                                    marks(boxes.clone())
+                                } else {
+                                    marks(Vec::new())
+                                };
+                                slint::Model::set_row_data(model, i, tile);
+                            }
+                        }
+                    }
+                    if slot >= 2 {
+                        ui.set_right_highlights(marks(Vec::new()));
+                        ui.set_highlights(marks(Vec::new()));
+                    } else if slot == 1 {
                         ui.set_right_highlights(marks(boxes));
                         ui.set_highlights(marks(Vec::new()));
                     } else {
@@ -772,7 +872,11 @@ fn run() -> anyhow::Result<()> {
         ui.on_hit(move |slot, x, y| {
             let (uri, source, width) = {
                 let s = state.lock().unwrap();
-                let frame = if slot == 1 { &s.right } else { &s.frame };
+                let frame = match slot {
+                    0 => s.frame.as_ref(),
+                    1 => s.right.as_ref(),
+                    _ => s.extra.get((slot - 2) as usize),
+                };
                 (
                     frame.as_ref().and_then(|f| {
                         f.links
@@ -780,10 +884,10 @@ fn run() -> anyhow::Result<()> {
                             .find(|l| l.bounds.contains(x, y))
                             .map(|l| l.uri.clone())
                     }),
-                    if slot == 1 {
-                        s.right_anchor
-                    } else {
-                        Some(s.anchor)
+                    match slot {
+                        0 => Some(s.anchor),
+                        1 => s.right_anchor,
+                        _ => s.extra_anchors.get((slot - 2) as usize).copied(),
                     },
                     frame.as_ref().map_or(0.0, |f| f.display_width),
                 )
@@ -1025,6 +1129,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_status("正在打开…".into());
     ui.set_notice("".into());
     ui.set_has_document(false);
+    ui.set_pages(ModelRc::default());
     ui.set_page_image(Image::default());
     ui.set_right_image(Image::default());
     ui.set_text_document(
@@ -1075,10 +1180,13 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     };
     viewport(ui, &mut request);
     request.view.color = s.preferences.page_color;
+    request.view.multi = s.preferences.pdf_multi;
     request.view.encoding = saved_encoding;
     s.back.clear();
     s.frame = None;
     s.right = None;
+    s.extra.clear();
+    s.extra_anchors.clear();
     s.contents = None;
     s.anchor = 0;
     s.identity = identity;

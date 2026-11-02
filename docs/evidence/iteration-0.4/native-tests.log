@@ -1,0 +1,83 @@
+   Compiling sae-reader v0.4.0-preview.1 (S:\SaeCN)
+    Finished `release` profile [optimized] target(s) in 2m 41s
+     Running unittests src\lib.rs (target\x86_64-pc-windows-msvc\release\deps\sae_reader-47a76f11393d2e21.exe)
+
+running 11 tests
+test paging::tests::one_notch_or_trackpad_gesture_turns_one_whole_view ... ok
+test zoom::tests::leaving_reset_has_no_phantom_resistance_and_circle_drag_catches_fill ... ok
+test settings::tests::untrusted_settings_are_bounded_and_cannot_inject_css ... ok
+test security::tests::entities_and_deep_xml_are_rejected ... ok
+test epub_compat::tests::fraction_and_ruby_keep_two_levels_and_unsupported_math_is_not_removed ... ok
+test zoom::tests::page_and_width_stops_catch_crossings_then_release_in_both_directions ... ok
+test text_adapter::tests::decoding_is_incremental_and_never_silently_replaces_malformed_bytes ... ok
+test zoom::tests::fine_input_meets_resistance_without_getting_stuck_or_reversing_direction ... ok
+test security::tests::malformed_book_html_is_recoverable_without_allowing_entities_or_depth_bombs ... ok
+test security::tests::hostile_paths_and_expansion_are_rejected_before_engine ... ok
+test storage::tests::replace_existing_settings_atomically ... ok
+
+test result: ok. 11 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.03s
+
+     Running unittests src\bin\engine-probe.rs (target\x86_64-pc-windows-msvc\release\deps\engine_probe-98aca92d3146912f.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running unittests src\bin\load-bench.rs (target\x86_64-pc-windows-msvc\release\deps\load_bench-c88b5d15c3ce0c36.exe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\ebook_formats.rs (target\x86_64-pc-windows-msvc\release\deps\ebook_formats-6b4a19ac1cb76049.exe)
+
+running 9 tests
+test opt_in_upstream_huffdic_full_kf8_fonts_and_hybrid_regression ... ok
+test epub3_nav_only_retains_cjk_english_labels_and_nested_outline ... ok
+test fb2_themes_cover_page_margins_and_leave_original_picture_colors_intact ... ok
+test fb2_css_changes_reparse_real_glyphs_and_keep_durable_flow_anchors ... ok
+test fb2_without_ids_gets_working_toc_and_legacy_encoding_is_decoded_strictly ... ok
+test encrypted_truncated_and_excessive_kindle_records_fail_then_normal_open_recovers ... ok
+test fb2_keeps_cjk_outline_base64_image_table_note_and_backlink ... ok
+test kindle_uncompressed_palmdoc_and_kf8_keep_cjk_images_tables_and_links ... ok
+test new_formats_search_beyond_the_first_screen_and_keep_spread_hit_coordinates ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.35s
+
+     Running tests\g1_native.rs (target\x86_64-pc-windows-msvc\release\deps\g1_native-84e19b1a1b45ff8a.exe)
+
+running 2 tests
+test calibre_style_inline_svg_cover_keeps_its_image ... ok
+test real_documents_relayout_cancel_and_release ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.33s
+
+     Running tests\local_books.rs (target\x86_64-pc-windows-msvc\release\deps\local_books-14c29d969c936269.exe)
+
+running 3 tests
+test local_epubs_show_real_pixels_in_single_and_double_pages ... ok
+test local_kf8_huffdic_keeps_native_pages_toc_text_and_anchor_after_relayout ... ok
+test local_pdfs_magnify_real_pages_without_allocating_a_full_zoomed_bitmap ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests\pdf_grid.rs (target\x86_64-pc-windows-msvc\release\deps\pdf_grid-14271f96a85dc903.exe)
+
+running 1 test
+test native_pdf_grid_keeps_all_text_links_search_and_bounded_tiles ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.06s
+
+     Running tests\reader_features.rs (target\x86_64-pc-windows-msvc\release\deps\reader_features-992e47cf537dbc76.exe)
+
+running 7 tests
+test concurrent_worker_contexts_keep_their_own_css_storage ... ok
+test mapped_font_outlives_its_original_rust_handle ... ok
+test advanced_conversion_keeps_svg_resources_and_fixed_canvas_is_independent_of_reader_typography ... ok
+test pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_are_cached ... ok
+test text_typography_controls_change_native_layout_instead_of_being_blocked_by_adapter_css ... ok
+test whole_book_search_reaches_other_chapters_and_wraps_in_both_directions ... ok
+test decoded_txt_and_markdown_preserve_real_text_images_tables_links_and_original_bytes ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.48s
+

@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.3.0-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.3.0-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.4.0-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.4.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -73,7 +73,7 @@ native_components=[{'name':'libmobi','version':'0.12','commit':'906274205c11944b
     'notices':['licenses/libmobi-0.12/LGPL-3.0-or-later.txt','licenses/libmobi-0.12/GPL-3.0.txt','licenses/libmobi-0.12/UPSTREAM.txt']}]
 inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.3.0 preview
+notices='''Sae Reader 0.4.0 preview
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
@@ -118,7 +118,8 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 
 此版支持 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2，不含 DRM。Kindle 解析按需执行，转换树随即释放；FB2 使用原生引擎，缺少 ID 的目录使用临时副本补齐锚点。
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
-本次修复及实测结果见 docs/iteration-0.3.md 和 docs/performance-report.md。
+本次修复及实测结果见 docs/iteration-0.4.md。
+PDF 工具条中的多页模式可按比例排成 2×2，最多四页；点击正文可收起侧栏，首次点击不会翻页。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
 依赖 Windows 系统 DLL 和 Microsoft Visual C++ v14 x64 运行库；

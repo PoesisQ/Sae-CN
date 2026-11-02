@@ -1,0 +1,38 @@
+
+running 3 tests
+test local_kf8_huffdic_keeps_native_pages_toc_text_and_anchor_after_relayout ... ok
+sample=1 spread=false first_frame_ms=53.71 worker_ms=53.23 pixels=901x926 cache_bytes=2503042
+sample=1 spread=true first_frame_ms=33.50 worker_ms=30.33 pixels=667x926 cache_bytes=3711036
+pdf-sample=1 spread=false zoom=3 first_tile_ms=104.93 pixels=1375x925 cache_bytes=3821059
+pdf-sample=1 spread=true zoom=3 first_tile_ms=22.23 pixels=667x925 cache_bytes=3727828
+sample=2 spread=false first_frame_ms=83.69 worker_ms=82.84 pixels=901x926 cache_bytes=2513218
+sample=2 spread=true first_frame_ms=11.94 worker_ms=10.94 pixels=667x926 cache_bytes=3716092
+sample=3 spread=false first_frame_ms=87.61 worker_ms=87.34 pixels=901x926 cache_bytes=2503042
+sample=3 spread=true first_frame_ms=23.82 worker_ms=22.18 pixels=667x926 cache_bytes=3711036
+sample=4 spread=false first_frame_ms=63.77 worker_ms=57.17 pixels=901x926 cache_bytes=2503042
+pdf-sample=2 spread=false zoom=3 first_tile_ms=298.51 pixels=1375x925 cache_bytes=3816265
+sample=4 spread=true first_frame_ms=85.98 worker_ms=84.77 pixels=667x926 cache_bytes=3708061
+sample=5 spread=false first_frame_ms=66.44 worker_ms=63.77 pixels=901x926 cache_bytes=2503042
+sample=5 spread=true first_frame_ms=42.07 worker_ms=41.28 pixels=667x926 cache_bytes=3705980
+test local_epubs_show_real_pixels_in_single_and_double_pages ... ok
+pdf-sample=2 spread=true zoom=3 first_tile_ms=249.23 pixels=667x925 cache_bytes=3722970
+pdf-sample=3 spread=false zoom=3 first_tile_ms=279.82 pixels=1375x925 cache_bytes=3816265
+pdf-sample=3 spread=true zoom=3 first_tile_ms=255.44 pixels=667x925 cache_bytes=3712730
+pdf-sample=4 spread=false zoom=3 first_tile_ms=105.78 pixels=1375x925 cache_bytes=3815689
+pdf-sample=4 spread=true zoom=3 first_tile_ms=43.26 pixels=667x925 cache_bytes=3702298
+pdf-sample=5 spread=false zoom=3 first_tile_ms=85.60 pixels=1375x925 cache_bytes=3816969
+pdf-sample=5 spread=true zoom=3 first_tile_ms=47.82 pixels=667x925 cache_bytes=3705818
+pdf-sample=6 spread=false zoom=3 first_tile_ms=49.46 pixels=1375x925 cache_bytes=3815689
+pdf-sample=6 spread=true zoom=3 first_tile_ms=11.74 pixels=667x925 cache_bytes=3701978
+pdf-sample=7 spread=false zoom=3 first_tile_ms=61.34 pixels=1375x925 cache_bytes=3815689
+pdf-sample=7 spread=true zoom=3 first_tile_ms=27.73 pixels=667x925 cache_bytes=3714173
+pdf-sample=8 spread=false zoom=3 first_tile_ms=131.80 pixels=1375x925 cache_bytes=3820745
+pdf-sample=8 spread=true zoom=3 first_tile_ms=27.26 pixels=667x925 cache_bytes=3747930
+pdf-sample=9 spread=false zoom=3 first_tile_ms=73.42 pixels=1375x925 cache_bytes=3815689
+pdf-sample=9 spread=true zoom=3 first_tile_ms=60.79 pixels=667x925 cache_bytes=3701978
+pdf-sample=10 spread=false zoom=3 first_tile_ms=55.87 pixels=1375x925 cache_bytes=3815689
+pdf-sample=10 spread=true zoom=3 first_tile_ms=18.15 pixels=667x925 cache_bytes=3701978
+test local_pdfs_magnify_real_pages_without_allocating_a_full_zoomed_bitmap ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.01s
+

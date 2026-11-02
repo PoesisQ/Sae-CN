@@ -197,6 +197,7 @@ with zipfile.ZipFile(ROOT / 'hostile-ratio.epub', 'w', compression=zipfile.ZIP_D
     z.writestr('mimetype', 'application/epub+zip'); z.writestr('bomb.xhtml', b'0' * 2_000_000)
 __import__('runpy').run_path(str(Path(__file__).with_name('generate-text-fixtures.py')))
 __import__('runpy').run_path(str(Path(__file__).with_name('generate-kindle-fixtures.py')))
+__import__('runpy').run_path(str(Path(__file__).with_name('generate-pdf-grid-fixtures.py')))
 manifest = {p.name: {'sha256': hashlib.sha256(p.read_bytes()).hexdigest(), 'bytes': p.stat().st_size} for p in sorted(ROOT.iterdir()) if p.suffix in ('.epub', '.pdf', '.txt', '.md', '.ttf', '.png', '.mobi', '.azw3', '.fb2') and p.name != 'SOURCES.md'}
 (ROOT / 'manifest.json').write_bytes((json.dumps(manifest, indent=2) + '\n').encode('utf-8'))
 print(f'Generated {len(manifest)} deterministic original fixtures in {ROOT}')

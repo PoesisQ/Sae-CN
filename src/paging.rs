@@ -47,6 +47,30 @@ pub fn spread_start(page: i32) -> i32 {
     page.max(0) / 2 * 2
 }
 
+/// Compare real page fit, not an assumed paper size. Four pages are useful only
+/// when they gain substantial occupied area without making each page much smaller.
+pub fn pdf_grid_rows(sizes: &[(f32, f32)], width: f32, height: f32) -> i32 {
+    if sizes.is_empty() || width < 800.0 || height < 600.0 {
+        return 1;
+    }
+    let column = (width - 32.0) / 2.0;
+    let cell = (height - 16.0) / 2.0;
+    let mut areas = [0.0f32; 2];
+    for &(w, h) in sizes {
+        if !w.is_finite() || !h.is_finite() || w <= 0.0 || h <= 0.0 {
+            return 1;
+        }
+        let pair = (column / w).min(height / h);
+        let grid = (column / w).min(cell / h);
+        if grid < pair * 0.85 || column.min(w * grid) < 220.0 || h * grid < 150.0 {
+            return 1;
+        }
+        areas[0] += w * h * pair * pair;
+        areas[1] += w * h * grid * grid;
+    }
+    if areas[1] >= areas[0] * 0.73 { 2 } else { 1 }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -78,7 +102,7 @@ mod tests {
 /// Links and text drags are handled before this navigation rule is applied.
 pub fn click_direction(spread: bool, slot: i32, x: f32, width: f32) -> i32 {
     if spread {
-        if slot == 0 { -1 } else { 1 }
+        if slot % 2 == 0 { -1 } else { 1 }
     } else if x < width * 0.5 {
         -1
     } else {

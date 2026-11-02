@@ -102,5 +102,13 @@
   "vertical.epub": {
     "sha256": "5d5b18e1395845ea3cb59ba15d12e1208590d30908ad2b2098e7f2802be50738",
     "bytes": 3859
+  },
+  "slides.pdf": {
+    "sha256": "77ccd7d34729559a12d34bcfd1d6f44cbfd217d8c99c9335b698b093ece63e65",
+    "bytes": 4876
+  },
+  "mixed-pages.pdf": {
+    "sha256": "7b7cb306933788239327e76a67bba81c9c5c3ab4d9f7e614fe2e105d1d456f06",
+    "bytes": 4876
   }
 }

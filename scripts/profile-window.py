@@ -30,6 +30,7 @@ parser.add_argument('--books',type=Path)
 parser.add_argument('--format',choices=['epub','pdf','azw3','mobi','fb2'],default='epub')
 parser.add_argument('--fixture',type=Path)
 parser.add_argument('--spread',action='store_true')
+parser.add_argument('--multi',action='store_true')
 parser.add_argument('--seconds',type=float,default=8)
 parser.add_argument('--runs',type=int,default=1)
 parser.add_argument('--sumatra',action='store_true')
@@ -45,7 +46,7 @@ reports=[]
 for alias,path in inputs:
     for run in range(args.runs):
         profile=args.output/f'{alias}-{run:02}-profile';profile.mkdir(exist_ok=True)
-        (profile/'state.json').write_text(json.dumps({'version':1,'spread':args.spread}),encoding='utf-8')
+        (profile/'state.json').write_text(json.dumps({'version':1,'spread':args.spread,'pdf_multi':args.multi}),encoding='utf-8')
         env=dict(os.environ,SAE_READER_DATA_DIR=str(profile.resolve()))
         env.pop('SAE_READER_QA_REPORT',None)
         command=[str(args.exe.resolve())]

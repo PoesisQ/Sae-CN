@@ -24,6 +24,7 @@ pub enum Navigation {
 }
 #[derive(Clone)]
 pub struct ViewOptions {
+    pub multi: bool,
     pub encoding: Option<String>,
     pub color: u8,
     pub fit_width: bool,
@@ -34,6 +35,7 @@ pub struct ViewOptions {
 impl Default for ViewOptions {
     fn default() -> Self {
         Self {
+            multi: false,
             encoding: None,
             color: 0,
             fit_width: false,
@@ -61,6 +63,11 @@ pub struct Request {
 pub struct Update {
     pub frame: Arc<Frame>,
     pub right: Option<Arc<Frame>>,
+    pub extra: Vec<Arc<Frame>>,
+    pub extra_search: Vec<Vec<Bounds>>,
+    pub extra_anchors: Vec<u64>,
+    pub rows: i32,
+    pub step: i32,
     pub title: String,
     pub count: i32,
     pub pagination_complete: bool,
@@ -198,6 +205,7 @@ impl Worker {
                                 request.dpi.to_bits(),
                                 request.pdf_zoom.to_bits(),
                                 request.spread as u32,
+                                request.view.multi as u32,
                                 request.view.fit_width as u32,
                                 request.view.fit_cover as u32,
                                 request.view.color as u32,
@@ -211,7 +219,8 @@ impl Worker {
                         } else {
                             fixed_view = None;
                         }
-                        let spread = request.spread && request.width >= 800.0;
+                        let spread = (request.spread || (!b.reflowable && request.view.multi))
+                            && request.width >= 800.0;
                         let column = if spread {
                             (request.width - 32.0) / 2.0
                         } else {
@@ -336,18 +345,69 @@ impl Worker {
                                 }
                             }
                         }
+                        let mut rows = 1;
+                        if spread && !b.reflowable && request.view.multi {
+                            // Inspect at most four page boxes; never scan the document.
+                            let start = actual_page / 4 * 4;
+                            let mut sizes = Vec::with_capacity(4);
+                            for page in start..(start + 4).min(b.page_count) {
+                                let bounds = b.engine.load_page(page)?.bounds()?;
+                                sizes.push((bounds.x1 - bounds.x0, bounds.y1 - bounds.y0));
+                            }
+                            rows =
+                                crate::paging::pdf_grid_rows(&sizes, request.width, request.height);
+                        }
+                        let step = if spread { 2 * rows } else { 1 };
+                        actual_page = actual_page / step * step;
                         if spread {
-                            actual_page = crate::paging::spread_start(actual_page);
                             b.ensure_page(actual_page + 1)?;
                         }
-                        let frame = render_page(&mut cache, b, actual_page, column, &request, pan)?;
+                        // A borrowed request with cell dimensions keeps all PDF zoom/pan,
+                        // clipping and text coordinates in the existing native path.
+                        let grid_request = (rows == 2).then(|| {
+                            let mut r = request.clone();
+                            r.height = (request.height - 16.0) / 2.0;
+                            r
+                        });
+                        let cell_request = grid_request.as_ref().unwrap_or(&request);
+                        if rows == 2 && matches!(request.navigation, Navigation::Search(_)) {
+                            if let Some((page, index)) = search_hit {
+                                let native = b.engine.load_page(page)?;
+                                if let Some(q) = native.search(&request.query, 4096)?.get(index) {
+                                    let bounds = native.bounds()?;
+                                    let scale = pdf_scale(
+                                        bounds,
+                                        column,
+                                        cell_request.height,
+                                        cell_request,
+                                    ) / request.dpi;
+                                    let full = [
+                                        (bounds.x1 - bounds.x0) * scale,
+                                        (bounds.y1 - bounds.y0) * scale,
+                                    ];
+                                    let center = [
+                                        ((q.ul.x + q.lr.x) * 0.5 - bounds.x0) * scale,
+                                        ((q.ul.y + q.lr.y) * 0.5 - bounds.y0) * scale,
+                                    ];
+                                    pan = [
+                                        ((center[0] - column * 0.5) / (full[0] - column).max(1.0))
+                                            .clamp(0.0, 1.0),
+                                        ((center[1] - cell_request.height * 0.5)
+                                            / (full[1] - cell_request.height).max(1.0))
+                                        .clamp(0.0, 1.0),
+                                    ];
+                                }
+                            }
+                        }
+                        let frame =
+                            render_page(&mut cache, b, actual_page, column, &cell_request, pan)?;
                         let right = if spread && actual_page + 1 < b.page_count {
                             Some(render_page(
                                 &mut cache,
                                 b,
                                 actual_page + 1,
                                 column,
-                                &request,
+                                &cell_request,
                                 pan,
                             )?)
                         } else {
@@ -355,6 +415,20 @@ impl Worker {
                         };
                         if !inbox.current(g) {
                             anyhow::bail!("superseded");
+                        }
+                        let mut extra = Vec::new();
+                        for page in actual_page + 2..(actual_page + step).min(b.page_count) {
+                            if !inbox.current(g) {
+                                anyhow::bail!("superseded");
+                            }
+                            extra.push(render_page(
+                                &mut cache,
+                                b,
+                                page,
+                                column,
+                                &cell_request,
+                                pan,
+                            )?);
                         }
                         let search_page = |frame: &Frame| -> Result<Vec<Bounds>> {
                             let mut search = Vec::new();
@@ -383,6 +457,14 @@ impl Worker {
                         } else {
                             Vec::new()
                         };
+                        let extra_search = extra
+                            .iter()
+                            .map(|f| search_page(f))
+                            .collect::<Result<Vec<_>>>()?;
+                        let extra_anchors = extra
+                            .iter()
+                            .map(|f| b.engine.logical_anchor(f.page).map_err(anyhow::Error::from))
+                            .collect::<Result<Vec<_>>>()?;
                         let anchor = b.engine.logical_anchor(actual_page)?;
                         let right_anchor = if let Some(frame) = &right {
                             Some(b.engine.logical_anchor(frame.page)?)
@@ -392,16 +474,21 @@ impl Worker {
                         let pdf_fit_width_zoom = if b.reflowable {
                             1.0
                         } else {
-                            crate::zoom::width_stop(frame.page_size, column, request.height)
+                            crate::zoom::width_stop(frame.page_size, column, cell_request.height)
                         };
                         let pdf_fill_zoom = if b.reflowable {
                             1.0
                         } else {
-                            crate::zoom::fill_stop(frame.page_size, column, request.height)
+                            crate::zoom::fill_stop(frame.page_size, column, cell_request.height)
                         };
                         Ok(Update {
                             frame,
                             right,
+                            extra,
+                            extra_search,
+                            extra_anchors,
+                            rows,
+                            step,
                             title: b.title.clone(),
                             count: b.page_count,
                             pagination_complete: b.pagination_complete,
@@ -428,8 +515,10 @@ impl Worker {
                     if inbox.current(g) {
                         match result {
                             Ok(mut update) => {
-                                let visible_bytes = update.frame.cost()
-                                    + update.right.as_ref().map_or(0, |f| f.cost());
+                                let visible_bytes =
+                                    update.extra.iter().map(|f| f.cost()).sum::<usize>()
+                                        + update.frame.cost()
+                                        + update.right.as_ref().map_or(0, |f| f.cost());
                                 // Publish correct visible pages before all-book pagination.
                                 notify(g, Ok(update.clone()));
                                 if let Some(b) = book.as_mut() {
@@ -457,7 +546,9 @@ impl Worker {
                                     for page in actual_page + step
                                         ..(actual_page + 2 * step).min(b.page_count)
                                     {
-                                        if visible_bytes.saturating_mul(2) > cache.budget {
+                                        if request.view.multi
+                                            || visible_bytes.saturating_mul(2) > cache.budget
+                                        {
                                             break;
                                         }
                                         if !inbox.current(g) {
