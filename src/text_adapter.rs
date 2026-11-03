@@ -2,7 +2,7 @@
 //! A short-lived EPUB uses the same native layout, links and selection engine.
 use anyhow::{Context, Result, bail, ensure};
 use encoding_rs::{CoderResult, Encoding};
-use pulldown_cmark::{Event, Options, Parser, Tag, TagEnd, html};
+use pulldown_cmark::{CodeBlockKind, Event, Options, Parser, Tag, TagEnd, html};
 use std::{
     collections::HashMap,
     fs::{self, File, OpenOptions},
@@ -16,6 +16,7 @@ pub struct Converted {
     pub path: PathBuf,
     pub encoding: String,
     pub notice: String,
+    pub styled: bool,
     directory: PathBuf,
 }
 impl Drop for Converted {
@@ -38,6 +39,7 @@ impl Converted {
             directory,
             encoding: String::new(),
             notice: String::new(),
+            styled: false,
         })
     }
 }
@@ -142,7 +144,11 @@ fn decode(
     Ok(())
 }
 
-pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
+pub fn convert(
+    path: &Path,
+    selected: Option<&str>,
+    style: &crate::settings::Typography,
+) -> Result<Converted> {
     static SERIAL: AtomicU64 = AtomicU64::new(0);
     let mut file = File::open(path)?;
     let mut prefix = vec![0; 65536];
@@ -160,6 +166,7 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
         directory,
         encoding: encoding.name().to_owned(),
         notice: String::new(),
+        styled: false,
     };
     let output = OpenOptions::new()
         .create_new(true)
@@ -169,7 +176,7 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
     let mut zip = ZipWriter::new(output);
     entry(&mut zip, "mimetype", b"application/epub+zip")?;
     entry(&mut zip, "META-INF/container.xml", b"<container xmlns=\"urn:oasis:names:tc:opendocument:xmlns:container\" version=\"1.0\"><rootfiles><rootfile full-path=\"book.opf\" media-type=\"application/oebps-package+xml\"/></rootfiles></container>")?;
-    entry(&mut zip, "style.css", b"p.txtline{white-space:pre-wrap}pre{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #8c988e;padding:.6em;font-size:.9em}code{font-family:monospace}table{border-collapse:collapse}td,th{border:1px solid #8c988e;padding:.35em}blockquote{margin-left:1.5em;border-left:2px solid #8c988e;padding-left:.7em}img{max-width:100%;height:auto}h1,h2,h3{text-indent:0}h1{font-size:1.45em;line-height:1.25;margin-top:0;margin-bottom:.6em}h2{font-size:1.2em;line-height:1.3}h3{font-size:1.05em;line-height:1.3}hr{border-top:1px solid #8c988e}")?;
+    entry(&mut zip, "style.css", b"p.txtline{white-space:pre-wrap}pre{white-space:pre-wrap;overflow-wrap:anywhere;border:1px solid #8c988e;padding:.6em;font-size:.9em}code{font-family:monospace}table{border-collapse:collapse}td,th{border:1px solid #8c988e;padding:.35em}blockquote{margin-left:1.5em;border-left:2px solid #8c988e;padding-left:.7em}img{max-width:100%;height:auto}h1,h2,h3{text-indent:0}h1{font-size:1.45em;line-height:1.25;margin-top:0;margin-bottom:.6em}h2{font-size:1.2em;line-height:1.3}h3{font-size:1.05em;line-height:1.3}hr{border-top:1px solid #8c988e}.sae-math-display{display:block;text-align:center;text-indent:0;margin:.7em 0}.sae-math-inline{text-indent:0}")?;
     let input = std::io::Cursor::new(prefix).chain(file);
     let mut chapters = 0;
     let mut nav = String::new();
@@ -196,7 +203,8 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
             | Options::ENABLE_STRIKETHROUGH
             | Options::ENABLE_TASKLISTS
             | Options::ENABLE_FOOTNOTES
-            | Options::ENABLE_HEADING_ATTRIBUTES;
+            | Options::ENABLE_HEADING_ATTRIBUTES
+            | Options::ENABLE_MATH;
         // Allocate stable ids once, including duplicates, before resolving links.
         for event in Parser::new_ext(&text, options) {
             match event {
@@ -207,7 +215,7 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
                         heading_ids.insert(id.to_string(), format!("heading-{headings}"));
                     }
                 }
-                Event::Text(t) | Event::Code(t) => {
+                Event::Text(t) | Event::Code(t) | Event::InlineMath(t) | Event::DisplayMath(t) => {
                     if let Some(title) = &mut heading_title {
                         title.push_str(&t);
                     }
@@ -232,118 +240,150 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
             }
         }
         headings = 0;
-        let events = Parser::new_ext(&text, options).map(|event| match event {
-            Event::Html(value) | Event::InlineHtml(value) => {
-                raw_html = true;
-                Event::Text(value)
-            }
-            Event::Start(Tag::Heading { level, .. }) => {
-                headings += 1;
-                Event::Start(Tag::Heading {
-                    level,
-                    id: Some(format!("heading-{headings}").into()),
-                    classes: Vec::new(),
-                    attrs: Vec::new(),
-                })
-            }
-            Event::Start(Tag::Link {
-                link_type,
-                mut dest_url,
-                title,
-                id,
-            }) => {
-                if let Some(fragment) = dest_url.strip_prefix('#') {
-                    if let Some(actual) =
-                        heading_ids.get(url_path(fragment).as_deref().unwrap_or(fragment))
-                    {
-                        dest_url = format!("#{actual}").into();
+        let mut mathematics = crate::math::MarkdownMath::default();
+        let mut math_block = None::<String>;
+        let events = Parser::new_ext(&text, options).filter_map(|event| {
+            if let Some(block) = &mut math_block {
+                return match event {
+                    Event::End(TagEnd::CodeBlock) => Some(Event::Html(
+                        mathematics
+                            .html(&math_block.take().unwrap(), true, &style.foreground)
+                            .into(),
+                    )),
+                    Event::Text(t) => {
+                        block.push_str(&t);
+                        None
                     }
-                } else if !(dest_url.starts_with("https://") || dest_url.starts_with("http://")) {
-                    blocked += 1;
-                    dest_url = "#blocked-link".into();
+                    _ => None,
+                };
+            }
+            Some(match event {
+                Event::Start(Tag::CodeBlock(CodeBlockKind::Fenced(ref info)))
+                    if info.trim() == "math" =>
+                {
+                    math_block = Some(String::new());
+                    return None;
+                }
+                Event::InlineMath(value) => {
+                    Event::Html(mathematics.html(&value, false, &style.foreground).into())
+                }
+                Event::DisplayMath(value) => {
+                    Event::Html(mathematics.html(&value, true, &style.foreground).into())
+                }
+                Event::Html(value) | Event::InlineHtml(value) => {
+                    raw_html = true;
+                    Event::Text(value)
+                }
+                Event::Start(Tag::Heading { level, .. }) => {
+                    headings += 1;
+                    Event::Start(Tag::Heading {
+                        level,
+                        id: Some(format!("heading-{headings}").into()),
+                        classes: Vec::new(),
+                        attrs: Vec::new(),
+                    })
                 }
                 Event::Start(Tag::Link {
+                    link_type,
+                    mut dest_url,
+                    title,
+                    id,
+                }) => {
+                    if let Some(fragment) = dest_url.strip_prefix('#') {
+                        if let Some(actual) =
+                            heading_ids.get(url_path(fragment).as_deref().unwrap_or(fragment))
+                        {
+                            dest_url = format!("#{actual}").into();
+                        }
+                    } else if !(dest_url.starts_with("https://") || dest_url.starts_with("http://"))
+                    {
+                        blocked += 1;
+                        dest_url = "#blocked-link".into();
+                    }
+                    Event::Start(Tag::Link {
+                        link_type,
+                        dest_url,
+                        title,
+                        id,
+                    })
+                }
+                Event::Start(Tag::Image {
                     link_type,
                     dest_url,
                     title,
                     id,
-                })
-            }
-            Event::Start(Tag::Image {
-                link_type,
-                dest_url,
-                title,
-                id,
-            }) => {
-                let resource = resource_cache
-                    .entry(dest_url.to_string())
-                    .or_insert_with(|| {
-                        let safe = (|| -> Result<String> {
-                            let decoded = url_path(&dest_url).context("图片地址编码无效")?;
-                            ensure!(
-                                !decoded.contains(':')
-                                    && !decoded.starts_with(['/', '\\'])
-                                    && !decoded.contains(['?', '#']),
-                                "外部图片"
-                            );
-                            let local = base.join(&decoded).canonicalize()?;
-                            ensure!(local.starts_with(&base), "图片越出文档目录");
-                            let ext = local
-                                .extension()
-                                .and_then(|e| e.to_str())
-                                .unwrap_or("")
-                                .to_ascii_lowercase();
-                            let media = match ext.as_str() {
-                                "png" => "image/png",
-                                "jpg" | "jpeg" => "image/jpeg",
-                                "gif" => "image/gif",
-                                "webp" => "image/webp",
-                                "bmp" => "image/bmp",
-                                _ => bail!("未支持的图片格式"),
-                            };
-                            let size = local.metadata()?.len();
-                            ensure!(
-                                size <= 32 * 1024 * 1024
-                                    && total_assets + size <= 128 * 1024 * 1024,
-                                "图片超过安全上限"
-                            );
-                            let name = format!("image-{}.{}", assets.len(), ext);
-                            entry(&mut zip, &name, &fs::read(local)?)?;
-                            total_assets += size;
-                            assets.push((name.clone(), media));
-                            Ok(name)
-                        })();
-                        if safe.is_err() {
-                            blocked += 1;
-                        }
-                        safe.ok()
-                    })
-                    .clone();
-                image_stack.push(resource.is_some());
-                if let Some(dest_url) = resource {
-                    Event::Start(Tag::Image {
-                        link_type,
-                        dest_url: dest_url.into(),
-                        title,
-                        id,
-                    })
-                } else {
-                    Event::Start(Tag::Emphasis)
+                }) => {
+                    let resource = resource_cache
+                        .entry(dest_url.to_string())
+                        .or_insert_with(|| {
+                            let safe = (|| -> Result<String> {
+                                let decoded = url_path(&dest_url).context("图片地址编码无效")?;
+                                ensure!(
+                                    !decoded.contains(':')
+                                        && !decoded.starts_with(['/', '\\'])
+                                        && !decoded.contains(['?', '#']),
+                                    "外部图片"
+                                );
+                                let local = base.join(&decoded).canonicalize()?;
+                                ensure!(local.starts_with(&base), "图片越出文档目录");
+                                let ext = local
+                                    .extension()
+                                    .and_then(|e| e.to_str())
+                                    .unwrap_or("")
+                                    .to_ascii_lowercase();
+                                let media = match ext.as_str() {
+                                    "png" => "image/png",
+                                    "jpg" | "jpeg" => "image/jpeg",
+                                    "gif" => "image/gif",
+                                    "webp" => "image/webp",
+                                    "bmp" => "image/bmp",
+                                    _ => bail!("未支持的图片格式"),
+                                };
+                                let size = local.metadata()?.len();
+                                ensure!(
+                                    size <= 32 * 1024 * 1024
+                                        && total_assets + size <= 128 * 1024 * 1024,
+                                    "图片超过安全上限"
+                                );
+                                let name = format!("image-{}.{}", assets.len(), ext);
+                                entry(&mut zip, &name, &fs::read(local)?)?;
+                                total_assets += size;
+                                assets.push((name.clone(), media));
+                                Ok(name)
+                            })();
+                            if safe.is_err() {
+                                blocked += 1;
+                            }
+                            safe.ok()
+                        })
+                        .clone();
+                    image_stack.push(resource.is_some());
+                    if let Some(dest_url) = resource {
+                        Event::Start(Tag::Image {
+                            link_type,
+                            dest_url: dest_url.into(),
+                            title,
+                            id,
+                        })
+                    } else {
+                        Event::Start(Tag::Emphasis)
+                    }
                 }
-            }
-            Event::End(TagEnd::Image) => {
-                if image_stack.pop().unwrap_or(false) {
-                    Event::End(TagEnd::Image)
-                } else {
-                    Event::End(TagEnd::Emphasis)
+                Event::End(TagEnd::Image) => {
+                    if image_stack.pop().unwrap_or(false) {
+                        Event::End(TagEnd::Image)
+                    } else {
+                        Event::End(TagEnd::Emphasis)
+                    }
                 }
-            }
-            other => other,
+                other => other,
+            })
         });
         let mut body = String::new();
         html::push_html(&mut body, events);
         chapter(&mut zip, 1, &body)?;
         chapters = 1;
+        converted.styled = mathematics.rendered > 0;
         converted.notice = format!(
             "Markdown · {} · 代码块自动换行{}{}",
             encoding.name(),
@@ -358,6 +398,17 @@ pub fn convert(path: &Path, selected: Option<&str>) -> Result<Converted> {
                 String::new()
             }
         );
+        if mathematics.rendered > 0 || mathematics.failed > 0 {
+            converted
+                .notice
+                .push_str(&format!(" · 原生公式 {} 处", mathematics.rendered));
+            if mathematics.failed > 0 {
+                converted.notice.push_str(&format!(
+                    " · {} 处暂不支持的公式保留源码",
+                    mathematics.failed
+                ));
+            }
+        }
     } else {
         let mut pending = String::new();
         let mut body = String::new();

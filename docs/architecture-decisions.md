@@ -107,3 +107,29 @@ is introduced. Effective Slint scale is deliberate: controlled scale tests can
 differ from Windows monitor DPI. First-frame/double-page/DPI checks and final
 binary measurements must be repeated after this change. Earlier measurements
 and exact binaries remain available for comparison.
+
+## ADR 015 - Bounded native Markdown mathematics
+
+Only explicit Markdown math events and `math` fences use the MIT-licensed,
+locked pulldown-latex 0.8.0 parser. Rust lays out a supported MathML subset as
+SVG text/paths; MuPDF keeps the real glyph/search/selection coordinates. No
+browser, JavaScript engine, external conversion process or font bundle is added.
+The parser and mapped mathematical fonts are initialized only on demand, with
+per-formula/event/depth and document output limits. Unrepresentable math retains
+its source. Ordinary code and the original document remain untouched.
+
+Native HTML previously ignored `vertical-align:middle` for image flows and SVG
+replaced named serif fonts with Base14 Times. Narrow C fixes align middle images
+on the text x-height axis and honor the two known math font families through
+the existing Windows loader. Existing default image placement is unchanged.
+Font cache initialization now follows native context initialization, so cache
+destruction can safely retain/release fonts at thread exit. Windowless native
+glyph/appearance/regression checks cover these changes; fresh desktop window
+acceptance is explicitly deferred when the user is actively using the machine.
+
+The older EPUB Ruby/MathML fallback keeps explicit baseline image placement,
+matching its previously measured layout. It does not opt into the new centered
+Markdown math box model. Closing a Book clears the native resource and glyph
+caches (including retained font references); active native objects keep their
+own references. This releases obsolete data rather than trimming the OS working
+set or reducing document/image quality.

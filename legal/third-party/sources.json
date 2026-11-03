@@ -309,6 +309,22 @@
       "bytes": 10847,
       "sha256": "a60eea817514531668d7e00765731449fe14d059d3249e0bc93b36de45f759f2",
       "note": "The crate VCS commit returns 404 upstream. Shared upstream license text is taken from the reachable commit used by locked pathfinder_simd; original geometry source SPDX/2019 copyright headers remain intact in corresponding source."
+    },
+    {
+      "package": "pulldown-latex-0.8.0",
+      "url": "https://mirrors.ibiblio.org/CTAN/fonts/lm-math/doc/GUST-FONT-LICENSE.txt",
+      "file": "pulldown-latex-0.8.0/GUST-FONT-LICENSE.txt",
+      "bytes": 1456,
+      "sha256": "2bd69affc3da00715116f713f57eab9707e96daf3562ad0215987b15b9c16f73",
+      "note": "License supplement for source-only Latin Modern WOFF2 example assets shipped verbatim in the registry crate. Application uses mapped Windows fonts; these assets are not loaded or shipped in the Windows runtime."
+    },
+    {
+      "package": "pulldown-latex-0.8.0",
+      "url": "https://www.latex-project.org/lppl/lppl-1-3c.txt",
+      "file": "pulldown-latex-0.8.0/LPPL-1.3c.txt",
+      "bytes": 19102,
+      "sha256": "3d262cdf34dafa6955f703c634a8c238ec44109bc8dd6ef34fb7aa54809f7e66",
+      "note": "License supplement for source-only Latin Modern WOFF2 example assets shipped verbatim in the registry crate. Application uses mapped Windows fonts; these assets are not loaded or shipped in the Windows runtime."
     }
   ],
   "selected_branches": {
@@ -333,6 +349,7 @@
   },
   "exceptions": [
     "dwrote pinned tree contains no license file: canonical Mozilla MPL 2.0 text follows the explicit original source link.",
-    "pathfinder_geometry published VCS SHA returns 404; generic upstream license texts use the reachable pathfinder_simd locked commit. Geometry source SPDX/copyright headers remain intact."
+    "pathfinder_geometry published VCS SHA returns 404; generic upstream license texts use the reachable pathfinder_simd locked commit. Geometry source SPDX/copyright headers remain intact.",
+    "pulldown-latex code is MIT; its registry crate also contains source-only Latin Modern WOFF2 example fonts. GUST/LPPL texts and asset provenance are supplemented separately; registry source and checksums remain unchanged."
   ]
 }

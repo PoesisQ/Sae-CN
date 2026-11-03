@@ -26,6 +26,17 @@ pub struct Book {
     contents: Option<Arc<Vec<ContentsItem>>>,
 }
 
+impl Drop for Book {
+    fn drop(&mut self) {
+        // Do not retain decoded images from closed/replaced books in the shared
+        // native store. The document's live references are released just after
+        // this hook, and the current reader's pixel cache has its own budget.
+        let mut context = mupdf::Context::get();
+        context.empty_store();
+        context.purge_glyph_cache();
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct ContentsItem {
     pub title: String,
@@ -109,8 +120,12 @@ impl Book {
                 supplied_contents = Some(contents);
             }
             "txt" | "md" => {
-                let document = crate::text_adapter::convert(path, encoding)?;
+                let document = crate::text_adapter::convert(path, encoding, typography)?;
                 notice = document.notice.clone();
+                if document.styled {
+                    conversion_style =
+                        Some((typography.foreground.clone(), typography.family.clone()));
+                }
                 converted = Some(document);
             }
             _ => bail!("支持 EPUB、PDF、TXT、Markdown、AZW3、MOBI 和 FB2（不含 DRM）"),

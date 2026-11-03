@@ -315,7 +315,7 @@ pub fn convert(
                     };
                     let label = xml(&text[node.range()]);
                     let svg = format!(
-                        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" style=\"width:{}em;height:{}em;vertical-align:middle\"><title>{label}</title><g fill=\"{}\" color=\"{}\" font-family=\"{}\">{}</g></svg>",
+                        "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"{}\" height=\"{}\" viewBox=\"0 0 {} {}\" style=\"width:{}em;height:{}em;vertical-align:baseline\"><title>{label}</title><g fill=\"{}\" color=\"{}\" font-family=\"{}\">{}</g></svg>",
                         layout.w,
                         layout.h,
                         layout.w,

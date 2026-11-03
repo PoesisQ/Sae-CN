@@ -63,6 +63,18 @@ pub struct Context {
 }
 
 impl Context {
+    /// Release cached resources from closed documents. Live native references
+    /// remain valid; this does not trim the OS working set or touch active data.
+    pub fn empty_store(&mut self) {
+        unsafe { fz_empty_store(self.inner); }
+    }
+
+    /// Drop cached glyph bitmaps and their font references after closing a
+    /// document. Live text/font objects retain their own native references.
+    pub fn purge_glyph_cache(&mut self) {
+        unsafe { fz_purge_glyph_cache(self.inner); }
+    }
+
     pub fn get() -> Self {
         LOCAL_CONTEXT.with(|ctx| {
             {

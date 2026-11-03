@@ -3618,6 +3618,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "007d8adb5ddab6f8e3f491ac63566a7d5002cc7ed73901f72057943fa71ae1ae"
 
 [[package]]
+name = "pulldown-latex"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "1cf850381ae0dbb131f36e31d6090f55363d079ab3e518ad0323b9cb6a96d115"
+dependencies = [
+ "bumpalo",
+]
+
+[[package]]
 name = "pxfm"
 version = "0.1.30"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3930,7 +3939,7 @@ checksum = "cf54715a573b99ac80df0bc206da022bcd442c974952c7b9720069370852e21f"
 
 [[package]]
 name = "sae-reader"
-version = "0.4.0-preview.1"
+version = "0.4.1-preview.1"
 dependencies = [
  "anyhow",
  "arboard",
@@ -3942,6 +3951,7 @@ dependencies = [
  "mupdf",
  "png",
  "pulldown-cmark",
+ "pulldown-latex",
  "rfd",
  "roxmltree 0.20.0",
  "serde",

@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.4.0-preview.1')
+parser.add_argument('--name', default='SaeReader-0.4.1-preview.1')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -47,16 +47,21 @@ for kind in ('source', 'windows-x64'):
             required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
                         'assets/icon-original.png', 'assets/window-icon.png', 'assets/app-icon.ico',
                         'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py', 'scripts/install-local.ps1',
-                        'src/reading.rs', 'src/rendering.rs', 'src/text_adapter.rs', 'src/epub_compat.rs',
+                        'src/reading.rs', 'src/rendering.rs', 'src/text_adapter.rs', 'src/epub_compat.rs', 'src/math.rs',
+                        'tests/markdown_math.rs', 'tests/math_performance.rs', 'tests/fixtures/math.md',
                         'src/kindle_adapter.rs', 'src/fb2_adapter.rs', 'src/zoom.rs',
                         'native/kindle.c', 'native/kindle_alloc.c', 'native/kindle_alloc.h',
                         'vendor/libmobi/src/mobi.h', 'vendor/libmobi/COPYING', 'vendor/libmobi/UPSTREAM.txt',
                         'src/fonts.rs', 'assets/icons/dial.svg', 'assets/icons/fullscreen.svg',
                         'vendor/mupdf-sys-0.8.0/mupdf/source/fitz/context.c',
                         'vendor/mupdf-sys-0.8.0/mupdf/source/html/html-doc.c',
+                        'vendor/mupdf-sys-0.8.0/mupdf/source/html/html-layout.c',
+                        'vendor/mupdf-sys-0.8.0/mupdf/source/html/css-apply.c',
+                        'vendor/mupdf-sys-0.8.0/mupdf/source/svg/svg-run.c',
                         'vendor/mupdf-sys-0.8.0/wrapper/document.c',
                         'vendor/mupdf-sys-0.8.0/wrapper/font.c', 'vendor/mupdf-sys-0.8.0/wrapper/page.c',
-                        'legal/third-party/sources.json']
+                        'vendor/mupdf-0.8.0/src/context.rs',
+                        'legal/third-party/sources.json', 'docs/markdown-math.md', 'docs/iteration-0.4.1.md']
             for rel in required:
                 assert archive.read(source_prefix + rel) == (root / rel).read_bytes(), rel
             dependency_dirs = {PurePosixPath(n).parts[2] for n in names
@@ -79,6 +84,10 @@ for kind in ('source', 'windows-x64'):
                     assert p['notices'] or p['supplemental_notices'], p['name']
             assert archive.read(args.name+'/licenses/slint-1.18.1/LICENSES/GPL-3.0-only.txt')
             assert archive.read(args.name+'/licenses/libmobi-0.12/GPL-3.0.txt')
+            assert archive.read(args.name+'/licenses/pulldown-latex-0.8.0/LICENSE')
+            assert archive.read(args.name+'/licenses/pulldown-latex-0.8.0/GUST-FONT-LICENSE.txt')
+            assert archive.read(args.name+'/licenses/pulldown-latex-0.8.0/LPPL-1.3c.txt')
+            assert not any(n.endswith(('.woff', '.woff2', '.otf', '.ttf', '.ttc')) for n in names), 'runtime must not bundle fonts'
             supplements=json.loads(archive.read(args.name+'/licenses/supplemental-sources.json'))
             for record in supplements['records']:
                 data=archive.read(args.name+'/licenses/'+record['file'])

@@ -369,12 +369,21 @@ static void measure_string_h(fz_context *ctx, fz_html_flow *node)
 static float measure_line(fz_html_flow *node, fz_html_flow *end, float *baseline)
 {
 	float max_a = 0, max_d = 0, h = node->h;
+	int middle_image = 0;
 	while (node != end)
 	{
 		if (node->type == FLOW_IMAGE)
 		{
-			if (node->h > max_a)
-				max_a = node->h;
+			float a = node->h, d = 0;
+			/* Sae: center inline math/images on the text's x-height axis. */
+			if (node->box->style->vertical_align == VA_MIDDLE)
+			{
+				a = node->h * 0.5f + node->box->s.layout.em * 0.25f;
+				d = node->h - a;
+				middle_image = 1;
+			}
+			if (a > max_a) max_a = a;
+			if (d > max_d) max_d = d;
 		}
 		else if (node->type != FLOW_SBREAK && node->type != FLOW_BREAK && node->type != FLOW_ANCHOR)
 		{
@@ -390,6 +399,8 @@ static float measure_line(fz_html_flow *node, fz_html_flow *end, float *baseline
 			h = node->h;
 		node = node->next;
 	}
+	if (middle_image && h < max_a + max_d)
+		h = max_a + max_d;
 	*baseline = max_a + (h - max_a - max_d) / 2;
 	return h;
 }
@@ -515,7 +526,11 @@ static void layout_line(fz_context *ctx, float indent, float page_w, float line_
 		}
 
 		if (node->type == FLOW_IMAGE)
+		{
 			node->y = y + baseline - node->h;
+			if (node->box->style->vertical_align == VA_MIDDLE)
+				node->y += node->h * 0.5f - node->box->s.layout.em * 0.25f;
+		}
 		else
 		{
 			node->y = y + baseline + va;
@@ -900,6 +915,10 @@ static void layout_flow(fz_context *ctx, layout_data *ld, fz_html_box *box, fz_h
 
 			max_w = ld->bounds[R] - ld->bounds[L];
 			max_h = page_h;
+			/* Sae: move inline vector math to the next page instead of
+			 * shrinking it to the height left below previous blocks. */
+			if (!ld->sae_fixed_layout && node->box->style->vertical_align == VA_MIDDLE)
+				max_h = ld->page[B] - ld->page[T];
 
 			/* NOTE: We ignore the image DPI here, since most images in EPUB files have bogus values. */
 			node->w = node->content.image->w * 72.0f / 96.0f;

@@ -1,0 +1,24 @@
+{
+  "plain-markdown": {
+    "warm_runs": 40,
+    "native_ready_median_ms": 14.151,
+    "painted_private_median_mib": 6.037109375,
+    "closed_growth_after_warmup_bytes": 86016,
+    "closed_first_bytes": 3432448,
+    "closed_last_bytes": 3682304,
+    "native_ready_p95_ms": 46.3981,
+    "native_ready_max_ms": 65.1395,
+    "percentile_method": "nearest-rank"
+  },
+  "seven-formulas": {
+    "warm_runs": 40,
+    "native_ready_median_ms": 35.4483,
+    "painted_private_median_mib": 7.064453125,
+    "closed_growth_after_warmup_bytes": -139264,
+    "closed_first_bytes": 3899392,
+    "closed_last_bytes": 4227072,
+    "native_ready_p95_ms": 45.418,
+    "native_ready_max_ms": 86.22059999999999,
+    "percentile_method": "nearest-rank"
+  }
+}

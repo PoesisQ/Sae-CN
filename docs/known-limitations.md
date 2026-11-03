@@ -44,3 +44,10 @@ non-preemptible mid-call; the queue still holds only the latest request.
 The rotating dial is a visual/input affordance with magnetic stops, not physical
 haptic hardware. A finite input-triggered animation consumes a small amount of
 CPU while visible; no zero-cost animation or universal compatibility claim is made.
+
+Markdown TeX support covers a bounded native subset, not full TeX or MathJax.
+See markdown-math.md for syntax, limits and fallback. Plain text/code formulas
+are deliberately preserved as authored. Special mathematical Unicode alphabets
+may search by their encoded characters; drawn rules/root signs have no text glyph.
+The current formula update is tested through windowless Windows engine rendering;
+fresh window/DPI/interactive-idle measurements are deferred at the user's request.

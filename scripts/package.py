@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.4.0-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.4.0-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.4.1-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.4.1-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -71,13 +71,14 @@ native_components=[{'name':'libmobi','version':'0.12','commit':'906274205c11944b
     'license':'LGPL-3.0-or-later','linkage':'static','source':'vendor/libmobi/src',
     'build':'build.rs; native/kindle.c; native/kindle_alloc.c; encryption disabled; existing MuPDF zlib',
     'notices':['licenses/libmobi-0.12/LGPL-3.0-or-later.txt','licenses/libmobi-0.12/GPL-3.0.txt','licenses/libmobi-0.12/UPSTREAM.txt']}]
-inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
+source_only_assets=[{'name':'Latin Modern upstream example WOFF2 fonts','package':'pulldown-latex-0.8.0','source':'dependencies/pulldown-latex-0.8.0/font','license':'GUST Font License / LPPL-1.3c-or-later','included_in_windows_runtime':False,'notices':['licenses/pulldown-latex-0.8.0/FONT-NOTICE.md','licenses/pulldown-latex-0.8.0/GUST-FONT-LICENSE.txt','licenses/pulldown-latex-0.8.0/LPPL-1.3c.txt']}]
+inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'source_only_assets':source_only_assets,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.4.0 preview
+notices='''Sae Reader 0.4.1 preview
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
-Cargo.lock, all 580 locked registry packages and their original license files.
+Cargo.lock, all 581 locked registry packages and their original license files.
 Slint is used under its GPLv3 open-source option. Other components retain the
 terms in dependency-inventory.json and licenses/. Native MuPDF third-party
 notices are included recursively in licenses/mupdf-sys-0.8.0 and in source.
@@ -92,7 +93,10 @@ MuPDF. Rebuild the combined application from those sources with modifications to
 libmobi as desired. License texts and upstream provenance: licenses/libmobi-0.12/.
 
 Windows fonts are loaded from the user's Windows installation and are not
-redistributed. The included test fixtures are original CC0 content. This package
+redistributed. The full registry source for pulldown-latex also retains unused
+Latin Modern WOFF2 example fonts under GUST/LPPL, with supplemental notices.
+Those font assets are not included or loaded in the Windows runtime; see
+licenses/pulldown-latex-0.8.0/FONT-NOTICE.md. The included test fixtures are original CC0 content. This package
 does not contain user ebooks, test profiles, SumatraPDF, Rust, MSVC or libclang.
 The application icon was supplied by the owner as AI-generated artwork for this
 application. Its original, provenance and size-conversion script are in the
@@ -118,7 +122,8 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 
 此版支持 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2，不含 DRM。Kindle 解析按需执行，转换树随即释放；FB2 使用原生引擎，缺少 ID 的目录使用临时副本补齐锚点。
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
-本次修复及实测结果见 docs/iteration-0.4.md。
+本次公式支持和无窗口验证见 docs/markdown-math.md。
+Markdown 支持 $...$、$$...$$ 和 math 围栏块中的常见 LaTeX；代码保持原文，复杂公式保留源码。
 PDF 工具条中的多页模式可按比例排成 2×2，最多四页；点击正文可收起侧栏，首次点击不会翻页。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。

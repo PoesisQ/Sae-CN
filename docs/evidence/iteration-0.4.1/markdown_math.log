@@ -1,0 +1,7 @@
+
+running 2 tests
+test markdown_math_is_vector_text_with_structural_layout_and_code_is_untouched ... ok
+test plain_markdown_needs_no_math_conversion_and_formulas_recolor_on_demand ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.31s
+

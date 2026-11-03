@@ -18,6 +18,9 @@ pub fn clear_thread_cache() {
 struct WindowsFonts;
 
 fn load(file: &str, index: i32) -> Option<Font> {
+    // The native context must outlive cached Font destructors. Math conversion
+    // can request a font before opening the first document on this thread.
+    let _ = mupdf::Context::get();
     let key = format!("{file}:{index}");
     if let Some(found) = FONTS.with(|fonts| {
         let mut fonts = fonts.borrow_mut();
@@ -49,10 +52,23 @@ fn load(file: &str, index: i32) -> Option<Font> {
     Some(font)
 }
 
+// Verified against the Windows collection's name table: face 0 is Cambria,
+// face 1 is Cambria Math. Mapped only when a document actually contains math.
+pub(crate) fn math_font() -> Option<Font> {
+    load("cambria.ttc", 1)
+}
+pub(crate) fn math_italic() -> Option<Font> {
+    load("timesi.ttf", 0)
+}
+pub(crate) fn math_cjk() -> Option<Font> {
+    load("simsun.ttc", 0)
+}
+
 impl FontLoader for WindowsFonts {
     fn load_font(&self, name: &str, hints: FontHints) -> Option<Font> {
         let key = name.to_lowercase();
         let file = match key.as_str() {
+            "cambria math" => return math_font(),
             "simsun" | "宋体" => "simsun.ttc",
             "microsoft yahei" | "微软雅黑" => {
                 if hints.bold {

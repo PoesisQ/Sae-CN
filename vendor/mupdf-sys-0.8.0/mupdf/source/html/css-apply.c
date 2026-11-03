@@ -1874,6 +1874,7 @@ fz_apply_css_style(fz_context *ctx, fz_html_font_set *set, fz_css_style *style, 
 	if (value)
 	{
 		if (!strcmp(value->data, "baseline")) style->vertical_align = VA_BASELINE;
+		else if (!strcmp(value->data, "middle")) style->vertical_align = VA_MIDDLE;
 		else if (!strcmp(value->data, "sub")) style->vertical_align = VA_SUB;
 		else if (!strcmp(value->data, "super")) style->vertical_align = VA_SUPER;
 		else if (!strcmp(value->data, "top")) style->vertical_align = VA_TOP;

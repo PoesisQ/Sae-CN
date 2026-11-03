@@ -1525,6 +1525,17 @@ svg_load_font(fz_context *ctx, const svg_state *state)
 	int italic = state->is_italic;
 	int mono = 0;
 	int serif = 1;
+	fz_font *system_font;
+
+	/* Sae: use the same mapped fonts used to measure native math. Upstream
+	 * otherwise replaces every SVG serif family with a Base14 Times font. */
+	if (!strcmp(state->font_family, "Cambria Math") ||
+		!strcmp(state->font_family, "Times New Roman"))
+	{
+		system_font = fz_load_system_font(ctx, state->font_family, bold, italic, 0);
+		if (system_font)
+			return system_font;
+	}
 
 	/* scan font-family property for common fallback names */
 

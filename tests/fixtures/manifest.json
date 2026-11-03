@@ -110,5 +110,9 @@
   "mixed-pages.pdf": {
     "sha256": "7b7cb306933788239327e76a67bba81c9c5c3ab4d9f7e614fe2e105d1d456f06",
     "bytes": 4876
+  },
+  "math.md": {
+    "sha256": "039bb2cba0c9d6d3581b6c64b0b1b8c0c914049f07c27edf7c64f7c2945ca03f",
+    "bytes": 736
   }
 }

@@ -4,6 +4,7 @@ mod epub_compat;
 mod fb2_adapter;
 pub mod fonts;
 mod kindle_adapter;
+mod math;
 pub mod paging;
 pub mod reading;
 pub mod rendering;

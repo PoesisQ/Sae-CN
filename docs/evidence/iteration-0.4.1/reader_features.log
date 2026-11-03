@@ -1,0 +1,12 @@
+
+running 7 tests
+test advanced_conversion_keeps_svg_resources_and_fixed_canvas_is_independent_of_reader_typography ... ok
+test concurrent_worker_contexts_keep_their_own_css_storage ... ok
+test decoded_txt_and_markdown_preserve_real_text_images_tables_links_and_original_bytes ... ok
+test mapped_font_outlives_its_original_rust_handle ... ok
+test pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_are_cached ... ok
+test text_typography_controls_change_native_layout_instead_of_being_blocked_by_adapter_css ... ok
+test whole_book_search_reaches_other_chapters_and_wraps_in_both_directions ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.08s
+
