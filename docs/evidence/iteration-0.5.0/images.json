@@ -1,0 +1,38 @@
+{
+  "contents-night.png": {
+    "width": 960,
+    "height": 720,
+    "bytes": 146335,
+    "sha256": "ba2cb027024db46c14cc1c19e26d25f162378384f1e679fd915b812d4301eeaf"
+  },
+  "page-preview.png": {
+    "width": 1770,
+    "height": 1260,
+    "bytes": 282135,
+    "sha256": "afc289cc675c487b93f5889098ba8da9bb80b4ecf4887579d6a6127c786abbfb"
+  },
+  "pdf-grid.png": {
+    "width": 1920,
+    "height": 1380,
+    "bytes": 38943,
+    "sha256": "4c2abf00744521f525f97258a8d950ec12b5e8aea744c61717d386194bfa07e7"
+  },
+  "pdf-settings-night.png": {
+    "width": 1770,
+    "height": 1260,
+    "bytes": 244743,
+    "sha256": "3f2c2dfd19e441b97eb126ca1ab27496f18f3e7208ac2bb345a29ef39bef9e30"
+  },
+  "typography-narrow.png": {
+    "width": 960,
+    "height": 720,
+    "bytes": 91123,
+    "sha256": "242d2bcfe5346742fa426639c8bde0fbf3c2b42c5654fc4d4e53d23e962c635d"
+  },
+  "zoom.png": {
+    "width": 1770,
+    "height": 1260,
+    "bytes": 285733,
+    "sha256": "17780a5af42db5f63aea560e0a2baf67188b4fe13bec21bf35fb3fe55d9c4cad"
+  }
+}

@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.4.1-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.4.1-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.0-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.5.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -74,7 +74,7 @@ native_components=[{'name':'libmobi','version':'0.12','commit':'906274205c11944b
 source_only_assets=[{'name':'Latin Modern upstream example WOFF2 fonts','package':'pulldown-latex-0.8.0','source':'dependencies/pulldown-latex-0.8.0/font','license':'GUST Font License / LPPL-1.3c-or-later','included_in_windows_runtime':False,'notices':['licenses/pulldown-latex-0.8.0/FONT-NOTICE.md','licenses/pulldown-latex-0.8.0/GUST-FONT-LICENSE.txt','licenses/pulldown-latex-0.8.0/LPPL-1.3c.txt']}]
 inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'source_only_assets':source_only_assets,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.4.1 preview
+notices='''Sae Reader 0.5.0 preview
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
@@ -107,9 +107,11 @@ readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2 路径作为命令行参数打开。
 点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
-Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，
-Ctrl+C 复制所选文字，F10 固定/自动收起工具栏，F11 全屏，Esc 退出全屏。
-鼠标靠近下沿显示进度拖动条与缩放旋钮。旋钮随滚轮或拖动转动，在整页/铺满视区附近吸附，继续操作可脱离；点击恢复适页。
+Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
+F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
+鼠标靠近下沿显示进度，拖动时显示目标页，松手跳转。点击页码或按 Ctrl+G 输入页码。
+悬停 PDF 缩放旋钮可展开大旋钮和挡位。向右或向上拖动放大，也支持滚轮。
+点 100% 回到整页，点适宽填满当前页栏。
 PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
@@ -122,7 +124,7 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 
 此版支持 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2，不含 DRM。Kindle 解析按需执行，转换树随即释放；FB2 使用原生引擎，缺少 ID 的目录使用临时副本补齐锚点。
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
-本次公式支持和无窗口验证见 docs/markdown-math.md。
+公式写法见 docs/markdown-math.md。
 Markdown 支持 $...$、$$...$$ 和 math 围栏块中的常见 LaTeX；代码保持原文，复杂公式保留源码。
 PDF 工具条中的多页模式可按比例排成 2×2，最多四页；点击正文可收起侧栏，首次点击不会翻页。
 

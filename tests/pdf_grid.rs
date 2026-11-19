@@ -41,7 +41,7 @@ fn native_pdf_grid_keeps_all_text_links_search_and_bounded_tiles() {
         .enumerate()
     {
         assert_eq!(f.page, i as i32);
-        assert!(f.display_height <= 442.1 && f.display_width <= 624.1);
+        assert!(f.display_height <= 450.5 && f.display_width <= 640.5);
         assert!(!f.links.is_empty());
         let text: String = f.glyphs.iter().map(|g| g.ch).collect();
         assert!(text.contains(&format!("PAGE-{:02}", i + 1)));
@@ -66,7 +66,8 @@ fn native_pdf_grid_keeps_all_text_links_search_and_bounded_tiles() {
     request.navigation = Navigation::Page(4);
     let zoom = get(request.clone());
     assert_eq!(zoom.frame.page, 4);
-    assert!(zoom.extra.iter().all(|f| f.height <= 553 && f.width <= 780));
+    assert!(zoom.extra.iter().all(|f| f.height == 563 && f.width == 800));
+    assert!(zoom.cache_bytes <= 16 * 1024 * 1024);
     request.pdf_zoom = 1.0;
     request.navigation = Navigation::Page(8);
     let last = get(request.clone());

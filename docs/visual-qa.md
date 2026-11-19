@@ -1,4 +1,10 @@
-# v0.3.0-preview.1 当前界面检查
+# v0.5.0-preview.1 当前界面检查
+
+[本轮截图与设计审查](iteration-0.5.0.md)收录了贴边工具条、紧凑 PDF 设置、长标题目录、窄窗排版和缩放挡位。检查使用 Windows 上运行的 Slint 软件渲染器。实际 DPI 为 150%，另在同一主机检查了 100%、125%、200% 的受控缩放。
+
+---
+
+# v0.3.0-preview.1 历史界面检查
 
 ![长中英文目录完整换行](evidence/iteration-0.3/ui-contents-light.png)
 

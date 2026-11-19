@@ -53,8 +53,8 @@ pub fn pdf_grid_rows(sizes: &[(f32, f32)], width: f32, height: f32) -> i32 {
     if sizes.is_empty() || width < 800.0 || height < 600.0 {
         return 1;
     }
-    let column = (width - 32.0) / 2.0;
-    let cell = (height - 16.0) / 2.0;
+    let column = width / 2.0;
+    let cell = height / 2.0;
     let mut areas = [0.0f32; 2];
     for &(w, h) in sizes {
         if !w.is_finite() || !h.is_finite() || w <= 0.0 || h <= 0.0 {

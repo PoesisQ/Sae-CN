@@ -135,10 +135,11 @@ fn pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_a
         r.view.pan = [0.0, 0.0];
         let top = get(r.clone());
         assert!(top.frame.overflow.0 > 100.0 && top.frame.overflow.1 > 100.0);
-        assert!(top.frame.width <= (if spread { 668 } else { 1375 }) && top.frame.height <= 900);
+        assert_eq!(top.frame.width, if spread { 688 } else { 1375 });
+        assert_eq!(top.frame.height, 900);
         assert!(top.cache_bytes <= 16 * 1024 * 1024);
         if spread {
-            assert!(top.right.as_ref().unwrap().width <= 668);
+            assert_eq!(top.right.as_ref().unwrap().width, 688);
         }
         r.view.pan = [1.0, 1.0];
         let bottom = get(r.clone());
@@ -159,6 +160,21 @@ fn pdf_zoom_is_bounded_by_viewport_in_single_and_double_page_and_native_colors_a
                 .all(|g| g.bounds.x.is_finite() && g.bounds.y.is_finite())
         );
     }
+    r.view.fit_width = true;
+    r.pdf_zoom = 1.0;
+    r.view.pan = [0.5, 0.0];
+    for spread in [false, true] {
+        r.spread = spread;
+        let wide = get(r.clone());
+        let width = if spread { 688 } else { 1375 };
+        assert_eq!(wide.frame.width, width);
+        assert!(wide.frame.overflow.0 <= 1.0);
+        if spread {
+            assert_eq!(wide.right.as_ref().unwrap().width, width);
+        }
+    }
+    r.view.fit_width = false;
+    r.pdf_zoom = 8.0;
     r.spread = false;
     r.query = "Paragraph 01-24".into();
     r.navigation = Navigation::Search(1);

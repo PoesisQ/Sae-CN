@@ -219,13 +219,12 @@ impl Worker {
                         } else {
                             fixed_view = None;
                         }
+                        // The request describes the full canvas. Only reflowable
+                        // pages reserve an outer inset and a reading gutter.
+                        let canvas_width = request.width - if b.reflowable { 32.0 } else { 0.0 };
                         let spread = (request.spread || (!b.reflowable && request.view.multi))
-                            && request.width >= 800.0;
-                        let column = if spread {
-                            (request.width - 32.0) / 2.0
-                        } else {
-                            request.width
-                        };
+                            && canvas_width >= 800.0;
+                        let column = column_width(request.width, b.reflowable, spread);
                         let width = request.style.width.min(column).max(160.0) * 0.75;
                         let height = request.height.max(160.0) * 0.75;
                         let old_revision = b.layout_revision;
@@ -362,11 +361,10 @@ impl Worker {
                         if spread {
                             b.ensure_page(actual_page + 1)?;
                         }
-                        // A borrowed request with cell dimensions keeps all PDF zoom/pan,
-                        // clipping and text coordinates in the existing native path.
+                        // Fit and clip against the same cells that Slint displays.
                         let grid_request = (rows == 2).then(|| {
                             let mut r = request.clone();
-                            r.height = (request.height - 16.0) / 2.0;
+                            r.height = request.height / 2.0;
                             r
                         });
                         let cell_request = grid_request.as_ref().unwrap_or(&request);
@@ -561,11 +559,11 @@ impl Worker {
                                                 && !request.view.fit_width
                                                 && !request.view.fit_cover)
                                         {
-                                            let column = if step == 2 {
-                                                (request.width - 32.0) / 2.0
-                                            } else {
-                                                request.width
-                                            };
+                                            let column = column_width(
+                                                request.width,
+                                                b.reflowable,
+                                                step == 2,
+                                            );
                                             let _ = render_page(
                                                 &mut cache,
                                                 b,
@@ -601,6 +599,15 @@ impl Drop for Worker {
         if let Some(handle) = self.handle.take() {
             let _ = handle.join();
         }
+    }
+}
+
+fn column_width(width: f32, reflowable: bool, spread: bool) -> f32 {
+    let inset = if reflowable { 32.0 } else { 0.0 };
+    if spread {
+        (width - 2.0 * inset) / 2.0
+    } else {
+        width - inset
     }
 }
 
@@ -646,8 +653,8 @@ fn render_page(
         request.dpi,
         RenderView {
             viewport: Some((
-                (column * request.dpi).floor().max(1.0) as u32,
-                (request.height * request.dpi).floor().max(1.0) as u32,
+                (column * request.dpi).round().max(1.0) as u32,
+                (request.height * request.dpi).round().max(1.0) as u32,
                 pan,
             )),
             tint,

@@ -30,7 +30,6 @@ struct State {
     right_anchor: Option<u64>,
     back: Vec<u64>,
     selected: String,
-    full: bool,
     count: i32,
     pagination_complete: bool,
     wheel: WheelPager,
@@ -72,12 +71,16 @@ fn turn(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, direction: i32, ui: &
     ui.set_selected_content_uri("".into());
     submit(state, mailbox, |r| {
         let step = ui.get_visible_count().max(1);
-        r.page = (r.page + direction * step).max(0);
-        r.navigation = Navigation::Page(r.page);
-        r.view.pan = [0.5, 0.0];
-        r.view.search_hit = None;
-        viewport(ui, r);
+        let page = r.page.saturating_add(direction * step).max(0);
+        navigate(r, ui, page);
     });
+}
+fn navigate(request: &mut Request, ui: &ReaderWindow, page: i32) {
+    request.page = page;
+    request.navigation = Navigation::Page(page);
+    request.view.pan = [0.5, 0.0];
+    request.view.search_hit = None;
+    viewport(ui, request);
 }
 fn follow(
     uri: String,
@@ -138,53 +141,70 @@ fn sync_style(ui: &ReaderWindow, style: &Typography) {
     ui.set_dark(style.background.eq_ignore_ascii_case("#171A19"));
     ui.set_show_progress(style.show_progress);
 }
+fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) -> bool {
+    use sae_reader::zoom::{Position, Stop};
+    if ui.get_reflowable() || !ui.get_has_document() {
+        return false;
+    }
+    let mut s = state.lock().unwrap();
+    let width = ui.get_pdf_fit_width_zoom();
+    let fill = ui.get_pdf_fill_zoom();
+    let preset = match name {
+        "fit-width" => Some(Position {
+            value: width,
+            stop: Stop::Width,
+        }),
+        "fit-cover" => Some(Position {
+            value: fill,
+            stop: Stop::Fill,
+        }),
+        "fit-page" | "size" => Some(Position {
+            value: 1.0,
+            stop: Stop::Page,
+        }),
+        _ => None,
+    };
+    let position = if let Some(preset) = preset {
+        s.zoom.reset();
+        preset
+    } else {
+        let factor = if name == "zoom" {
+            value
+        } else {
+            1.12f32.powf(value)
+        };
+        s.zoom.adjust(ui.get_pdf_zoom(), fill, factor)
+    };
+    let Some(request) = s.request.as_mut() else {
+        return false;
+    };
+    let fit_width = position.stop == Stop::Width;
+    let fit_cover = position.stop == Stop::Fill;
+    let zoom = if fit_width || fit_cover {
+        1.0
+    } else {
+        position.value
+    };
+    let changed = (
+        request.view.fit_width,
+        request.view.fit_cover,
+        request.pdf_zoom,
+    ) != (fit_width, fit_cover, zoom);
+    request.view.fit_width = fit_width;
+    request.view.fit_cover = fit_cover;
+    request.pdf_zoom = zoom;
+    // A preset click also returns a previously panned page to its starting edge.
+    let reset_pan = preset.is_some() || changed && position.stop != Stop::Free;
+    let panned = reset_pan && request.view.pan != [0.5, 0.0];
+    if reset_pan {
+        request.view.pan = [0.5, 0.0];
+    }
+    ui.set_pdf_zoom(position.value);
+    ui.set_pdf_zoom_stop(position.stop as i32);
+    changed || panned
+}
 fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) {
     let mut s = state.lock().unwrap();
-    let is_pdf = s.frame.is_some() && !ui.get_reflowable();
-    if name == "zoom"
-        || name.starts_with("fit-")
-        || (matches!(name, "delta-size" | "size") && is_pdf)
-    {
-        use sae_reader::zoom::{Position, Stop};
-        let width_stop = ui.get_pdf_fit_width_zoom();
-        let fill_stop = ui.get_pdf_fill_zoom();
-        let position = if name.starts_with("fit-") || name == "size" {
-            s.zoom.reset();
-            Position {
-                value: if name == "fit-width" { width_stop } else { 1.0 },
-                stop: if name == "fit-width" {
-                    sae_reader::zoom::position(width_stop, fill_stop).stop
-                } else {
-                    Stop::Page
-                },
-            }
-        } else {
-            s.zoom.adjust(
-                ui.get_pdf_zoom(),
-                fill_stop,
-                if name == "zoom" {
-                    value
-                } else {
-                    1.0 + value * 0.1
-                },
-            )
-        };
-        if let Some(r) = s.request.as_mut() {
-            r.view.fit_width = name == "fit-width";
-            r.view.fit_cover = !r.view.fit_width && position.stop == Stop::Fill;
-            r.pdf_zoom = if r.view.fit_width || r.view.fit_cover {
-                1.0
-            } else {
-                position.value
-            };
-            if position.stop != Stop::Free {
-                r.view.pan = [0.5, 0.0];
-            }
-            ui.set_pdf_zoom(position.value);
-            ui.set_pdf_zoom_stop(position.stop as i32);
-        }
-        return;
-    }
     let style = &mut s.preferences.typography;
     match name {
         "size" => style.size_pt = value,
@@ -254,7 +274,6 @@ fn run() -> anyhow::Result<()> {
         right_anchor: None,
         back: Vec::new(),
         selected: String::new(),
-        full: false,
         count: 0,
         pagination_complete: false,
         wheel: WheelPager::default(),
@@ -374,9 +393,16 @@ fn run() -> anyhow::Result<()> {
                                 } else {
                                     1.0
                                 };
-                            let position = sae_reader::zoom::position(actual, update.pdf_fill_zoom);
+                            use sae_reader::zoom::{Stop, position};
+                            let stop = if request.view.fit_cover {
+                                Stop::Fill
+                            } else if request.view.fit_width {
+                                Stop::Width
+                            } else {
+                                position(actual, update.pdf_fill_zoom).stop
+                            };
                             ui.set_pdf_zoom(actual);
-                            ui.set_pdf_zoom_stop(position.stop as i32);
+                            ui.set_pdf_zoom_stop(stop as i32);
                         }
                     }
                     ui.set_pdf_pannable(
@@ -424,23 +450,12 @@ fn run() -> anyhow::Result<()> {
                         .or(update.right.as_ref())
                         .map(|f| f.page)
                         .unwrap_or(frame.page);
-                    let range = if last > frame.page {
-                        format!("{}–{}", frame.page + 1, last + 1)
+                    ui.set_first_page(frame.page + 1);
+                    ui.set_last_page(last + 1);
+                    ui.set_page_total(if update.pagination_complete {
+                        update.count
                     } else {
-                        (frame.page + 1).to_string()
-                    };
-                    ui.set_page_label(
-                        if update.pagination_complete {
-                            format!("{range} / {}", update.count)
-                        } else {
-                            format!("第 {range} 页 · 分页中")
-                        }
-                        .into(),
-                    );
-                    ui.set_progress(if update.pagination_complete {
-                        (last + 1) as f32 / update.count.max(1) as f32
-                    } else {
-                        0.0
+                        0
                     });
                     s.anchor = update.anchor;
                     s.right_anchor = update.right_anchor;
@@ -619,17 +634,19 @@ fn run() -> anyhow::Result<()> {
         let weak = ui.as_weak();
         let state = state.clone();
         let mailbox = mailbox.clone();
-        ui.on_seek(move |fraction| {
-            let count = state.lock().unwrap().count;
-            if let Some(ui) = weak.upgrade() {
-                submit(&state, &mailbox, |r| {
-                    r.page = (fraction.clamp(0.0, 1.0) * (count - 1).max(0) as f32).round() as i32;
-                    r.navigation = Navigation::Page(r.page);
-                    r.view.pan = [0.5, 0.0];
-                    r.view.search_hit = None;
-                    viewport(&ui, r);
-                });
+        ui.on_jump_page(move |text| {
+            let Some(ui) = weak.upgrade() else {
+                return false;
+            };
+            let Ok(page) = text.trim().parse::<i32>() else {
+                return false;
+            };
+            if !ui.get_has_document() || !(1..=ui.get_page_total()).contains(&page) {
+                return false;
             }
+            ui.set_selected_content_uri("".into());
+            submit(&state, &mailbox, |r| navigate(r, &ui, page - 1));
+            true
         });
     }
     {
@@ -726,19 +743,27 @@ fn run() -> anyhow::Result<()> {
         let mailbox = mailbox.clone();
         let timer = style_timer.clone();
         ui.on_typography(move |name, value| {
+            let Some(ui) = weak.upgrade() else { return };
             let fixed_action = name.as_str() == "zoom"
                 || name.starts_with("fit-")
-                || weak.upgrade().is_some_and(|u| {
-                    !u.get_reflowable() && matches!(name.as_str(), "size" | "delta-size")
-                });
-            if let Some(ui) = weak.upgrade() {
+                || !ui.get_reflowable() && matches!(name.as_str(), "size" | "delta-size");
+            if fixed_action {
+                let changed = edit_zoom(&state, &ui, name.as_str(), value);
+                if name.starts_with("fit-") || name == "size" {
+                    if changed || timer.running() {
+                        timer.stop();
+                        submit(&state, &mailbox, |r| viewport(&ui, r));
+                    }
+                    return;
+                }
+                if !changed || timer.running() {
+                    return;
+                }
+            } else {
                 edit_style(&state, &ui, name.as_str(), value);
             }
             // Throttle zoom while dragging so the page follows the knob. This
             // one-shot submits the latest bounded request, then goes dormant.
-            if fixed_action && timer.running() {
-                return;
-            }
             let state = state.clone();
             let mailbox = mailbox.clone();
             let weak = weak.clone();
@@ -975,19 +1000,23 @@ fn run() -> anyhow::Result<()> {
     }
     {
         let weak = ui.as_weak();
-        let state = state.clone();
         ui.on_fullscreen(move || {
             if let Some(ui) = weak.upgrade() {
-                let mut s = state.lock().unwrap();
-                s.full = !s.full;
-                ui.set_is_fullscreen(s.full);
-                ui.window().set_fullscreen(s.full);
+                let enter = !ui.get_is_fullscreen();
+                ui.set_is_fullscreen(enter);
+                if enter && ui.window().is_maximized() {
+                    // Restore first so Winit saves the normal window rect.
+                    ui.window().set_maximized(false);
+                }
+                ui.window().set_fullscreen(enter);
+                ui.invoke_focus_reading();
             }
         });
     }
     {
         let weak = ui.as_weak();
-        let mut control = false;
+        let mut modifiers = winit::keyboard::ModifiersState::empty();
+        let mut maximize_pending = false;
         // Window-level shortcuts work while a button, slider or text field owns
         // focus. Cursor events only update overlay visibility, never layout.
         ui.window().on_winit_window_event(move |window, event| {
@@ -995,31 +1024,68 @@ fn run() -> anyhow::Result<()> {
                 return EventResult::Propagate;
             };
             match event {
-                winit::event::WindowEvent::ModifiersChanged(modifiers) => {
-                    control = modifiers.state().control_key();
+                winit::event::WindowEvent::ModifiersChanged(event) => {
+                    modifiers = event.state();
                 }
                 winit::event::WindowEvent::Focused(false) => {
-                    control = false;
+                    modifiers = winit::keyboard::ModifiersState::empty();
                     ui.set_top_hover(false);
                     ui.set_bottom_hover(false);
+                    ui.set_zoom_hover(false);
                     ui.set_controls_busy(false);
                 }
+                winit::event::WindowEvent::Resized(_)
+                    if !ui.get_is_fullscreen()
+                        && window
+                            .with_winit_window(|native| native.is_maximized())
+                            .unwrap_or(false) =>
+                {
+                    if !maximize_pending {
+                        maximize_pending = true;
+                        let weak = weak.clone();
+                        // Let Slint finish synchronizing the native state before changing it.
+                        let _ = slint::invoke_from_event_loop(move || {
+                            if let Some(ui) = weak.upgrade() {
+                                if ui.window().is_maximized() && !ui.get_is_fullscreen() {
+                                    ui.invoke_fullscreen();
+                                }
+                            }
+                        });
+                    }
+                }
+                winit::event::WindowEvent::Resized(_) => maximize_pending = false,
                 winit::event::WindowEvent::CursorMoved { position, .. } => {
                     let scale = window.scale_factor() as f64;
-                    let y = position.y / scale;
-                    let height = window.size().height as f64 / scale;
-                    ui.set_top_hover(y <= 76.0);
-                    ui.set_bottom_hover(y >= height - 84.0);
+                    ui.invoke_edge_hover((position.x / scale) as f32, (position.y / scale) as f32);
                 }
                 winit::event::WindowEvent::CursorLeft { .. } => {
                     ui.set_top_hover(false);
                     ui.set_bottom_hover(false);
+                    ui.set_zoom_hover(false);
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. }
-                    if event.state == winit::event::ElementState::Pressed && !event.repeat =>
+                    if event.state == winit::event::ElementState::Pressed =>
                 {
                     use winit::keyboard::{Key, NamedKey};
-                    if control {
+                    if !modifiers.control_key()
+                        && !modifiers.alt_key()
+                        && !modifiers.super_key()
+                        && ui.get_reading_keys()
+                    {
+                        let direction = match event.logical_key {
+                            Key::Named(NamedKey::ArrowLeft | NamedKey::PageUp) => -1,
+                            Key::Named(NamedKey::ArrowRight | NamedKey::PageDown) => 1,
+                            _ => 0,
+                        };
+                        if direction != 0 {
+                            ui.invoke_next_page(direction);
+                            return EventResult::PreventDefault;
+                        }
+                    }
+                    if event.repeat {
+                        return EventResult::Propagate;
+                    }
+                    if modifiers.control_key() {
                         use winit::keyboard::{KeyCode, PhysicalKey};
                         match event.physical_key {
                             PhysicalKey::Code(KeyCode::KeyO) => {
@@ -1028,6 +1094,10 @@ fn run() -> anyhow::Result<()> {
                             }
                             PhysicalKey::Code(KeyCode::KeyF) => {
                                 ui.invoke_focus_search();
+                                return EventResult::PreventDefault;
+                            }
+                            PhysicalKey::Code(KeyCode::KeyG) => {
+                                ui.invoke_focus_page_entry();
                                 return EventResult::PreventDefault;
                             }
                             _ => {}
@@ -1043,7 +1113,14 @@ fn run() -> anyhow::Result<()> {
                             return EventResult::PreventDefault;
                         }
                         Key::Named(NamedKey::Escape) => {
-                            if ui.get_is_fullscreen() {
+                            if ui.get_page_entry_active() {
+                                ui.invoke_focus_reading();
+                            } else if ui.get_show_contents()
+                                || ui.get_show_settings()
+                                || ui.get_show_search()
+                            {
+                                ui.invoke_dismiss_panels();
+                            } else if ui.get_is_fullscreen() {
                                 ui.invoke_fullscreen();
                             } else {
                                 ui.invoke_dismiss_panels();
@@ -1078,7 +1155,7 @@ fn run() -> anyhow::Result<()> {
                     .window()
                     .with_winit_window(|window| {
                         let native = window.inner_size();
-                        (native.width as f32 / dpi - ui.get_viewport_width() - 32.0).abs() < 2.0
+                        (native.width as f32 / dpi - ui.get_viewport_width()).abs() < 2.0
                             && (native.height as f32 / dpi - ui.get_viewport_height()).abs() < 2.0
                             && ui.get_viewport_width() >= 160.0
                             && ui.get_viewport_height() >= 160.0
@@ -1129,6 +1206,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_status("正在打开…".into());
     ui.set_notice("".into());
     ui.set_has_document(false);
+    ui.set_page_entry_active(false);
     ui.set_pages(ModelRc::default());
     ui.set_page_image(Image::default());
     ui.set_right_image(Image::default());
@@ -1142,7 +1220,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_pdf_zoom_stop(1);
     ui.set_pdf_pannable(false);
     ui.set_search_status("".into());
-    ui.set_page_label("".into());
+    ui.set_page_total(0);
     ui.set_selected_content_uri("".into());
     let identity = storage::fingerprint(&path).ok();
     let mut s = state.lock().unwrap();

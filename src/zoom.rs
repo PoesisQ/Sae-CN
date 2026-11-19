@@ -7,6 +7,7 @@ pub enum Stop {
     Free = 0,
     Page = 1,
     Fill = 2,
+    Width = 3,
 }
 #[derive(Clone, Copy, Debug)]
 pub struct Position {
@@ -122,7 +123,7 @@ impl ZoomControl {
 mod tests {
     use super::*;
     #[test]
-    fn leaving_reset_has_no_phantom_resistance_and_circle_drag_catches_fill() {
+    fn leaving_reset_has_no_phantom_resistance_and_crossing_catches_fill() {
         let mut control = ZoomControl::default();
         assert!((control.adjust(1.0, 1.8, 1.12).value - 1.12).abs() < 0.00001);
         control.reset();
