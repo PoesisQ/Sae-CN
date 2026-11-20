@@ -1,9 +1,8 @@
-// Reading order: document first, location and zoom second, settings on demand.
-// ReaderTheme supplies all chrome colors. Fixed control rows sit on an 8px rhythm;
-// raised panels use a solid contact edge and a highlight on top (§3.6, §6.4).
-// At the lower edge, the current page and zoom are the only emphasized values.
-// Totals and the idle rail use muted tokens. The rail and dial share one surface;
-// focus is indicated on the value itself (§2.4, §4.4, §8.5).
+// The document owns the canvas. Location and scale share one low rail, with
+// document controls available at its edges. Opening a book is the primary
+// action when the canvas is empty. Group spacing uses 4/8/12/16/24px (§3.2, §3.6).
+// In both palettes, a thin highlight and a solid contact edge separate raised
+// controls from the canvas. Recessed controls use the darker well (§6.1, §6.4).
 import { LineEdit, ComboBox, ScrollView, ListView, Palette } from "std-widgets.slint";
 
 export struct Mark { x:float, y:float, w:float, h:float }
@@ -13,19 +12,20 @@ export struct TocRow { title:string, uri:string, depth:int, latin:bool }
 export global ReaderTheme {
     in-out property <bool> dark: false;
     in-out property <color> paper: #f8f6f1;
-    out property <color> chrome: dark ? #252c28 : #f1f1eb;
-    out property <color> ink: dark ? #e7e9e5 : #262a27;
-    out property <color> muted: dark ? #aab7ae : #5f6b62;
-    out property <color> line: dark ? #424e46 : #d7dcd3;
-    out property <color> accent: dark ? #a4c1aa : #506c60;
-    out property <color> tint: dark ? #a4c1aa20 : #506c6016;
-    out property <color> surface: dark ? #2c342f : #fcfcf8;
-    out property <color> well: dark ? #212823 : #f1f3ed;
-    out property <color> edge: dark ? #566459 : #fdfdfa;
-    out property <color> contact: dark ? #0d151080 : #15251c24;
+    out property <color> chrome: dark ? #232927 : #efefe9;
+    out property <color> ink: dark ? #e9ece9 : #262c29;
+    out property <color> muted: dark ? #b2bdb7 : #5a655e;
+    out property <color> line: dark ? #48534c : #d7dbd3;
+    out property <color> accent: dark ? #a9c5b7 : #46675c;
+    out property <color> tint: dark ? #a9c5b71f : #46675c18;
+    out property <color> surface: dark ? #2c3430 : #fbfaf6;
+    out property <color> well: dark ? #1c2320 : #ebede6;
+    out property <color> edge: dark ? #58645e : #fffffc;
+    out property <color> contact: dark ? #0d121075 : #293e342d;
     out property <color> invalid: dark ? #f0ae9a : #9a4238;
     out property <length> pad: 16px;
-    out property <length> radius: 8px;
+    out property <length> radius: 6px;
+    out property <length> contact-depth: 3px;
 }
 
 component QuietButton inherits Rectangle {
@@ -35,15 +35,18 @@ component QuietButton inherits Rectangle {
     in property <color> swatch: transparent;
     in property <bool> selected: false;
     in property <bool> compact-selection: false;
+    in property <bool> left-aligned: false;
+    in property <bool> primary: false;
     in property <bool> enabled: true;
     callback clicked();
     height: 32px; min-width: 32px;
-    preferred-width: root.icon.width > 0 ? 36px : caption.preferred-width + 20px + (root.swatch.alpha > 0 ? 14px : 0px);
+    preferred-width: root.text == "" ? 36px : caption.preferred-width + 24px + (root.icon.width > 0 || root.swatch.alpha > 0 ? 24px : 0px);
     horizontal-stretch: 0;
     border-radius: ReaderTheme.radius;
-    background: root.selected && !root.compact-selection ? ReaderTheme.tint : touch.pressed ? ReaderTheme.well : touch.has-hover ? ReaderTheme.tint : transparent;
-    border-width: focus.has-focus ? 1px : 0px;
-    border-color: ReaderTheme.accent;
+    background: root.primary ? (touch.pressed ? ReaderTheme.tint : ReaderTheme.well)
+        : touch.pressed ? ReaderTheme.well : root.selected || touch.has-hover ? ReaderTheme.tint : transparent;
+    border-width: focus.has-focus || root.primary ? 1px : 0px;
+    border-color: focus.has-focus ? ReaderTheme.accent : ReaderTheme.line;
     opacity: root.enabled ? 1 : 0.4;
     accessible-role: button;
     accessible-label: root.label;
@@ -51,25 +54,26 @@ component QuietButton inherits Rectangle {
     accessible-action-default => { if root.enabled { root.clicked(); } }
     forward-focus: focus;
     caption := Text {
-        visible: root.icon.width == 0;
+        visible: root.text != "";
         text: root.text;
-        x: root.swatch.alpha > 0 ? 14px : 0px; width: parent.width - self.x;
+        x: root.icon.width > 0 ? 36px : root.swatch.alpha > 0 ? 24px : root.left-aligned ? 16px : 0px;
+        width: max(0px,parent.width - self.x - (root.left-aligned ? 8px : 0px));
         color: root.selected ? ReaderTheme.accent : ReaderTheme.ink;
-        font-size: 13px; font-weight: root.selected ? 600 : 400;
+        font-size: 13px; font-weight: root.selected || root.primary ? 600 : 400;
         min-width: 0px; overflow: elide;
-        horizontal-alignment: center; vertical-alignment: center;
+        horizontal-alignment: root.left-aligned ? left : center; vertical-alignment: center;
     }
     if root.swatch.alpha > 0: Rectangle {
-        x: 9px; y: (parent.height - self.height) / 2; width: 10px; height: 10px;
-        border-radius: 5px; border-width: 1px; border-color: ReaderTheme.line; background: root.swatch;
+        x: 10px; y: (parent.height - self.height) / 2; width: 12px; height: 16px;
+        border-radius: 2px; border-width: 1px; border-color: ReaderTheme.line; background: root.swatch;
     }
     if root.icon.width > 0: Image {
-        x: (parent.width - 18px) / 2; y: (parent.height - 18px) / 2;
+        x: root.text == "" ? (parent.width - 18px) / 2 : 12px; y: (parent.height - 18px) / 2;
         width: 18px; height: 18px; source: root.icon;
         colorize: root.selected ? ReaderTheme.accent : ReaderTheme.muted;
     }
     if root.compact-selection && root.selected: Rectangle {
-        x: 4px; y: (parent.height - self.height) / 2; width: 2px; height: 8px;
+        x: 4px; y: (parent.height - self.height) / 2; width: 2px; height: 12px;
         background: ReaderTheme.accent;
     }
     focus := FocusScope {
@@ -86,7 +90,7 @@ component QuietButton inherits Rectangle {
 
 component RaisedPanel inherits Rectangle {
     // A short solid shadow remains cheap in the software renderer (§6.4.2).
-    Rectangle { y: 3px; width: parent.width; height: parent.height; border-radius: ReaderTheme.radius; background: ReaderTheme.contact; }
+    Rectangle { y: ReaderTheme.contact-depth; width: parent.width; height: parent.height; border-radius: ReaderTheme.radius; background: ReaderTheme.contact; }
     Rectangle {
         width: parent.width; height: parent.height; border-radius: ReaderTheme.radius;
         border-width: 1px; border-color: ReaderTheme.line; background: ReaderTheme.surface;
@@ -100,15 +104,16 @@ component PanelHeading inherits Rectangle {
     in property <string> title;
     in property <image> icon;
     callback closed();
-    x: 0px; y: 0px; height: 48px;
-    Rectangle { x: 1px; y: parent.height - 1px; width: parent.width - 2px; height: 1px; background: ReaderTheme.line; }
-    Image { x: ReaderTheme.pad; y: 16px; width: 16px; height: 16px; source: root.icon; colorize: ReaderTheme.muted; }
+    x: 0px; y: 0px; height: 52px;
+    Rectangle { x: 1px; y: 2px; width: parent.width - 2px; height: parent.height - 2px; background: ReaderTheme.chrome; border-top-left-radius: 4px; border-top-right-radius: 4px; }
+    Rectangle { x: ReaderTheme.pad; y: parent.height - 1px; width: parent.width - 2 * self.x; height: 1px; background: ReaderTheme.line; }
+    Image { x: ReaderTheme.pad; y: 18px; width: 16px; height: 16px; source: root.icon; colorize: ReaderTheme.muted; }
     Text {
         x: 40px; y: 0px; width: parent.width - 88px; height: parent.height;
         text: root.title; font-size: 16px; font-weight: 600; color: ReaderTheme.ink;
         vertical-alignment: center; overflow: elide;
     }
-    QuietButton { x: parent.width - 40px; y: 8px; width: 32px; text: "×"; label: "收起"; clicked => { root.closed(); } }
+    QuietButton { x: parent.width - 44px; y: 10px; width: 32px; icon: @image-url("../assets/icons/close.svg"); label: "收起"; clicked => { root.closed(); } }
 }
 
 component GroupLabel inherits Text {
@@ -167,25 +172,19 @@ component SettingField inherits Rectangle {
     in property <bool> enabled: true;
     callback edited(float);
     callback entered(string);
-    height: 59px;
+    height: 40px;
     opacity: root.enabled ? 1 : 0.45;
     function set-value(value: float) {
         let next = clamp(value,root.minimum,root.maximum);
         if next != root.value { root.value = next; root.edited(next); }
     }
-    VerticalLayout {
-        spacing: 3px;
-        HorizontalLayout {
-            Text { text: root.label; color: ReaderTheme.ink; font-size: 12px; horizontal-stretch: 1; vertical-alignment: center; }
-            LineEdit {
-                width: 59px; height: 27px; enabled: root.enabled;
-                text: "" + (round(root.value * 100) / 100);
-                accepted => { root.entered(self.text); }
-            }
-            Text { width: 28px; text: root.unit; color: ReaderTheme.muted; font-size: 11px; vertical-alignment: center; }
-        }
+    // A label, rail and value share a single row so paragraphs and margins
+    // read as related adjustments inside each group (§3.3, §3.6, §4.4).
+    HorizontalLayout {
+        spacing: 8px;
+        Text { width: 64px; text: root.label; color: ReaderTheme.ink; font-size: 13px; vertical-alignment: center; }
         Rectangle {
-            height: 24px; border-radius: 5px;
+            height: 32px; horizontal-stretch: 1; border-radius: ReaderTheme.radius;
             border-width: slider-focus.has-focus ? 1px : 0px; border-color: ReaderTheme.accent;
             accessible-role: slider; accessible-label: root.label; accessible-enabled: root.enabled;
             accessible-value: root.value; accessible-value-minimum: root.minimum; accessible-value-maximum: root.maximum;
@@ -195,13 +194,13 @@ component SettingField inherits Rectangle {
             accessible-action-decrement => { if root.enabled { root.set-value(root.value - root.step); } }
             forward-focus: slider-focus;
             rail := Rectangle {
-                x: 8px; y: 11px; width: parent.width - 16px; height: 2px;
+                x: 8px; y: (parent.height - self.height) / 2; width: parent.width - 16px; height: 2px;
                 border-radius: 1px; background: ReaderTheme.line;
                 Rectangle { x: 0px; y: 0px; width: thumb.x - parent.x + 6px; height: parent.height; border-radius: 1px; background: ReaderTheme.accent; }
             }
             thumb := Rectangle {
                 x: rail.x + rail.width * clamp((root.value - root.minimum) / (root.maximum - root.minimum),0,1) - 6px;
-                y: 6px; width: 12px; height: 12px; border-radius: 6px; background: ReaderTheme.accent;
+                y: (parent.height - self.height) / 2; width: 12px; height: 12px; border-radius: 6px; background: ReaderTheme.accent;
                 border-width: 2px; border-color: ReaderTheme.surface;
             }
             slider-focus := FocusScope {
@@ -223,6 +222,12 @@ component SettingField inherits Rectangle {
                 moved => { if self.pressed { self.seek(); } }
             }
         }
+        LineEdit {
+            width: 52px; height: 32px; enabled: root.enabled;
+            text: "" + (round(root.value * 100) / 100);
+            accepted => { root.entered(self.text); }
+        }
+        Text { width: 24px; text: root.unit; color: ReaderTheme.muted; font-size: 11px; vertical-alignment: center; }
     }
 }
 
@@ -298,76 +303,84 @@ component PagePane inherits Rectangle {
     }
 }
 
+component DialFace inherits Rectangle {
+    in property <angle> turn;
+    in property <bool> pressed: false;
+    in property <bool> large: false;
+    height: self.width;
+    border-radius: self.width / 2;
+    background: ReaderTheme.contact;
+    // A recessed edge and a small highlight give the round face a grip.
+    // Only the engraved mark moves. The surrounding surface stays in place.
+    Rectangle {
+        x: 1px; y: root.pressed && root.large ? 2px : 0px;
+        width: parent.width - 2px; height: self.width;
+        border-radius: self.width / 2;
+        border-width: 1px; border-color: ReaderTheme.line;
+        background: ReaderTheme.edge;
+        if root.large: Rectangle {
+            x: 4px; y: 3px; width: parent.width - 8px; height: self.width;
+            border-radius: self.width / 2; border-width: 1px;
+            border-color: ReaderTheme.line;
+            background: ReaderTheme.chrome;
+            Rectangle {
+                x: 2px; y: 1px; width: parent.width - 4px; height: self.width;
+                border-radius: self.width / 2;
+                background: ReaderTheme.surface;
+            }
+        }
+        Path {
+            width: parent.width; height: parent.height;
+            viewbox-width: self.width / 1px; viewbox-height: self.height / 1px;
+            property <float> center: self.width / 2px;
+            property <float> outer: self.center - (root.large ? 9 : 3);
+            property <float> inner: self.outer - (root.large ? 12 : 5);
+            stroke: ReaderTheme.accent;
+            stroke-width: root.large ? 3px : 1.5px;
+            MoveTo {
+                x: parent.center + sin(root.turn) * parent.inner;
+                y: parent.center - cos(root.turn) * parent.inner;
+            }
+            LineTo {
+                x: parent.center + sin(root.turn) * parent.outer;
+                y: parent.center - cos(root.turn) * parent.outer;
+            }
+        }
+    }
+}
+
 component ZoomKnob inherits Rectangle {
     in property <float> value: 1;
     in property <bool> large: false;
-    in property <bool> show-scale: true;
-    callback adjusted(float);
-    callback reset();
-    callback active(bool);
-    // Map the full 25–800% range to a single, open sweep.
-    property <float> fraction: (log(clamp(root.value,0.25,8),2) + 2) / 5;
-    property <angle> angle: 145deg + root.fraction * 250deg;
-    animate angle { duration: touch.pressed ? 0ms : 90ms; easing: ease-out; }
+    in property <bool> dragging: false;
+    callback stepped(float);
+    callback started();
+    callback travelled(float);
+    callback released(float,float);
+    callback cancelled();
+    callback opened();
+    // Fit Page is at twelve o'clock. The end positions never wrap.
+    property <angle> angle: 50deg * log(clamp(root.value,0.25,8),2);
+    animate angle { duration: root.dragging ? 0ms : 85ms; easing: ease-out; }
     forward-focus: dial-focus;
     accessible-role: slider; accessible-label: "PDF 缩放";
     accessible-value: round(root.value * 100) + "%";
-    accessible-action-increment => { root.adjusted(1); }
-    accessible-action-decrement => { root.adjusted(-1); }
+    accessible-action-increment => { root.stepped(1); }
+    accessible-action-decrement => { root.stepped(-1); }
 
-    if root.large: Rectangle {
-        width: 60px;
-        height: self.width;
-        x: (parent.width - self.width) / 2;
+    DialFace {
+        x: root.large ? (parent.width - self.width) / 2 : 4px;
         y: (parent.height - self.height) / 2;
-        // Fine points indicate fourth-octave steps. The six larger dots
-        // mark 25, 50, 100, 200, 400 and 800 percent.
-        for step in 21: Rectangle {
-            property <angle> tick: 145deg + step * 12.5deg;
-            property <bool> major: mod(step,4) == 0;
-            x: 30px + 24px * cos(self.tick) - self.width / 2;
-            y: 30px + 24px * sin(self.tick) - self.height / 2;
-            width: self.major ? 3px : 1.5px; height: self.width;
-            border-radius: self.width / 2;
-            background: self.major ? ReaderTheme.muted : ReaderTheme.muted.with-alpha(0.58);
-        }
-        // A small inset dot field gives the knob a surface without a bitmap.
-        Path {
-            x: 0px; y: 0px; width: parent.width; height: parent.height;
-            viewbox-width: 60; viewbox-height: 60;
-            fill: ReaderTheme.line;
-            commands: "M29 17h2v2h-2z M23 23h2v2h-2z M29 23h2v2h-2z M35 23h2v2h-2z "
-                    + "M17 29h2v2h-2z M23 29h2v2h-2z M29 29h2v2h-2z M35 29h2v2h-2z M41 29h2v2h-2z "
-                    + "M23 35h2v2h-2z M29 35h2v2h-2z M35 35h2v2h-2z M29 41h2v2h-2z";
-        }
-        Rectangle {
-            x: 30px + 24px * cos(root.angle) - self.width / 2;
-            y: 30px + 24px * sin(root.angle) - self.height / 2;
-            width: touch.pressed ? 7px : 9px; height: self.width;
-            border-radius: self.width / 2; border-width: 1px;
-            border-color: ReaderTheme.surface; background: ReaderTheme.accent;
-            animate width { duration: 90ms; easing: ease-out; }
-        }
-    }
-    if !root.large && root.show-scale: Rectangle {
-        x: 5px; y: (parent.height - self.height) / 2; width: 18px; height: 18px;
-        Path {
-            x: 0px; y: 0px; width: parent.width; height: parent.height;
-            viewbox-width: 18; viewbox-height: 18;
-            commands: "M2.5 10V3.5H9 M5.5 13V6.5H12 M8.5 16V9.5H15";
-            stroke: ReaderTheme.muted; stroke-width: 1px;
-        }
-        Rectangle {
-            x: 9px + 6px * root.fraction - self.width / 2;
-            y: 3.5px + 6px * root.fraction - self.height / 2;
-            width: 2px; height: 2px; border-radius: 1px; background: ReaderTheme.accent;
-        }
+        width: root.large ? 76px : 24px;
+        large: root.large;
+        pressed: touch.pressed;
+        turn: root.angle;
     }
     if !root.large: Text {
-        x: 28px; y: 0px; width: parent.width - self.x - 4px; height: parent.height;
+        x: 34px; y: 0px; width: parent.width - self.x - 8px; height: parent.height;
         text: round(root.value * 100) + "%";
-        color: root.show-scale && !touch.has-hover ? ReaderTheme.ink : ReaderTheme.accent;
-        font-family: "Segoe UI"; font-size: 13px; font-weight: 600;
+        color: touch.has-hover || root.dragging ? ReaderTheme.accent : ReaderTheme.ink;
+        font-family: "Segoe UI"; font-size: 14px; font-weight: 600;
         horizontal-alignment: right; vertical-alignment: center;
     }
     if dial-focus.has-focus: Rectangle {
@@ -377,45 +390,43 @@ component ZoomKnob inherits Rectangle {
     }
     dial-focus := FocusScope {
         key-pressed(e) => {
-            if e.text == Key.UpArrow { root.adjusted(1); return accept; }
-            if e.text == Key.DownArrow { root.adjusted(-1); return accept; }
-            if e.text == Key.Home || e.text == Key.Return { root.reset(); return accept; }
+            if e.text == Key.UpArrow { root.stepped(1); return accept; }
+            if e.text == Key.DownArrow { root.stepped(-1); return accept; }
+            if e.text == Key.Return || e.text == " " { root.opened(); return accept; }
             return reject;
         }
     }
     touch := TouchArea {
-        property <float> last-x;
-        property <float> last-y;
+        property <float> start-x;
+        property <float> start-y;
         property <int> axis;
+        function update-drag() {
+            // Choose a direction once. Absolute travel makes small and large
+            // mouse events equivalent and lets a reversal retrace the same path.
+            let dx = self.mouse-x / 1px - self.start-x;
+            let dy = self.start-y - self.mouse-y / 1px;
+            if self.axis == 0 && max(abs(dx),abs(dy)) >= 4 {
+                self.axis = abs(dx) >= abs(dy) ? 1 : 2;
+            }
+            if self.axis != 0 { root.travelled(self.axis == 1 ? dx : dy); }
+        }
         mouse-cursor: self.pressed ? grabbing : grab;
         pointer-event(e) => {
-            if e.kind == PointerEventKind.cancel { root.active(false); }
+            if e.kind == PointerEventKind.cancel { root.cancelled(); }
             if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-                root.active(true); self.axis = 0;
-                self.last-x = self.mouse-x / 1px; self.last-y = self.mouse-y / 1px;
+                self.axis = 0;
+                self.start-x = self.mouse-x / 1px; self.start-y = self.mouse-y / 1px;
+                root.started();
             }
             if e.kind == PointerEventKind.up && e.button == PointerEventButton.left {
-                if self.axis == 0 && self.has-hover && !root.large { root.reset(); }
-                root.active(false);
+                self.update-drag();
+                if self.axis == 0 && self.has-hover && !root.large { root.opened(); }
+                root.released((self.absolute-position.x + self.mouse-x) / 1px,
+                              (self.absolute-position.y + self.mouse-y) / 1px);
             }
         }
-        moved => {
-            if self.pressed {
-                // Pick one axis once. Movement outside the face still uses the
-                // captured pointer, without angular wraparound or stray reversals.
-                let dx = self.mouse-x / 1px - self.last-x;
-                let dy = self.last-y - self.mouse-y / 1px;
-                if self.axis == 0 && max(abs(dx),abs(dy)) >= 4 {
-                    self.axis = abs(dx) >= abs(dy) ? 1 : 2;
-                }
-                if self.axis != 0 {
-                    let delta = self.axis == 1 ? dx : dy;
-                    if delta != 0 { root.adjusted(delta / 22); }
-                    self.last-x = self.mouse-x / 1px; self.last-y = self.mouse-y / 1px;
-                }
-            }
-        }
-        scroll-event(e) => { if e.delta-y != 0px { root.adjusted(e.delta-y / 120px); } return accept; }
+        moved => { if self.pressed { self.update-drag(); } }
+        scroll-event(e) => { if e.delta-y != 0px { root.stepped(e.delta-y / 120px); } return accept; }
     }
 }
 
@@ -571,11 +582,13 @@ export component ReaderWindow inherits Window {
     in-out property <bool> top-hover: false;
     in-out property <bool> bottom-hover: false;
     in-out property <bool> zoom-hover: false;
+    in-out property <bool> zoom-pinned: false;
+    in-out property <bool> zoom-dragging: false;
     in-out property <bool> is-fullscreen: false;
     in-out property <bool> controls-busy: false;
     in-out property <bool> page-entry-active: false;
     out property <bool> top-visible: !root.has-document || root.show-toolbar || root.top-hover || root.show-search || root.show-contents || root.show-settings;
-    out property <bool> bottom-visible: root.has-document && (root.page-entry-active || ((root.show-progress || !root.reflowable) && (root.show-toolbar || root.bottom-hover || root.controls-busy)));
+    out property <bool> bottom-visible: root.has-document && (root.page-entry-active || ((root.show-progress || !root.reflowable) && (root.show-toolbar || root.bottom-hover || root.controls-busy || root.zoom-pinned)));
     out property <bool> reading-keys: root.has-document && !root.show-search && !root.show-contents && !root.show-settings && !root.page-entry-active;
     in-out property <bool> show-progress: true;
     in-out property <bool> justified: false;
@@ -602,18 +615,24 @@ export component ReaderWindow inherits Window {
     in property <bool> text-document: false;
     in property <string> encoding-label: "";
     in property <string> encoding-choice: "自动检测";
-    property <length> dock-height: 36px;
-    property <length> dock-width: min(root.reflowable ? 352px : root.show-progress || root.page-entry-active ? 440px : 100px,root.width - 24px);
+    property <length> window-inset: 16px;
+    property <length> header-height: 52px;
+    property <length> panel-top: root.header-height + 8px;
+    property <length> dock-height: 44px;
+    property <length> dock-width: min(root.reflowable ? 440px : root.show-progress || root.page-entry-active ? 528px : 120px,root.width - 2 * root.window-inset);
     out property <length> dock-left: (root.width - root.dock-width) / 2;
     out property <length> dock-right: root.dock-left + root.dock-width;
-    out property <length> dock-top: root.height - root.dock-height;
-    property <length> side-panel-height: root.dock-top - 64px;
-    property <length> knob-pop-width: 152px;
-    property <length> knob-pop-height: 72px;
+    out property <length> dock-top: root.height - root.dock-height - 8px;
+    property <length> side-panel-height: root.dock-top - root.panel-top - 12px;
+    property <length> side-panel-width: 352px;
+    out property <length> knob-pop-width: 272px;
+    out property <length> knob-pop-height: 120px;
     out property <bool> zoom-can-cover: root.pdf-fill-zoom > root.pdf-fit-width-zoom * 1.035;
     out property <length> knob-pop-left: root.dock-right - root.knob-pop-width;
-    out property <length> knob-pop-top: root.dock-top - root.knob-pop-height;
-    out property <bool> show-zoom-pop: root.bottom-visible && !root.reflowable && root.zoom-hover && !root.page-entry-active;
+    out property <length> knob-pop-top: root.dock-top - root.knob-pop-height - 6px;
+    out property <length> knob-center-x: root.dock-right - 70px;
+    out property <length> knob-center-y: root.knob-pop-top + root.knob-pop-height / 2;
+    out property <bool> show-zoom-pop: root.bottom-visible && !root.reflowable && (root.zoom-hover || root.zoom-pinned) && !root.page-entry-active;
     property <length> page-inset: root.reflowable ? 16px : 0px;
     callback open-file(); callback next-page(int); callback back();
     callback typography(string,float); callback resized(); callback follow-link(string);
@@ -624,28 +643,51 @@ export component ReaderWindow inherits Window {
     callback search(string); callback search-next(int); callback fullscreen();
     callback pan(float,float); callback encoding-changed(string); callback page-color-changed(int);
     callback wheel-xy(float,float,bool,bool); callback jump-page(string) -> bool;
+    callback zoom-begin(); callback zoom-end(); callback refresh-zoom(bool);
     public function edge-hover(x: float, y: float) {
         let px = x * 1px; let py = y * 1px;
-        root.top-hover = py <= (root.top-visible ? 54px : 14px);
-        let in-knob = px >= root.dock-right - 88px && px <= root.dock-right && py >= root.dock-top;
+        if px < 0px || px >= root.width || py < 0px || py >= root.height {
+            root.top-hover = false; root.bottom-hover = false;
+            if !root.controls-busy { root.zoom-hover = false; }
+            return;
+        }
+        root.top-hover = py <= (root.top-visible ? root.header-height + 4px : 14px);
+        let in-knob = px >= root.dock-right - 112px && px <= root.dock-right && py >= root.dock-top;
         let in-pop = root.show-zoom-pop && px >= root.knob-pop-left && px <= root.dock-right && py >= root.knob-pop-top && py < root.dock-top;
         if !root.controls-busy { root.zoom-hover = !root.reflowable && root.has-document && (in-knob || in-pop); }
         root.bottom-hover = root.zoom-hover || py >= (root.bottom-visible ? root.dock-top - 4px : root.height - 16px);
+    }
+    function start-zoom() {
+        root.focus-reading();
+        root.controls-busy = true;
+        root.zoom-dragging = true;
+        root.zoom-begin();
+    }
+    function end-zoom() {
+        root.zoom-dragging = false;
+        root.controls-busy = false;
+        root.zoom-end();
+    }
+    function release-zoom(x: float, y: float) {
+        root.end-zoom();
+        root.edge-hover(x,y);
     }
     public function focus-reading() { root.page-entry-active = false; keyboard.focus(); }
     public function dismiss-panels() {
         if root.show-search { root.search(""); }
         root.show-contents = false; root.show-settings = false; root.show-search = false;
+        root.zoom-pinned = false; root.zoom-hover = false;
         root.focus-reading();
     }
     public function focus-search() {
         if root.has-document {
-            root.page-entry-active = false; root.show-settings = false; root.show-contents = false; root.show-search = true; query.focus();
+            root.page-entry-active = false; root.show-settings = false; root.show-contents = false; root.show-search = true;
+            root.zoom-pinned = false; query.focus();
         }
     }
     public function focus-page-entry() {
         if root.has-document && root.page-total > 0 {
-            root.show-contents = false; root.show-settings = false; root.show-search = false;
+            root.show-contents = false; root.show-settings = false; root.show-search = false; root.zoom-pinned = false;
             root.page-entry-active = true;
         }
     }
@@ -682,12 +724,22 @@ export component ReaderWindow inherits Window {
         canvas := Rectangle {
             background: ReaderTheme.paper; clip: true;
             if !root.has-document: VerticalLayout {
-                alignment: center; spacing: 24px;
-                Text { text: "Sae"; font-family: "Segoe UI"; font-size: 48px; color: ReaderTheme.accent; horizontal-alignment: center; }
+                alignment: center; spacing: 16px;
+                Text { text: "Sae"; font-family: "Georgia"; font-size: 64px; color: ReaderTheme.ink; horizontal-alignment: center; }
                 HorizontalLayout { alignment: center;
-                    QuietButton { text: "打开书籍"; selected: true; clicked => { root.open-file(); } }
+                    Rectangle { width: 40px; height: 1px; background: ReaderTheme.line; }
                 }
-                Text { text: "EPUB · PDF · TXT · Markdown · AZW3 · MOBI · FB2"; color: ReaderTheme.muted; font-size: 11px; horizontal-alignment: center; }
+                HorizontalLayout { alignment: center;
+                    QuietButton {
+                        width: 144px; height: 40px; primary: true; left-aligned: true;
+                        text: "打开书籍"; icon: @image-url("../assets/icons/open.svg");
+                        clicked => { root.open-file(); }
+                    }
+                }
+                if root.status != "": HorizontalLayout {
+                    alignment: center;
+                    Text { width: min(root.width - 2 * root.window-inset,420px); wrap: word-wrap; text: root.status; color: ReaderTheme.muted; font-size: 13px; horizontal-alignment: center; }
+                }
             }
             if root.has-document: TouchArea {
                 clicked => { keyboard.focus(); root.next-page(self.mouse-x < self.width / 2 ? -1 : 1); }
@@ -710,34 +762,40 @@ export component ReaderWindow inherits Window {
             }
             // Created only while a side panel is open. It consumes the complete
             // first gesture, so closing cannot also follow a link or turn a page.
-            if root.show-settings || root.show-contents || root.show-search || root.page-entry-active: TouchArea {
-                clicked => { root.show-settings = false; root.show-contents = false; root.show-search = false; root.focus-reading(); }
+            if root.show-settings || root.show-contents || root.show-search || root.page-entry-active || root.zoom-pinned: TouchArea {
+                clicked => {
+                    root.show-settings = false; root.show-contents = false; root.show-search = false;
+                    root.zoom-pinned = false; root.focus-reading();
+                }
             }
         }
 
         // These panels overlay a stable full-size reading canvas. Hovering does
         // not invoke native pagination, resize the page or allocate new images.
         header := Rectangle {
-            x: 0px; y: 0px; width: parent.width; height: 48px;
-            visible: root.top-visible;
+            x: 0px; y: 0px; width: parent.width; height: root.header-height;
+            visible: root.has-document && root.top-visible;
             background: ReaderTheme.chrome;
+            Rectangle { x: root.window-inset; y: 1px; width: parent.width - 2 * self.x; height: 1px; background: ReaderTheme.edge; }
             Rectangle { y: parent.height - 1px; height: 1px; background: ReaderTheme.line; }
             Rectangle { y: parent.height; height: 2px; background: ReaderTheme.contact; }
             TouchArea {}
             HorizontalLayout {
-                padding-left: 12px; padding-right: 8px; padding-top: 8px; padding-bottom: 8px; spacing: 4px;
+                padding-left: root.window-inset; padding-right: root.window-inset; padding-top: 10px; padding-bottom: 10px; spacing: 8px;
                 QuietButton { icon: @image-url("../assets/icons/open.svg"); label: "打开书籍"; clicked => { root.open-file(); } }
-                Text { text: root.book-title; font-size: 14px; font-weight: 600; color: ReaderTheme.ink; horizontal-stretch: 1; min-width: 0px; overflow: elide; vertical-alignment: center; }
+                Rectangle { width: 1px; height: 16px; background: ReaderTheme.line; }
+                Text { text: root.book-title; font-size: 15px; font-weight: 600; color: ReaderTheme.ink; horizontal-stretch: 1; min-width: 0px; overflow: elide; vertical-alignment: center; }
                 if root.has-document && root.width > 780px: QuietButton { text: "返回"; clicked => { root.back(); root.focus-reading(); } }
                 if root.has-document: QuietButton { icon: @image-url("../assets/icons/contents.svg"); label: "目录"; selected: root.show-contents; clicked => { root.show-contents = !root.show-contents; root.show-settings = false; root.show-search = false; root.focus-reading(); } }
                 if root.has-document: QuietButton { icon: @image-url("../assets/icons/search.svg"); label: "全文查找"; selected: root.show-search; clicked => { if root.show-search { root.dismiss-panels(); } else { root.focus-search(); } } }
-                if root.has-document: Rectangle { width: 8px; }
+                if root.has-document: Rectangle { width: 1px; height: 16px; background: ReaderTheme.line; }
                 if root.has-document: Rectangle {
-                    width: root.reflowable ? 96px : 144px; height: 32px; border-radius: ReaderTheme.radius; background: ReaderTheme.well;
+                    width: root.reflowable ? 100px : 148px; height: 32px; border-radius: ReaderTheme.radius; background: ReaderTheme.well;
+                    Rectangle { x: 4px; y: 1px; width: parent.width - 8px; height: 1px; background: ReaderTheme.line; }
                     HorizontalLayout { padding-left: 2px; padding-right: 2px; spacing: 0px;
-                        QuietButton { min-width: 44px; text: "单页"; selected: !root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = false; root.mode-changed(false); keyboard.focus(); } }
-                        QuietButton { min-width: 44px; text: "双页"; selected: root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = true; root.mode-changed(true); keyboard.focus(); } }
-                        if !root.reflowable: QuietButton { min-width: 44px; text: "多页"; selected: root.pdf-multi; clicked => { root.pdf-multi = true; root.multi-mode(); keyboard.focus(); } }
+                        QuietButton { width: 48px; text: "单页"; compact-selection: true; selected: !root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = false; root.mode-changed(false); keyboard.focus(); } }
+                        QuietButton { width: 48px; text: "双页"; compact-selection: true; selected: root.double-page && (root.reflowable || !root.pdf-multi); clicked => { root.pdf-multi = false; root.double-page = true; root.mode-changed(true); keyboard.focus(); } }
+                        if !root.reflowable: QuietButton { width: 48px; text: "多页"; compact-selection: true; selected: root.pdf-multi; clicked => { root.pdf-multi = true; root.multi-mode(); keyboard.focus(); } }
                     }
                 }
                 QuietButton { icon: @image-url("../assets/icons/settings.svg"); label: "阅读设置"; selected: root.show-settings; clicked => { root.show-settings = !root.show-settings; root.show-contents = false; root.show-search = false; root.focus-reading(); } }
@@ -746,43 +804,55 @@ export component ReaderWindow inherits Window {
         }
         searchbar := RaisedPanel {
             visible: root.show-search;
-            x: max(12px,parent.width - 572px); y: 56px; width: min(560px,parent.width - 24px); height: 48px;
-            HorizontalLayout {
-                padding: 8px; spacing: 4px;
-                query := LineEdit { placeholder-text: "搜索全文"; accepted => { root.search(self.text); } }
-                QuietButton { text: "查找"; clicked => { root.search(query.text); } }
-                QuietButton { text: "上处"; clicked => { root.search-next(-1); } }
-                QuietButton { text: "下处"; clicked => { root.search-next(1); } }
-                QuietButton { text: "×"; label: "关闭查找"; clicked => { root.show-search = false; root.search(""); keyboard.focus(); } }
+            x: parent.width - self.width - root.window-inset; y: root.panel-top;
+            width: min(520px,parent.width - 2 * root.window-inset); height: root.search-status == "" ? 56px : 88px;
+            VerticalLayout {
+                padding: 12px; spacing: 8px;
+                HorizontalLayout {
+                    spacing: 4px;
+                    query := LineEdit { height: 32px; placeholder-text: "搜索全文"; accepted => { root.search(self.text); } }
+                    QuietButton { text: "查找"; clicked => { root.search(query.text); } }
+                    QuietButton { text: "上处"; clicked => { root.search-next(-1); } }
+                    QuietButton { text: "下处"; clicked => { root.search-next(1); } }
+                    QuietButton { icon: @image-url("../assets/icons/close.svg"); label: "关闭查找"; clicked => { root.dismiss-panels(); } }
+                }
+                if root.search-status != "": Text {
+                    height: 24px; text: root.search-status; color: ReaderTheme.muted; font-size: 12px; overflow: elide;
+                    vertical-alignment: center;
+                }
             }
         }
         if root.show-contents: RaisedPanel {
-            x: 12px; y: 56px; width: min(336px,parent.width - 24px);
+            x: root.window-inset; y: root.panel-top; width: min(root.side-panel-width,parent.width - 2 * root.window-inset);
             height: root.contents.length == 0 ? 112px : root.side-panel-height;
             PanelHeading { width: parent.width; title: "目录"; icon: @image-url("../assets/icons/contents.svg"); closed => { root.dismiss-panels(); } }
             if root.contents.length == 0: Text {
-                x: ReaderTheme.pad; y: 48px; height: 56px;
+                x: ReaderTheme.pad; y: 52px; height: 56px;
                 text: "这份文档没有目录"; font-size: 13px; color: ReaderTheme.muted; vertical-alignment: center;
             }
             if root.contents.length > 0: ListView {
-                    x: 8px; y: 56px; width: parent.width - 16px; height: parent.height - 64px;
+                    x: 8px; y: 60px; width: parent.width - 16px; height: parent.height - 68px;
                     horizontal-scrollbar-policy: always-off;
                     content-width: self.visible-width;
                     for row in root.contents: Rectangle {
                     // ListView instantiates visible rows only. A growing title
                     // gets its real height and never shares the scrollbar lane.
-                    width: parent.width - 16px; height: max(36px,toc-title.preferred-height + 16px); border-radius: ReaderTheme.radius;
+                    width: parent.width - 16px; height: max(row.depth == 0 ? 44px : 36px,toc-title.preferred-height + 16px); border-radius: ReaderTheme.radius;
                     background: row.uri == root.selected-content-uri || toc-touch.has-hover || toc-focus.has-focus ? ReaderTheme.tint : transparent;
                     accessible-role: button; accessible-label: row.title;
                     accessible-action-default => { root.follow-link(row.uri); root.show-contents = false; keyboard.focus(); }
                     forward-focus: toc-focus;
+                    if row.depth > 0: Rectangle {
+                        x: 12px + (min(row.depth,5) - 1) * 12px;
+                        y: 0px; width: 1px; height: parent.height; background: ReaderTheme.line;
+                    }
                     if row.uri == root.selected-content-uri || toc-focus.has-focus: Rectangle { x: 4px; y: 8px; width: 2px; height: parent.height - 16px; border-radius: 1px; background: ReaderTheme.accent; }
                     toc-title := Text {
-                        x: 16px + min(row.depth,5) * 10px; y: 8px;
+                        x: 16px + min(row.depth,5) * 12px; y: (parent.height - self.height) / 2;
                         width: parent.width - self.x - 8px; height: self.preferred-height;
                         text: row.title; wrap: word-wrap; vertical-alignment: top;
-                        font-family: row.latin ? "Segoe UI" : "Microsoft YaHei UI";
-                        font-size: 14px; font-weight: row.depth == 0 ? 600 : 400;
+                        font-family: row.latin && row.depth == 0 ? "Georgia" : row.latin ? "Segoe UI" : "Microsoft YaHei UI";
+                        font-size: 14px; font-weight: row.uri == root.selected-content-uri ? 600 : 400;
                         color: row.uri == root.selected-content-uri ? ReaderTheme.accent : row.depth == 0 ? ReaderTheme.ink : ReaderTheme.muted;
                     }
                     toc-focus := FocusScope { key-pressed(e) => { if e.text == Key.Return || e.text == " " { root.follow-link(row.uri); root.show-contents = false; keyboard.focus(); return accept; } return reject; } }
@@ -791,22 +861,23 @@ export component ReaderWindow inherits Window {
             }
         }
         if root.show-settings: RaisedPanel {
-            x: parent.width - self.width - 12px; y: 56px; width: 320px;
-            height: min(root.side-panel-height,49px + settings-form.preferred-height);
+            x: parent.width - self.width - root.window-inset; y: root.panel-top;
+            width: min(root.side-panel-width,parent.width - 2 * root.window-inset);
+            height: min(root.side-panel-height,53px + settings-form.preferred-height);
             PanelHeading {
                 width: parent.width;
                 title: root.reflowable ? "阅读排版" : "页面设置";
                 icon: @image-url("../assets/icons/settings.svg"); closed => { root.dismiss-panels(); }
             }
             settings-scroll := ScrollView {
-                x: 1px; y: 48px; width: parent.width - 2px; height: parent.height - 49px;
+                x: 1px; y: 52px; width: parent.width - 2px; height: parent.height - 53px;
                 horizontal-scrollbar-policy: always-off;
                 content-width: self.width;
                 content-height: settings-form.preferred-height;
                 settings-form := VerticalLayout {
                     width: settings-scroll.width; height: self.preferred-height;
                     padding-left: ReaderTheme.pad; padding-right: ReaderTheme.pad; padding-top: 12px; padding-bottom: ReaderTheme.pad;
-                    spacing: 16px;
+                    spacing: 20px;
                     VerticalLayout {
                         spacing: 4px;
                         GroupLabel { text: "主题"; }
@@ -860,6 +931,14 @@ export component ReaderWindow inherits Window {
                         ComboBox { height: 32px; current-value: root.encoding-choice; model: ["自动检测","UTF-8","UTF-16LE","UTF-16BE","GB18030","Big5","Shift_JIS","windows-1252"]; selected(v) => { root.encoding-changed(v); } }
                         Text { text: root.encoding-label; color: ReaderTheme.muted; font-size: 12px; }
                     }
+                    if root.notice != "": VerticalLayout {
+                        spacing: 4px;
+                        GroupLabel { text: "文档信息"; }
+                        Text {
+                            text: root.notice; wrap: word-wrap;
+                            color: ReaderTheme.muted; font-size: 12px;
+                        }
+                    }
                     HorizontalLayout {
                         height: 32px; spacing: 8px;
                         PanelToggle { text: "阅读进度"; horizontal-stretch: 0; checked <=> root.show-progress; toggled=>{root.typography("progress",self.checked?1:0);} }
@@ -870,54 +949,52 @@ export component ReaderWindow inherits Window {
             }
         }
 
-        if root.show-zoom-pop: Rectangle {
-            // The lower edge is covered by the bar. Both parts meet flush,
-            // leaving a single surface to move between the dial and presets.
+        if root.show-zoom-pop: RaisedPanel {
+            // A recessed plane frames the dial. The rail and the enlarged
+            // dial share a right edge and a single hover region (§6.4).
             x: root.knob-pop-left; y: root.knob-pop-top;
-            width: root.knob-pop-width; height: root.knob-pop-height + 4px;
-            border-top-left-radius: ReaderTheme.radius; border-top-right-radius: ReaderTheme.radius;
-            border-width: 1px; border-color: ReaderTheme.line; background: ReaderTheme.surface;
-            TouchArea {}
-            ZoomKnob {
-                x: 80px; y: 4px; width: 68px; height: 64px; large: true; value: root.pdf-zoom;
-                adjusted(d) => { root.typography("zoom",pow(1.12,d)); }
-                reset => { root.typography("fit-page",0); }
-                active(v) => { root.controls-busy = v; if v { root.focus-reading(); } }
+            width: root.knob-pop-width; height: root.knob-pop-height;
+            Path {
+                x: 140px; y: 10px; width: 122px; height: 100px;
+                viewbox-width: 122; viewbox-height: 100;
+                commands: "M8 0H122V92L114 100H0V8Z";
+                fill: ReaderTheme.well;
             }
-            Rectangle { x: 74px; y: 16px; width: 1px; height: 40px; background: ReaderTheme.line; }
+            Rectangle { x: 148px; y: 10px; width: 114px; height: 1px; background: ReaderTheme.line; }
+            ZoomKnob {
+                x: root.knob-center-x - root.knob-pop-left - self.width / 2;
+                y: 0px; width: 112px; height: parent.height;
+                large: true; value: root.pdf-zoom; dragging: root.zoom-dragging;
+                stepped(d) => { root.typography("zoom",pow(1.12,d)); }
+                started => { root.start-zoom(); }
+                travelled(d) => { root.typography("zoom-drag",d); }
+                released(x,y) => { root.release-zoom(x,y); }
+                cancelled => { root.end-zoom(); }
+            }
             VerticalLayout {
-                x: 8px; y: 0px; width: 60px; height: root.knob-pop-height;
-                alignment: center;
+                x: 12px; y: 0px; width: 116px; height: root.knob-pop-height;
+                alignment: center; spacing: 4px;
                 QuietButton {
-                    width: 60px; height: root.zoom-can-cover ? 20px : 28px;
+                    width: 116px; height: 32px; left-aligned: true;
                     text: "100%"; label: "100%，显示整页"; selected: root.pdf-zoom-stop==1; compact-selection: true;
                     clicked => { root.typography("fit-page",0); root.focus-reading(); }
                 }
                 QuietButton {
-                    width: 60px; height: root.zoom-can-cover ? 20px : 28px;
+                    width: 116px; height: 32px; left-aligned: true;
                     text: "适宽"; selected: root.pdf-zoom-stop==3 || (!root.zoom-can-cover && root.pdf-zoom-stop==2); compact-selection: true;
                     clicked => { root.typography("fit-width",0); root.focus-reading(); }
                 }
                 if root.zoom-can-cover: QuietButton {
-                    width: 60px; height: 20px;
+                    width: 116px; height: 32px; left-aligned: true;
                     text: "铺满"; label: "铺满视区"; selected: root.pdf-zoom-stop==2; compact-selection: true;
                     clicked => { root.typography("fit-cover",0); root.focus-reading(); }
                 }
             }
         }
-        if root.bottom-visible: Rectangle {
+        if root.bottom-visible: RaisedPanel {
             x: root.dock-left; y: root.dock-top; width: root.dock-width; height: root.dock-height;
-            background: ReaderTheme.surface;
-            border-top-left-radius: ReaderTheme.radius;
-            border-top-right-radius: root.show-zoom-pop ? 0px : ReaderTheme.radius;
-            Rectangle {
-                x: ReaderTheme.radius; y: 0px; height: 1px;
-                width: max(0px,parent.width - self.x - (root.show-zoom-pop ? root.knob-pop-width : ReaderTheme.radius));
-                background: ReaderTheme.line;
-            }
-            TouchArea {}
             HorizontalLayout {
-                padding-left: 12px; padding-right: 12px; spacing: 8px;
+                padding-left: 16px; padding-right: 12px; spacing: 12px;
                 if root.show-progress || root.page-entry-active: PageScrubber {
                     first: root.first-page; last: root.last-page; total: root.page-total; editing: root.page-entry-active; horizontal-stretch: 1;
                     edit => { root.focus-page-entry(); }
@@ -925,22 +1002,27 @@ export component ReaderWindow inherits Window {
                     turned(d) => { root.next-page(d); }
                     active(v) => { root.controls-busy = v; }
                 }
-                if !root.reflowable && (root.show-progress || root.page-entry-active): Rectangle { width: 1px; height: 12px; background: ReaderTheme.line; }
+                if !root.reflowable && (root.show-progress || root.page-entry-active): Rectangle { width: 1px; height: 16px; background: ReaderTheme.line; }
                 if !root.reflowable: ZoomKnob {
-                    width: 76px; height: 32px; value: root.pdf-zoom; show-scale: !root.show-zoom-pop;
-                    adjusted(d) => { root.typography("zoom",pow(1.12,d)); }
-                    reset => { root.typography("fit-page",0); }
-                    active(v) => { root.controls-busy = v; if v { root.focus-reading(); } }
+                    width: 88px; height: 36px; value: root.pdf-zoom; dragging: root.zoom-dragging;
+                    border-radius: ReaderTheme.radius;
+                    background: root.show-zoom-pop ? ReaderTheme.well : transparent;
+                    stepped(d) => { root.typography("zoom",pow(1.12,d)); }
+                    started => { root.start-zoom(); }
+                    travelled(d) => { root.typography("zoom-drag",d); }
+                    released(x,y) => { root.release-zoom(x,y); }
+                    cancelled => { root.end-zoom(); }
+                    opened => { root.zoom-pinned = !root.zoom-pinned; }
                 }
             }
         }
-        if root.status != "" || (root.show-search && root.search-status != "") || (root.top-visible && root.notice != ""): Rectangle {
-            x: 20px; y: parent.height - 112px; width: min(message.preferred-width + 24px,parent.width - 40px); height: 28px;
-            background: ReaderTheme.surface; border-radius: 6px;
+        if root.has-document && root.status != "": RaisedPanel {
+            x: (parent.width - self.width) / 2; y: root.panel-top;
+            width: min(parent.width - 2 * root.window-inset,520px); height: message.preferred-height + 24px;
             message := Text {
-                x: 12px; width: parent.width - 24px;
-                text: root.status != "" ? root.status : root.show-search ? root.search-status : root.notice;
-                color: ReaderTheme.muted; font-size: 11px; overflow: elide; vertical-alignment: center;
+                x: 16px; y: 12px; width: parent.width - 32px;
+                text: root.status; wrap: word-wrap;
+                color: ReaderTheme.ink; font-size: 13px;
             }
         }
     }

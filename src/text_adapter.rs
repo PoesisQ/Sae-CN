@@ -195,7 +195,8 @@ pub fn convert(
         let mut heading_ids = HashMap::<String, String>::new();
         let mut resource_cache = HashMap::<String, Option<String>>::new();
         let base = path.parent().unwrap_or(Path::new(".")).canonicalize()?;
-        let mut blocked = 0;
+        let mut missing_images = 0;
+        let mut unavailable_links = 0;
         let mut raw_html = false;
         let mut image_stack = Vec::new();
         let mut total_assets = 0u64;
@@ -297,7 +298,7 @@ pub fn convert(
                         }
                     } else if !(dest_url.starts_with("https://") || dest_url.starts_with("http://"))
                     {
-                        blocked += 1;
+                        unavailable_links += 1;
                         dest_url = "#blocked-link".into();
                     }
                     Event::Start(Tag::Link {
@@ -352,7 +353,7 @@ pub fn convert(
                                 Ok(name)
                             })();
                             if safe.is_err() {
-                                blocked += 1;
+                                missing_images += 1;
                             }
                             safe.ok()
                         })
@@ -384,31 +385,20 @@ pub fn convert(
         chapter(&mut zip, 1, &body)?;
         chapters = 1;
         converted.styled = mathematics.rendered > 0;
-        converted.notice = format!(
-            "Markdown · {} · 代码块自动换行{}{}",
-            encoding.name(),
-            if raw_html {
-                " · 原始 HTML 按文字显示"
-            } else {
-                ""
-            },
-            if blocked > 0 {
-                format!(" · 已阻止 {blocked} 个外部或越界资源")
-            } else {
-                String::new()
-            }
-        );
-        if mathematics.rendered > 0 || mathematics.failed > 0 {
-            converted
-                .notice
-                .push_str(&format!(" · 原生公式 {} 处", mathematics.rendered));
-            if mathematics.failed > 0 {
-                converted.notice.push_str(&format!(
-                    " · {} 处暂不支持的公式保留源码",
-                    mathematics.failed
-                ));
-            }
+        let mut details = Vec::new();
+        if missing_images > 0 {
+            details.push(format!("{missing_images} 个图片引用未载入。"));
         }
+        if unavailable_links > 0 {
+            details.push(format!("{unavailable_links} 处链接无法打开。"));
+        }
+        if raw_html {
+            details.push(String::from("原始 HTML 按文字显示。"));
+        }
+        if mathematics.failed > 0 {
+            details.push(format!("{} 处公式保留原文。", mathematics.failed));
+        }
+        converted.notice = details.join("\n");
     } else {
         let mut pending = String::new();
         let mut body = String::new();
@@ -456,7 +446,6 @@ pub fn convert(
         drop(write_line);
         chapters += 1;
         chapter(&mut zip, chapters, &body)?;
-        converted.notice = format!("TXT · {} · 保留空行与行首缩进", encoding.name());
     }
     if nav.is_empty() {
         nav = "<li><a href=\"c1.xhtml\">正文</a></li>".to_owned();

@@ -7,8 +7,7 @@ fn markdown_math_is_vector_text_with_structural_layout_and_code_is_untouched() {
     let path = Path::new("tests/fixtures/math.md");
     let original = std::fs::read(path).unwrap();
     let mut book = Book::open(path).unwrap();
-    assert!(book.notice.contains("原生公式 7 处"), "{}", book.notice);
-    assert!(book.notice.contains("1 处暂不支持的公式保留源码"));
+    assert_eq!(book.notice, "1 处公式保留原文。");
     book.layout(&Typography::default(), 540.0, 700.0, 0)
         .unwrap();
     while !book.pagination_complete {

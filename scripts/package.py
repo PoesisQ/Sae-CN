@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.1-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.5.1-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.2-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.5.2-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -74,7 +74,7 @@ native_components=[{'name':'libmobi','version':'0.12','commit':'906274205c11944b
 source_only_assets=[{'name':'Latin Modern upstream example WOFF2 fonts','package':'pulldown-latex-0.8.0','source':'dependencies/pulldown-latex-0.8.0/font','license':'GUST Font License / LPPL-1.3c-or-later','included_in_windows_runtime':False,'notices':['licenses/pulldown-latex-0.8.0/FONT-NOTICE.md','licenses/pulldown-latex-0.8.0/GUST-FONT-LICENSE.txt','licenses/pulldown-latex-0.8.0/LPPL-1.3c.txt']}]
 inventory={'application':'AGPL-3.0-or-later','packages':packages,'native_components':native_components,'source_only_assets':source_only_assets,'note':'Full locked source superset, including unused optional/platform crates; default_windows_build distinguishes the normal Windows build.'}
 (runtime/'dependency-inventory.json').write_text(json.dumps(inventory,indent=2,ensure_ascii=False),encoding='utf-8')
-notices='''Sae Reader 0.5.1 preview
+notices=f'''Sae Reader {args.name.removeprefix("SaeReader-")}
 
 Application: AGPL-3.0-or-later (LICENSE). The matching source ZIP is delivered
 alongside this executable, including modified MuPDF 1.27.2 / mupdf-rs 0.8.0,
@@ -110,8 +110,8 @@ readme='''Sae Reader · Windows x64 预览版
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
 鼠标靠近下沿显示进度，拖动时显示目标页，松手跳转。点击页码或按 Ctrl+G 输入页码。
-悬停 PDF 底部页角标记可展开点阵旋钮和挡位。向右或向上拖动放大，也支持滚轮。
-点 100% 回到整页，点适宽填满当前页栏。
+悬停 PDF 底部拨盘可展开挡位，点击可固定面板。向右或向上直拖放大，反向缩小，也支持滚轮。
+点 100% 回到整页，点适宽填满当前页栏。图片未载入等情况可在阅读设置的「文档信息」查看。
 PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。

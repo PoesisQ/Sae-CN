@@ -5,6 +5,7 @@ use sae_reader::{
     rendering::{Bounds, Frame},
     settings::Typography,
     storage::{self, BookState, Preferences},
+    zoom::{self, Drag, Position, Stop},
 };
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Image, Model, ModelRc, VecModel};
@@ -33,7 +34,8 @@ struct State {
     count: i32,
     pagination_complete: bool,
     wheel: WheelPager,
-    zoom: sae_reader::zoom::ZoomControl,
+    zoom_drag: Option<Drag>,
+    zoom_pending: bool,
     preferences: Preferences,
     config: PathBuf,
     identity: Option<String>,
@@ -59,6 +61,7 @@ fn submit(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, update: impl FnOnce
     if let Some(request) = state.request.as_mut() {
         update(request);
         let request = request.clone();
+        state.zoom_pending = false;
         state.generation = mailbox.submit(request);
     }
 }
@@ -141,39 +144,42 @@ fn sync_style(ui: &ReaderWindow, style: &Typography) {
     ui.set_dark(style.background.eq_ignore_ascii_case("#171A19"));
     ui.set_show_progress(style.show_progress);
 }
+fn submit_zoom(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, ui: &ReaderWindow) {
+    let mut s = state.lock().unwrap();
+    if s.zoom_pending && s.generation == s.completed_generation {
+        if let Some(request) = s.request.as_mut() {
+            viewport(ui, request);
+            let request = request.clone();
+            s.zoom_pending = false;
+            s.generation = mailbox.submit(request);
+        }
+    }
+}
 fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) -> bool {
-    use sae_reader::zoom::{Position, Stop};
     if ui.get_reflowable() || !ui.get_has_document() {
         return false;
     }
     let mut s = state.lock().unwrap();
     let width = ui.get_pdf_fit_width_zoom();
     let fill = ui.get_pdf_fill_zoom();
-    let preset = match name {
-        "fit-width" => Some(Position {
+    let position = match name {
+        "fit-width" => Position {
             value: width,
             stop: Stop::Width,
-        }),
-        "fit-cover" => Some(Position {
+        },
+        "fit-cover" => Position {
             value: fill,
             stop: Stop::Fill,
-        }),
-        "fit-page" | "size" => Some(Position {
-            value: 1.0,
-            stop: Stop::Page,
-        }),
-        _ => None,
-    };
-    let position = if let Some(preset) = preset {
-        s.zoom.reset();
-        preset
-    } else {
-        let factor = if name == "zoom" {
-            value
-        } else {
-            1.12f32.powf(value)
-        };
-        s.zoom.adjust(ui.get_pdf_zoom(), fill, factor)
+        },
+        "fit-page" | "size" => zoom::position(1.0),
+        "zoom-drag" => {
+            let Some(drag) = s.zoom_drag else {
+                return false;
+            };
+            drag.at(value)
+        }
+        "zoom" => zoom::step(ui.get_pdf_zoom(), fill, value),
+        _ => zoom::step(ui.get_pdf_zoom(), fill, 1.12f32.powf(value)),
     };
     let Some(request) = s.request.as_mut() else {
         return false;
@@ -194,13 +200,14 @@ fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f3
     request.view.fit_cover = fit_cover;
     request.pdf_zoom = zoom;
     // A preset click also returns a previously panned page to its starting edge.
-    let reset_pan = preset.is_some() || changed && position.stop != Stop::Free;
+    let reset_pan = name.starts_with("fit-") || name == "size";
     let panned = reset_pan && request.view.pan != [0.5, 0.0];
     if reset_pan {
         request.view.pan = [0.5, 0.0];
     }
     ui.set_pdf_zoom(position.value);
     ui.set_pdf_zoom_stop(position.stop as i32);
+    s.zoom_pending |= changed || panned;
     changed || panned
 }
 fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) {
@@ -277,7 +284,8 @@ fn run() -> anyhow::Result<()> {
         count: 0,
         pagination_complete: false,
         wheel: WheelPager::default(),
-        zoom: Default::default(),
+        zoom_drag: None,
+        zoom_pending: false,
         preferences,
         config,
         identity: None,
@@ -393,13 +401,12 @@ fn run() -> anyhow::Result<()> {
                                 } else {
                                     1.0
                                 };
-                            use sae_reader::zoom::{Stop, position};
                             let stop = if request.view.fit_cover {
                                 Stop::Fill
                             } else if request.view.fit_width {
                                 Stop::Width
                             } else {
-                                position(actual, update.pdf_fill_zoom).stop
+                                zoom::position(actual).stop
                             };
                             ui.set_pdf_zoom(actual);
                             ui.set_pdf_zoom_stop(stop as i32);
@@ -489,12 +496,72 @@ fn run() -> anyhow::Result<()> {
                     }
                 }
             }
+            let zoom_pending = s.zoom_pending;
+            drop(s);
+            if zoom_pending {
+                ui.invoke_refresh_zoom(false);
+            }
         });
     });
     let mailbox = worker.mailbox.clone();
     let resize_timer = Rc::new(slint::Timer::default());
     let style_timer = Rc::new(slint::Timer::default());
+    let zoom_timer = Rc::new(slint::Timer::default());
     let pan_timer = Rc::new(slint::Timer::default());
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        let mailbox = mailbox.clone();
+        let timer = zoom_timer.clone();
+        ui.on_refresh_zoom(move |immediate| {
+            let Some(ui) = weak.upgrade() else { return };
+            if immediate {
+                timer.stop();
+                submit_zoom(&state, &mailbox, &ui);
+                return;
+            }
+            {
+                let s = state.lock().unwrap();
+                if !s.zoom_pending || s.generation != s.completed_generation || timer.running() {
+                    return;
+                }
+            }
+            // Present each completed tile before submitting the newest zoom.
+            // One shot limits work during fine, high-rate pointer movement.
+            let state = state.clone();
+            let mailbox = mailbox.clone();
+            let weak = weak.clone();
+            timer.start(
+                slint::TimerMode::SingleShot,
+                Duration::from_millis(32),
+                move || {
+                    if let Some(ui) = weak.upgrade() {
+                        submit_zoom(&state, &mailbox, &ui);
+                    }
+                },
+            );
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_zoom_begin(move || {
+            if let Some(ui) = weak.upgrade() {
+                state.lock().unwrap().zoom_drag =
+                    Some(Drag::start(ui.get_pdf_zoom(), ui.get_pdf_fill_zoom()));
+            }
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_zoom_end(move || {
+            state.lock().unwrap().zoom_drag = None;
+            if let Some(ui) = weak.upgrade() {
+                ui.invoke_refresh_zoom(true);
+            }
+        });
+    }
     {
         let weak = ui.as_weak();
         let state = state.clone();
@@ -744,32 +811,22 @@ fn run() -> anyhow::Result<()> {
         let timer = style_timer.clone();
         ui.on_typography(move |name, value| {
             let Some(ui) = weak.upgrade() else { return };
-            let fixed_action = name.as_str() == "zoom"
+            let fixed_action = matches!(name.as_str(), "zoom" | "zoom-drag")
                 || name.starts_with("fit-")
                 || !ui.get_reflowable() && matches!(name.as_str(), "size" | "delta-size");
             if fixed_action {
-                let changed = edit_zoom(&state, &ui, name.as_str(), value);
-                if name.starts_with("fit-") || name == "size" {
-                    if changed || timer.running() {
-                        timer.stop();
-                        submit(&state, &mailbox, |r| viewport(&ui, r));
-                    }
-                    return;
+                if edit_zoom(&state, &ui, name.as_str(), value) {
+                    ui.invoke_refresh_zoom(name.starts_with("fit-") || name == "size");
                 }
-                if !changed || timer.running() {
-                    return;
-                }
-            } else {
-                edit_style(&state, &ui, name.as_str(), value);
+                return;
             }
-            // Throttle zoom while dragging so the page follows the knob. This
-            // one-shot submits the latest bounded request, then goes dormant.
+            edit_style(&state, &ui, name.as_str(), value);
             let state = state.clone();
             let mailbox = mailbox.clone();
             let weak = weak.clone();
             timer.start(
                 slint::TimerMode::SingleShot,
-                Duration::from_millis(if fixed_action { 80 } else { 150 }),
+                Duration::from_millis(150),
                 move || {
                     if let Some(ui) = weak.upgrade() {
                         submit(&state, &mailbox, |r| viewport(&ui, r));
@@ -1032,6 +1089,11 @@ fn run() -> anyhow::Result<()> {
                     ui.set_top_hover(false);
                     ui.set_bottom_hover(false);
                     ui.set_zoom_hover(false);
+                    ui.set_zoom_pinned(false);
+                    if ui.get_zoom_dragging() {
+                        ui.set_zoom_dragging(false);
+                        ui.invoke_zoom_end();
+                    }
                     ui.set_controls_busy(false);
                 }
                 winit::event::WindowEvent::Resized(_)
@@ -1061,7 +1123,9 @@ fn run() -> anyhow::Result<()> {
                 winit::event::WindowEvent::CursorLeft { .. } => {
                     ui.set_top_hover(false);
                     ui.set_bottom_hover(false);
-                    ui.set_zoom_hover(false);
+                    if !ui.get_zoom_dragging() {
+                        ui.set_zoom_hover(false);
+                    }
                 }
                 winit::event::WindowEvent::KeyboardInput { event, .. }
                     if event.state == winit::event::ElementState::Pressed =>
@@ -1118,6 +1182,7 @@ fn run() -> anyhow::Result<()> {
                             } else if ui.get_show_contents()
                                 || ui.get_show_settings()
                                 || ui.get_show_search()
+                                || ui.get_show_zoom_pop()
                             {
                                 ui.invoke_dismiss_panels();
                             } else if ui.get_is_fullscreen() {
@@ -1179,6 +1244,7 @@ fn run() -> anyhow::Result<()> {
     slint::run_event_loop()?;
     resize_timer.stop();
     style_timer.stop();
+    zoom_timer.stop();
     pan_timer.stop();
     if let Err(error) = save(&state) {
         eprintln!("Cannot save reader state: {error}");
@@ -1218,13 +1284,15 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_pdf_fit_width_zoom(1.0);
     ui.set_pdf_fill_zoom(1.0);
     ui.set_pdf_zoom_stop(1);
+    ui.set_zoom_pinned(false);
     ui.set_pdf_pannable(false);
     ui.set_search_status("".into());
     ui.set_page_total(0);
     ui.set_selected_content_uri("".into());
     let identity = storage::fingerprint(&path).ok();
     let mut s = state.lock().unwrap();
-    s.zoom.reset();
+    s.zoom_drag = None;
+    s.zoom_pending = false;
     let anchor = identity
         .as_ref()
         .and_then(|id| s.preferences.books.get(id))

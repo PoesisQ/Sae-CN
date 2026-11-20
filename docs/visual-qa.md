@@ -1,4 +1,10 @@
-# v0.5.1-preview.1 当前界面检查
+# v0.5.2-preview.1 当前界面检查
+
+[界面审查与 Windows 截图](iteration-0.5.2.md)记录浅色、夜读、目录、排版和拨盘的实测。
+
+---
+
+# v0.5.1-preview.1 历史界面检查
 
 [底栏与点阵旋钮](iteration-0.5.1.md)记录了视觉取舍和 Windows 截图。
 

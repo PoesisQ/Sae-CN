@@ -149,7 +149,9 @@ pub fn start(
                 let s = state.lock().unwrap();
                 (
                     s.request.is_none() && ui.get_status().is_empty()
-                        || s.frame.is_some() && s.generation == s.completed_generation,
+                        || s.frame.is_some()
+                            && s.generation == s.completed_generation
+                            && !s.zoom_pending,
                     s.metrics.boot,
                 )
             };
@@ -280,22 +282,22 @@ pub fn start(
                     run.step+=1;run.ready=Some(Instant::now()+Duration::from_millis(200));run.waiting=true;return;
                 }
                 match phase {
-                    0 => { ui.set_show_toolbar(true); click(width-112.0-if ui.get_reflowable(){0.0}else{47.0},24.0); },
+                    0 => { ui.set_show_toolbar(true); click(width-if ui.get_reflowable(){130.0}else{178.0},26.0); },
                     1|8|11|16|22 => { key(Key::RightArrow.into()); run.navigation_expected=Some(2); },
                     2|9|12|17|23 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     3 => { key(Key::DownArrow.into()); run.navigation_expected=Some(2); },
                     4 => { key(Key::UpArrow.into()); run.navigation_expected=Some(0); },
                     5 => { key(Key::PageDown.into()); run.navigation_expected=Some(2); },
                     6 => { key(Key::PageUp.into()); run.navigation_expected=Some(0); },
-                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(ui.get_dock_right()-40.0,ui.get_dock_top()+18.0); } else { click(width-112.0,24.0); } },
+                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(ui.get_dock_right()-40.0,ui.get_dock_top()+22.0); } else { click(width-130.0,26.0); } },
                     10|13 => key(Key::F11.into()),
                     14 => ui.set_show_contents(true),
-                    15 => click(322.0,80.0),
+                    15 => click(340.0,86.0),
                     18 => ui.invoke_focus_search(),
                     19 => key("ab".into()),
                     20 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(page); },
                     21 => key(Key::Escape.into()),
-                    24 => { ui.set_show_toolbar(true); click(width-159.0-if ui.get_reflowable(){0.0}else{47.0},24.0); },
+                    24 => { ui.set_show_toolbar(true); click(width-if ui.get_reflowable(){178.0}else{226.0},26.0); },
                     25 => { key(Key::RightArrow.into()); run.navigation_expected=Some(1); },
                     26 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     _ => unreachable!(),
@@ -374,8 +376,8 @@ pub fn start(
                     if stop == 0 && !spread {
                         if let Ok(pixels) = ui.window().take_snapshot() {
                             let dpi = ui.window().scale_factor();
-                            let cx = (ui.get_dock_right()-74.0)*dpi;
-                            let cy = (ui.get_dock_top()+18.0)*dpi;
+                            let cx = (ui.get_dock_right()-84.0)*dpi;
+                            let cy = (ui.get_dock_top()+22.0)*dpi;
                             let mut hash = blake3::Hasher::new();
                             for y in ((cy-13.0*dpi).max(0.0) as u32)..((cy+13.0*dpi) as u32).min(pixels.height()) {
                                 let a = ((y*pixels.width() + (cx-13.0*dpi).max(0.0) as u32)*4) as usize;
@@ -386,19 +388,42 @@ pub fn start(
                             if let Some((previous, before)) = run.dial_signature {
                                 if (1.12..1.8).contains(&(value / previous)) {
                                     run.dial_rotation_samples += 1;
-                                    if before == hash { run.errors.push("dial needle pixels did not rotate".into()); }
+                                    if before == hash { run.errors.push("dial index pixels did not rotate".into()); }
                                 }
                             } else { run.dial_signature = Some((value, hash)); }
                         }
                     }
+                    if matches!(step,75|76|78|80) {
+                        if (value-2.0).abs()>0.01 || ui.get_zoom_dragging() || ui.get_controls_busy() {
+                            run.errors.push(format!("dial travel or release failed at {step}: {value}"));
+                        }
+                        let s=state.lock().unwrap();
+                        if let Some(f)=&s.frame {
+                            let w=ui.get_viewport_width()/if spread{2.0}else{1.0};
+                            let fit=(w/f.page_size.0).min(ui.get_viewport_height()/f.page_size.1);
+                            let scale=f.scale / (fit * ui.window().scale_factor());
+                            if (scale-value).abs()>0.01 || s.zoom_pending {
+                                run.errors.push(format!("final zoom was not painted at {step}: {scale}"));
+                            }
+                        }
+                    }
+                    if step==76 && !ui.get_zoom_pinned() {
+                        run.errors.push("a click on the compact dial did not open the presets".into());
+                    }
                     if let Some(folder) = &screenshots {
-                        if matches!(step,1|4|6|26|30|33|73|75) {
+                        if matches!(step,1|4|6|26|30|33|73|75|76|78|80) {
                             if let Err(e) = snapshot(&ui,&folder.join(format!("detent-{step:02}.png"))) { run.errors.push(e.to_string()); }
                         }
                     }
                 }
-                use slint::platform::WindowEvent;
-                let point = slint::LogicalPosition::new(ui.get_dock_right()-40.0,ui.get_dock_top()+18.0);
+                use slint::platform::{PointerEventButton, WindowEvent};
+                let point = slint::LogicalPosition::new(ui.get_dock_right()-40.0,ui.get_dock_top()+22.0);
+                let press=|position| ui.window().dispatch_event(WindowEvent::PointerPressed {position,button:PointerEventButton::Left});
+                let release=|position| ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
+                let movement=|position: slint::LogicalPosition| {
+                    ui.invoke_edge_hover(position.x,position.y);
+                    ui.window().dispatch_event(WindowEvent::PointerMoved {position});
+                };
                 match run.step {
                     0 => { ui.set_show_toolbar(true); ui.set_double_page(false); ui.invoke_mode_changed(false); ui.invoke_typography("fit-page".into(),0.0); },
                     1 | 26 => ui.invoke_typography("zoom".into(),0.8),
@@ -407,12 +432,40 @@ pub fn start(
                     50..=72 => ui.window().dispatch_event(WindowEvent::PointerScrolled {position:point,delta_x:0.0,delta_y:-120.0}),
                     73 => ui.invoke_typography("fit-page".into(),0.0),
                     74 => {
-                        use slint::platform::PointerEventButton;
-                        let from=slint::LogicalPosition::new(point.x+9.0,point.y);
-                        let to=slint::LogicalPosition::new(point.x+140.0,point.y+9.0);
-                        ui.window().dispatch_event(WindowEvent::PointerPressed {position:from,button:PointerEventButton::Left});
-                        ui.window().dispatch_event(WindowEvent::PointerMoved {position:to});
-                        ui.window().dispatch_event(WindowEvent::PointerReleased {position:to,button:PointerEventButton::Left});
+                        let to=slint::LogicalPosition::new(point.x+144.0,point.y-9.0);
+                        press(point);
+                        movement(to);
+                        release(to);
+                    },
+                    75 => { press(point); release(point); },
+                    76 | 78 => ui.invoke_typography("fit-page".into(),0.0),
+                    77 => {
+                        let from=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
+                        press(from);
+                        // The same path at a different event frequency, crossing the edge
+                        // of the popover and reversing before returning to its end.
+                        let mut previous=ui.get_pdf_zoom();
+                        for distance in (4..=144).step_by(4) {
+                            movement(slint::LogicalPosition::new(from.x+distance as f32,from.y-(distance%12) as f32/3.0));
+                            let value=ui.get_pdf_zoom();
+                            if value+0.001<previous {run.errors.push("zoom reversed during outward drag".into());}
+                            previous=value;
+                        }
+                        movement(from);
+                        if (ui.get_pdf_zoom()-1.0).abs()>0.001 {
+                            run.errors.push("reversing the dial did not return to its initial scale".into());
+                        }
+                        let to=slint::LogicalPosition::new(from.x+144.0,from.y-1.0);
+                        movement(to);
+                        release(to);
+                    },
+                    79 => {
+                        ui.set_zoom_pinned(false);
+                        ui.invoke_edge_hover(point.x,point.y);
+                        let from=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
+                        press(from);
+                        movement(slint::LogicalPosition::new(from.x+3.0,from.y-60.0));
+                        release(slint::LogicalPosition::new(from.x+10.0,from.y-144.0));
                     },
                     _ => {
                         if ui.get_pdf_zoom()<1.05 { run.errors.push("linear dial drag did not enlarge the page".into()); }
@@ -475,12 +528,12 @@ pub fn start(
                 use slint::platform::{Key,WindowEvent,PointerEventButton};
                 let dock_left=ui.get_dock_left();
                 let dock_right=ui.get_dock_right();
-                let point=slint::LogicalPosition::new(dock_right-40.0,ui.get_dock_top()+18.0);
+                let point=slint::LogicalPosition::new(dock_right-40.0,ui.get_dock_top()+22.0);
                 let pop_top=ui.get_knob_pop_top();
                 let pop_left=ui.get_knob_pop_left();
-                let preset_offset=if ui.get_zoom_can_cover() {16.0} else {22.0};
-                let progress_start=slint::LogicalPosition::new(dock_left+118.0,point.y);
-                let progress_end=slint::LogicalPosition::new(dock_right-116.0,point.y);
+                let preset_offset=if ui.get_zoom_can_cover() {24.0} else {42.0};
+                let progress_start=slint::LogicalPosition::new(dock_left+130.0,point.y);
+                let progress_end=slint::LogicalPosition::new(dock_right-132.0,point.y);
                 let key=|text:slint::SharedString| {
                     ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
                     ui.window().dispatch_event(WindowEvent::KeyReleased{text});
@@ -501,11 +554,12 @@ pub fn start(
                     7=>{ui.invoke_edge_hover(point.x,viewport.1-4.0);},
                     8=>ui.window().dispatch_event(WindowEvent::PointerScrolled{position:point,delta_x:0.0,delta_y:120.0}),
                     9=>{
-                        let dial=slint::LogicalPosition::new(pop_left+114.0,pop_top+36.0);
+                        let dial=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
                         drag(dial,slint::LogicalPosition::new(dial.x+128.0,dial.y+28.0),PointerEventButton::Left);
                     },
                     10=>{
                         run.panel_generation=Some(state.lock().unwrap().generation);
+                        ui.invoke_edge_hover(progress_start.x,viewport.1-4.0);
                         ui.invoke_edge_hover(progress_start.x,progress_start.y);
                         ui.window().dispatch_event(WindowEvent::PointerPressed{position:progress_start,button:PointerEventButton::Left});
                         ui.window().dispatch_event(WindowEvent::PointerMoved{position:progress_end});
@@ -518,6 +572,7 @@ pub fn start(
                     },
                     13=>{
                         let label=slint::LogicalPosition::new(dock_left+48.0,point.y);
+                        ui.invoke_edge_hover(label.x,viewport.1-4.0);
                         drag(label,label,PointerEventButton::Left);
                     },
                     14=>{key("8".into()); key(Key::Return.into());},
@@ -525,7 +580,7 @@ pub fn start(
                     16=>key(Key::LeftArrow.into()),
                     17=>{
                         ui.invoke_edge_hover(point.x,point.y);
-                        let preset=slint::LogicalPosition::new(pop_left+38.0,pop_top+if ui.get_zoom_can_cover(){36.0}else{50.0});
+                        let preset=slint::LogicalPosition::new(pop_left+38.0,pop_top+preset_offset+36.0);
                         drag(preset,preset,PointerEventButton::Left);
                     },
                     18=>{
@@ -691,7 +746,8 @@ pub fn start(
                     }
                     7 if ui.get_reflowable() => {
                         use slint::platform::{PointerEventButton, WindowEvent};
-                        let position = slint::LogicalPosition::new(ui.get_viewport_width() - 85.0, 291.0);
+                        let position =
+                            slint::LogicalPosition::new(ui.get_viewport_width() - 155.0, 276.0);
                         ui.window().dispatch_event(WindowEvent::PointerPressed { position, button:PointerEventButton::Left });
                         ui.window().dispatch_event(WindowEvent::PointerReleased { position, button:PointerEventButton::Left });
                     }
