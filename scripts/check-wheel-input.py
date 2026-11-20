@@ -118,9 +118,9 @@ def wheel(direction):
 
 
 def reset_zoom():
-    move(cx - 28, cy + 27)
-    button(cx - 28, cy + 27, True)
-    button(cx - 28, cy + 27, False)
+    move(preset_x, preset_y)
+    button(preset_x, preset_y, True)
+    button(preset_x, preset_y, False)
     current = probe()
     assert abs(current["zoom"] - 1) < .001, ("preset", current)
 
@@ -170,7 +170,7 @@ try:
     move(x, y)
     time.sleep(.25)
     a = probe("capture-drum")
-    assert a["depth"] >= 55 and a["mode"] == 0, a
+    assert a["depth"] >= 30 and a["mode"] == 0, a
     gen = a["generation"]
     wheel(-1)
     w = probe()
@@ -186,7 +186,14 @@ try:
     assert probe()["mode"] == 0, "reverse wheel input did not restore single page"
     before = probe()
     button(x, y, True)
-    move(x-48, y)
+    history = []
+    for delta in (7,16,28,42,48):
+        move(x-delta, y)
+        partial = probe(f"capture-held-{delta}")
+        assert partial["mode_held"] and partial["mode"] == 0 and partial["generation"] == before["generation"]
+        history.append(partial["mode_position"])
+    assert all(b-a > .04 for a,b in zip([0]+history,history)), ("wheel stopped following the held pointer", history)
+    checks["held_positions"] = history
     partial = probe()
     assert partial["mode"] == 0 and partial["generation"] == before["generation"], "partial drag submitted a layout"
     button(x-48, y, False)
@@ -208,10 +215,11 @@ try:
     d = probe("capture-dial")
     cx, cy = d["center"]
     r = d["radius"]
-    assert r >= 42.8, d
+    assert 33.8 <= r <= 34.2, d
+    preset_x, preset_y, _ = d["presets"]
     for name, (sx, sy), (dx, dy), gain in [
-        ("horizontal-rim", (0,-38), (1,0), 2), ("horizontal-preset", (28,27), (-1,0), .5),
-        ("vertical-rim", (-38,0), (0,-1), 2), ("vertical-hub", (0,0), (0,1), .5),
+        ("horizontal-rim", (0,-r*.90), (1,0), 2), ("horizontal-preset", (cx-preset_x,preset_y-cy), (-1,0), .5),
+        ("vertical-rim", (-r*.90,0), (0,-1), 2), ("vertical-hub", (0,0), (0,1), .5),
     ]:
         z = drag(name, [(sx+dx*t,sy+dy*t) for t in range(0,145,8)])
         assert abs(z - gain) < .025, (name, z, gain)
@@ -221,7 +229,7 @@ try:
             pts = []
             for step in range(49):
                 a = math.radians(start + direction * step * 7.5)
-                rr = 40 * (1+.09*math.sin(2*a))
+                rr = r*.93 * (1+.09*math.sin(2*a))
                 pts.append((rr*math.cos(a),rr*math.sin(a)))
             z = drag(name, pts, True)
             assert abs(z - target) < .1, (name, z, target)

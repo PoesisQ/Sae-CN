@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.6.1-preview.1')
+parser.add_argument('--name', default='SaeReader-0.6.2-preview.1')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -45,6 +45,9 @@ for kind in ('source', 'windows-x64'):
         checked[kind] = {'entries': len(names), 'crc': 'all passed'}
         if kind == 'source':
             required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
+                        'src/home.rs', 'src/home/field.rs', 'ui/paper-edge.slint', 'assets/home/blue.field',
+                        'assets/home/blue-grain.zlib', 'assets/home/blue-still.png', 'assets/home/plasma-still.png',
+                        'assets/home/sae-stencil.svg', 'scripts/pack-home-field.py',
                         'assets/icon-original.png', 'assets/window-icon.png', 'assets/app-icon.ico',
                         'assets/sae-reader.rc', 'scripts/generate-icon.py', 'scripts/verify-package.py', 'scripts/install-local.ps1',
                         'src/reading.rs', 'src/rendering.rs', 'src/text_adapter.rs', 'src/epub_compat.rs', 'src/math.rs',

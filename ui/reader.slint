@@ -2,6 +2,7 @@
 // The two controls use the same printed scale and a fixed reading index.
 import { LineEdit, ScrollView, ListView, Palette } from "std-widgets.slint";
 import { DockOutline } from "dock.slint";
+import { PaperEdge } from "paper-edge.slint";
 import { SmoothSurface } from "surface.slint";
 
 export struct Mark { x:float, y:float, w:float, h:float }
@@ -30,22 +31,63 @@ export global ReaderTheme {
 
 component Frontispiece inherits Rectangle {
     in property <string> message;
+    in property <int> variant;
+    in property <image> frame;
     callback open();
     property <length> margin: clamp(root.width * 0.066,28px,108px);
     property <color> ink: #23302c;
     property <length> type-size: min(root.width * 0.179, root.height * 0.242);
     background: #f3efe4;
-    // Keep the title on the unprinted margin at portrait and ultrawide ratios.
-    Image {
-        width: max(parent.width, parent.height * 1.6); height: self.width / 1.6;
-        x: (parent.width - self.width) * 0.16; y: (parent.height - self.height) * 0.48;
+    property <length> print-width: max(root.width,root.height*1.6);
+    property <length> print-height: root.print-width/1.6;
+    property <length> print-x: (root.width - root.print-width)*0.16;
+    property <length> print-y: (root.height - root.print-height)*0.48;
+    pure function px(x:float)->float { return (root.print-x+root.print-width*x/1600)/1px; }
+    pure function py(y:float)->float { return (root.print-y+root.print-height*y/1000)/1px; }
+    property <length> logo-x: root.margin - 0.018*root.type-size;
+    property <length> logo-y: root.height*0.619;
+    property <length> logo-w: root.type-size*1.38;
+    property <length> logo-h: root.logo-w*753/1395;
+    if root.variant == 0: Image {
+        x: root.print-x; y: root.print-y; width: root.print-width; height: root.print-height;
         image-fit: fill; image-rendering: smooth; source: @image-url("../assets/frontispiece.svg");
+    }
+    if root.variant != 0: film := Rectangle {
+        width: root.width; height: root.height;
+        property <image> picture: root.frame.width > 0 ? root.frame : root.variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
+        Image { width: parent.width; height: parent.height; image-fit: fill; source: film.picture; }
+        // Both boundaries are straight within each strip of the original print.
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
+            x1: root.px(-420); y1: root.py(-330); x2: root.px(780); y2: root.py(380); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
+            x1: root.px(780); y1: root.py(380); x2: root.px(560); y2: root.py(554); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
+            x1: root.px(560); y1: root.py(554); x2: root.px(1060); y2: root.py(1240); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
+            x1: root.px(1081.9); y1: root.py(-349.76); x2: root.px(1551.31); y2: root.py(65.61); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
+            x1: root.px(1551.31); y1: root.py(65.61); x2: root.px(1494.32); y2: root.py(134.92); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
+            x1: root.px(1494.32); y1: root.py(134.92); x2: root.px(1808.44); y2: root.py(467.57); }
+        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
+            x1: root.px(1808.44); y1: root.py(467.57); x2: root.px(1060); y2: root.py(1240); }
+        // Sample the identical full-window field through the word, with a physical
+        // pixel of overlap between the paper and the outer glyph stencil.
+        Rectangle {
+            x: root.logo-x + 1px; y: root.logo-y + 1px; width: root.logo-w - 2px; height: root.logo-h - 2px; clip: true;
+            Image { x: -parent.x; y: -parent.y; width: film.width; height: film.height; image-fit: fill; source: film.picture; }
+        }
+        Image {
+            x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h;
+            source: @image-url("../assets/home/sae-stencil.svg"); image-fit: fill;
+            accessible-role: text; accessible-label: "Sae";
+        }
     }
     Text {
         x: root.margin; y: root.height * 0.558; text: "READER";
         font-family: "Segoe UI"; font-size: 12px; font-weight: 600; letter-spacing: 3px; color: root.ink;
     }
-    Text {
+    if root.variant == 0: Text {
         x: root.margin - self.font-size * 0.054; y: root.height * 0.574;
         width: root.width * 0.47; height: self.font-size * 1.18;
         text: "Sae"; font-family: "Georgia"; font-weight: 400;
@@ -438,168 +480,160 @@ component PagePane inherits Rectangle {
     }
 }
 
-global DrumGeometry {
-    public pure function height-at(t: float) -> float {
-        let u = clamp(1 - abs(t), 0, 1) * 3;
-        if u <= 1 { return u*u*u/6; }
-        if u >= 2 { let q = 3 - u; return 1 - q*q*q/6; }
-        let v = u - 1;
-        return (1 + v*(3 + v*(3 - 2*v))) / 6;
-    }
-}
-
-// One continuous spline defines the rail, the drum face and its machined lip.
-// Each cubic matches the slope and curvature of its neighbours and the straight rail.
-component DrumOutline inherits Path {
-    in property <length> center;
-    in property <length> span;
-    in property <length> depth;
-    in property <length> rim;
-    in property <float> corner;
-    property <float> w: self.width / 1px;
-    property <float> a: (root.center - root.span/2) / 1px;
-    property <float> q: root.span / 6px;
-    property <float> d: root.depth / 1px;
-    property <float> s: root.rim / 1px;
-    fit: preserve;
-    MoveTo { x: 0; y: root.s; } LineTo { x: root.a; y: root.s; }
-    CubicTo { control-1-x: root.a+root.q*1/3; control-1-y: root.s; control-2-x: root.a+root.q*2/3; control-2-y: root.s; x: root.a+root.q*1; y: root.s+root.d/6; }
-    CubicTo { control-1-x: root.a+root.q*4/3; control-1-y: root.s+root.d/3; control-2-x: root.a+root.q*5/3; control-2-y: root.s+root.d*2/3; x: root.a+root.q*2; y: root.s+root.d*5/6; }
-    CubicTo { control-1-x: root.a+root.q*7/3; control-1-y: root.s+root.d; control-2-x: root.a+root.q*8/3; control-2-y: root.s+root.d; x: root.a+root.q*3; y: root.s+root.d; }
-    CubicTo { control-1-x: root.a+root.q*10/3; control-1-y: root.s+root.d; control-2-x: root.a+root.q*11/3; control-2-y: root.s+root.d; x: root.a+root.q*4; y: root.s+root.d*5/6; }
-    CubicTo { control-1-x: root.a+root.q*13/3; control-1-y: root.s+root.d*2/3; control-2-x: root.a+root.q*14/3; control-2-y: root.s+root.d/3; x: root.a+root.q*5; y: root.s+root.d/6; }
-    CubicTo { control-1-x: root.a+root.q*16/3; control-1-y: root.s; control-2-x: root.a+root.q*17/3; control-2-y: root.s; x: root.a+root.q*6; y: root.s; }
-    LineTo { x: root.w; y: root.s; } LineTo { x: root.w; y: root.corner; }
-    CubicTo { control-1-x: root.w; control-1-y: root.corner*0.2; control-2-x: root.w - root.corner*0.2; control-2-y: 0; x: root.w - root.corner; y: 0; }
-    LineTo { x: root.corner; y: 0; }
-    CubicTo { control-1-x: root.corner*0.2; control-1-y: 0; control-2-x: 0; control-2-y: root.corner*0.2; x: 0; y: root.corner; }
-    Close {}
-}
-
+// A circular instrument sits above the straight rail. The scale and legends have one
+// axle at the top edge; only the reading index is fixed (§2.1, §6.1).
 component ModeDrum inherits Rectangle {
     in property <int> count: 3;
-    in property <int> value;
-    in property <length> seam;
-    in property <length> depth;
+    // Keep the resting coordinate in the same continuous space as the pull and
+    // spring. The layout index is integral only when a detent is committed.
+    in property <float> value;
+    in property <length> radius;
     in property <bool> hit-enabled: true;
-    callback choose(int);
+    callback choose(int); callback gripping(bool); callback indicated(float);
     property <float> raw;
     property <int> latch;
-    property <length> previous-x;
-    property <length> origin-x;
+    property <bool> held;
     property <bool> dragged;
     property <bool> scrolling;
-    callback gripping(bool);
-    // Cam travel is shallow around the notches and steep across the saddle.
-    property <float> position: (touch.pressed && root.dragged) || root.scrolling
-        ? root.raw - sin(root.raw * 360deg) * 0.095 : root.value;
-    animate position { duration: touch.pressed || root.scrolling ? 0ms : 165ms; easing: cubic-bezier(0.18,0.74,0.16,1); }
-    function select(v: int) {
-        let index = clamp(v,0,root.count - 1);
-        if index != root.value { root.choose(index); }
+    property <length> previous-x;
+    property <length> previous-y;
+    property <length> origin-x;
+    property <length> origin-y;
+    property <float> snap-from;
+    property <float> snap-to;
+    property <duration> snap-start;
+    property <bool> settling;
+    property <float> t: root.settling ? clamp((animation-tick() - root.snap-start)/160ms,0,1) : 1;
+    property <float> position: root.held || root.scrolling ? root.raw - 0.034*sin(root.raw*360deg)
+        : root.settling ? root.snap-to + (root.snap-from - root.snap-to)*pow(1 - root.t,3)*(1 + root.t) : root.value;
+    changed position => { root.indicated(root.position); }
+    property <color> face: ReaderTheme.dark ? #333c38 : #e1e3d9;
+    property <color> rim: ReaderTheme.dark ? #829085 : #a3aa9c;
+    property <color> printing: ReaderTheme.dark ? #edf0e5 : #25332d;
+    property <color> secondary: ReaderTheme.dark ? #b6c0b5 : #526356;
+    height: root.radius + 3px;
+    accessible-role: slider; accessible-label: "阅读视图"; accessible-value: root.value == 2 ? "多页" : root.value == 1 ? "双页" : "单页";
+    accessible-action-increment => { root.snap(root.value + 1); }
+    accessible-action-decrement => { root.snap(root.value - 1); }
+    forward-focus: focus;
+
+    function snap(v: int) {
+        let target = clamp(v,0,root.count - 1);
+        root.snap-from = root.position;
+        root.snap-to = target; root.snap-start = animation-tick();
+        root.held = false; root.scrolling = false;
+        root.settling = abs(root.snap-from - target) > 0.002;
+        spring.running = false;
+        if root.settling { spring.running = true; }
+        if target != root.value { root.choose(target); }
     }
     function displace(distance: float) {
         root.raw = clamp(root.raw + distance,0,root.count - 1);
-        if root.raw >= root.latch + 0.68 { root.latch = floor(root.raw + 0.32); }
-        else if root.raw <= root.latch - 0.68 { root.latch = ceil(root.raw - 0.32); }
+        if root.raw >= root.latch + 0.67 { root.latch = floor(root.raw + 0.33); }
+        else if root.raw <= root.latch - 0.67 { root.latch = ceil(root.raw - 0.33); }
     }
     function pull() {
-        if abs(touch.mouse-x - root.origin-x) > 3px { root.dragged = true; }
+        if !root.held { return; }
+        let x = touch.mouse-x; let y = touch.mouse-y;
+        if abs(x - root.origin-x) + abs(y - root.origin-y) >= 2px { root.dragged = true; }
         if root.dragged {
-            root.displace((root.previous-x - touch.mouse-x) / 100px);
-            root.previous-x = touch.mouse-x;
+            let dx = (x - root.previous-x)/1px; let dy = (y - root.previous-y)/1px;
+            let rx = (root.previous-x - root.width/2)/1px; let ry = root.previous-y/1px;
+            let r = max(1,sqrt(rx*rx + ry*ry));
+            // A horizontal swipe has constant travel even past the rim. On the
+            // curved edge, the tangent also follows a finger travelling vertically.
+            let tangential = (ry*dx - rx*dy)/r;
+            let blend = clamp((abs(dy) - abs(dx)*0.32)/max(1,abs(dy)),0,1);
+            root.displace(-(dx*(1 - blend) + tangential*blend)/88);
+            root.previous-x = x; root.previous-y = y;
         }
     }
-    settle := Timer {
-        running: false; interval: 340ms;
-        triggered => { self.running = false; root.scrolling = false; }
+    spring := Timer { interval: 164ms; running: false; triggered => { self.running = false; root.settling = false; } }
+    release-wheel := Timer {
+        interval: 310ms; running: false;
+        // Scroll commits when it crosses the detent. Settling must respect a
+        // layout selected elsewhere while the last wheel impulse was decaying.
+        triggered => { self.running = false; root.snap(root.value); }
     }
-    height: root.seam + root.depth + 2px;
-    accessible-role: slider; accessible-label: "阅读视图"; accessible-value: root.value == 2 ? "多页" : root.value == 1 ? "双页" : "单页";
-    accessible-action-increment => { root.select(root.value + 1); }
-    accessible-action-decrement => { root.select(root.value - 1); }
-    forward-focus: focus;
-    // The projected face and its thin undercut follow the same contour.
-    DrumOutline {
-        x: 7px; y: 12px; width: parent.width - 14px; height: parent.height - 15px;
-        center: self.width/2; span: self.width; rim: root.seam - 20px; depth: root.depth; corner: 12;
-        fill: ReaderTheme.dark ? #111b17 : #34433c;
-    }
-    DrumOutline {
-        x: 7px; y: 12px; width: parent.width - 14px; height: parent.height - 17px;
-        center: self.width/2; span: self.width; rim: root.seam - 22.5px; depth: root.depth; corner: 12;
-        fill: ReaderTheme.dark ? #394b43 : #4c6056;
-    }
-    for name[idx] in ["单页","双页","多页"]: Text {
-        property <float> phase: idx - root.position;
-        property <angle> theta: clamp(self.phase, -1.48, 1.48) * 47deg;
-        property <float> depth-on-drum: cos(self.theta);
-        visible: idx < root.count && abs(self.phase) < 1.49;
-        width: 38px; height: 20px;
-        property <length> offset: parent.width * 0.365 * sin(self.theta);
-        property <float> outer-edge: (abs(self.offset) + self.width/2) / (parent.width/2 - 7px);
-        property <length> label-floor: root.seam - 19px + root.depth * DrumGeometry.height-at(self.outer-edge);
-        x: (parent.width - self.width)/2 + self.offset;
-        y: min(root.seam - 21px + root.depth * 0.38 - self.height/2 - 12px*(1-self.depth-on-drum), self.label-floor - self.height);
-        transform-rotation: -5deg * sin(self.theta);
-        opacity: clamp((1.49 - abs(self.phase)) * 1.75, 0, 1);
-        text: name; horizontal-alignment: center; vertical-alignment: center;
-        font-size: 13px + 2px*self.depth-on-drum;
-        font-weight: abs(self.phase) < 0.46 ? 600 : 400;
-        color: abs(self.phase) < 0.46 ? #f6f4e9 : #c8d3c9;
-    }
-    for tooth in 19: Rectangle {
-        property <float> u: (tooth - 9 - mod(root.position*8,1)) / 12;
-        property <float> t: min(1,abs(self.u));
-        property <float> curve: DrumGeometry.height-at(self.t);
-        x: parent.width/2 + (parent.width/2 - 7px)*self.u;
-        y: root.seam + root.depth*self.curve - 12.5px - self.height;
-        width: 1px; height: mod(tooth,4) == 3 ? 5px : 3px;
-        transform-rotation: -self.u * 15deg; opacity: 0.42 + 0.48 * (1-self.t);
-        background: #d2decf;
+    // The two discs share a centre and remain circular at every reveal size.
+    Rectangle {
+        x: parent.width/2 - root.radius; y: 2px - root.radius;
+        width: 2*root.radius; height: self.width; border-radius: root.radius;
+        background: ReaderTheme.contact;
     }
     Rectangle {
-        x: (parent.width - self.width)/2; y: root.seam + root.depth - 20px;
-        width: 2px; height: 7px; border-radius: 0.8px;
-        background: #eac19a;
+        x: parent.width/2 - root.radius; y: -root.radius;
+        width: 2*root.radius; height: self.width; border-radius: root.radius;
+        background: root.face; border-width: 1px; border-color: root.rim;
+    }
+    for tooth in 33: Rectangle {
+        property <angle> theta: (tooth - 16 - mod(root.position*8,1))*6deg;
+        property <bool> major: mod(tooth + floor(root.position*8),4) == 0;
+        property <length> track: root.radius - 8px;
+        width: self.major ? 1.5px : 1px; height: self.major ? 6px : 3px;
+        x: parent.width/2 + self.track*sin(self.theta) - self.width/2;
+        y: self.track*cos(self.theta) - self.height/2;
+        transform-rotation: -self.theta;
+        background: root.secondary;
+    }
+    for name[i] in ["单页","双页","多页"]: Text {
+        property <float> phase: i - root.position;
+        property <angle> theta: self.phase*48deg;
+        property <length> track: root.radius*0.67;
+        visible: i < root.count && abs(self.phase) < 1.78;
+        width: 38px; height: 20px;
+        x: parent.width/2 + self.track*sin(self.theta) - self.width/2;
+        y: self.track*cos(self.theta) - self.height/2;
+        opacity: clamp((1.78 - abs(self.phase))*2.4,0,1);
+        transform-rotation: -self.theta*0.62;
+        text: name; font-size: abs(self.phase) < 0.48 ? 15px : 13px;
+        font-weight: abs(self.phase) < 0.48 ? 600 : 400;
+        color: abs(self.phase) < 0.48 ? root.printing : root.secondary;
+        horizontal-alignment: center; vertical-alignment: center;
+    }
+    Rectangle {
+        x: (parent.width - self.width)/2; y: root.radius - 4px;
+        width: 3px; height: 4px; border-radius: 1px;
+        background: ReaderTheme.dark ? #f1bb94 : #9b452e;
     }
     focus := FocusScope {
         key-pressed(e) => {
-            if e.text == Key.UpArrow { root.select(root.value - 1); return accept; }
-            if e.text == Key.DownArrow { root.select(root.value + 1); return accept; }
-            if e.text == Key.Home { root.select(0); return accept; }
-            if e.text == Key.End { root.select(root.count - 1); return accept; }
+            if e.text == Key.UpArrow { root.snap(root.value - 1); return accept; }
+            if e.text == Key.DownArrow { root.snap(root.value + 1); return accept; }
+            if e.text == Key.Home { root.snap(0); return accept; }
+            if e.text == Key.End { root.snap(root.count - 1); return accept; }
             return reject;
         }
     }
     touch := TouchArea {
-        enabled: root.hit-enabled;
-        mouse-cursor: self.pressed ? grabbing : grab;
+        enabled: root.hit-enabled || root.held; mouse-cursor: root.held ? grabbing : grab;
         pointer-event(e) => {
             if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-                settle.running = false; root.scrolling = false;
-                root.raw = root.value; root.latch = root.value; root.dragged = false;
-                root.origin-x = self.mouse-x; root.previous-x = self.mouse-x; root.gripping(true);
+                let here = root.position;
+                release-wheel.running = false; spring.running = false;
+                root.raw = here; root.latch = root.value; root.settling = false;
+                root.scrolling = false; root.held = true; root.dragged = false;
+                root.origin-x = self.mouse-x; root.previous-x = self.mouse-x;
+                root.origin-y = self.mouse-y; root.previous-y = self.mouse-y; root.gripping(true);
             }
-            if e.kind == PointerEventKind.up && e.button == PointerEventButton.left {
+            if e.kind == PointerEventKind.up && e.button == PointerEventButton.left && root.held {
                 root.pull();
-                root.select(root.dragged ? root.latch : root.value + round((self.mouse-x / self.width - 0.5)/0.29));
+                let angle = atan2((self.mouse-x - self.width/2)/1px,max(2,self.mouse-y/1px));
+                root.snap(root.dragged ? root.latch : root.value + round(angle/48deg));
                 root.gripping(false);
             }
-            if e.kind == PointerEventKind.cancel { root.dragged = false; root.gripping(false); }
+            if e.kind == PointerEventKind.cancel { root.snap(root.value); root.gripping(false); }
         }
-        moved => { if self.pressed { root.pull(); } }
+        moved => { root.pull(); }
         scroll-event(e) => {
-            let delta = (abs(e.delta-y) >= abs(e.delta-x) ? -e.delta-y : e.delta-x) / 1px;
-            if !self.pressed && delta != 0 {
-                if !root.scrolling { root.raw = root.value; root.latch = root.value; }
-                root.scrolling = true;
-                root.displace(clamp(delta,-60,60) / 150);
-                if root.latch != root.value {
-                    root.select(root.latch); root.raw = root.latch;
-                }
-                settle.interval = settle.interval == 340ms ? 341ms : 340ms;
-                settle.running = true;
+            let delta = (abs(e.delta-y) >= abs(e.delta-x) ? -e.delta-y : e.delta-x)/1px;
+            if !root.held && delta != 0 {
+                if !root.scrolling { root.raw = root.position; root.latch = root.value; }
+                root.settling = false; root.scrolling = true;
+                root.displace(clamp(delta,-60,60)/120);
+                if root.latch != root.value { root.choose(root.latch); }
+                release-wheel.interval = release-wheel.interval == 310ms ? 311ms : 310ms;
+                release-wheel.running = true;
             }
             return accept;
         }
@@ -648,9 +682,9 @@ component ZoomGrip inherits TouchArea {
     callback pointed(int);
     pure function mark-at(dx: length, dy: length) -> int {
         if root.marks-enabled {
-            if abs(dx + 28px) <= 11px && abs(dy - 27px) <= 8px { return 0; }
-            if abs(dx) <= 11px && abs(dy - 38px) <= 8px { return 1; }
-            if abs(dx - 28px) <= 11px && abs(dy - 27px) <= 8px { return 2; }
+            if abs(dx + 22px) <= 11px && abs(dy - 21px) <= 8px { return 0; }
+            if abs(dx) <= 11px && abs(dy - 30px) <= 8px { return 1; }
+            if abs(dx - 22px) <= 11px && abs(dy - 21px) <= 8px { return 2; }
         }
         return -1;
     }
@@ -839,6 +873,13 @@ export component ReaderWindow inherits Window {
     in property <bool> has-document: false;
     // Rust decides whether to show the print before the first window is drawn.
     in property <bool> opening-document: true;
+    in property <bool> home-session: false;
+    in property <int> home-variant;
+    in property <image> home-frame;
+    in property <int> home-frames;
+    callback cycle-home(int);
+    callback home-picker(bool);
+    callback retire-home();
     in property <bool> reflowable: true;
     in property <[TocRow]> contents;
     in-out property <string> selected-content-uri;
@@ -859,7 +900,7 @@ export component ReaderWindow inherits Window {
     in-out property <bool> is-fullscreen: false;
     in-out property <bool> controls-busy: false;
     in-out property <bool> page-entry-active: false;
-    property <bool> mode-dragging;
+    out property <bool> mode-dragging;
     out property <bool> top-visible: root.mode-dragging || !root.has-document || root.show-toolbar || root.top-hover || root.show-search || root.show-contents || root.show-settings;
     out property <bool> bottom-visible: root.has-document && (root.page-entry-active || root.zoom-lift > 0.001 || ((root.show-progress || !root.reflowable) && (root.show-toolbar || root.bottom-hover || root.controls-busy || root.zoom-pinned)));
     out property <bool> reading-keys: root.has-document && !root.show-search && !root.show-contents && !root.show-settings && !root.page-entry-active;
@@ -891,15 +932,17 @@ export component ReaderWindow inherits Window {
     property <length> window-inset: 16px;
     property <length> header-height: 52px;
     out property <length> header-height-logical: root.header-height;
-    out property <length> mode-span: root.reflowable ? clamp(root.width*0.25,134px,174px) : clamp(root.width*0.27,158px,214px);
+    out property <length> mode-span: root.reflowable ? clamp(root.width*0.25,162px,188px) : clamp(root.width*0.27,158px,214px);
     out property <length> mode-center-x: root.width - root.window-inset - 88px - root.mode-span/2;
     property <bool> mode-hot;
     property <bool> mode-hit-enabled: true;
-    out property <length> mode-depth: root.mode-hot || root.mode-dragging ? 56px : 12px;
-    animate mode-depth { duration: 145ms; easing: cubic-bezier(0.2,0.7,0.2,1); }
+    in-out property <float> mode-position;
+    property <length> mode-radius: root.mode-hot || root.mode-dragging ? min(root.mode-span/2 - 4px,100px) : 62px;
+    out property <length> mode-depth: root.mode-radius - root.header-height;
+    animate mode-radius { duration: 145ms; easing: cubic-bezier(0.2,0.7,0.2,1); }
     out property <length> panel-top: root.header-height + 64px;
     out property <length> dock-height: 48px;
-    property <length> dock-width: min(root.reflowable ? 424px : root.show-progress || root.page-entry-active ? 528px : 120px,root.width - 2 * root.window-inset);
+    property <length> dock-width: min(root.reflowable ? 424px : root.show-progress || root.page-entry-active ? 516px : 100px,root.width - 2 * root.window-inset);
     out property <length> dock-left: (root.width - root.dock-width) / 2;
     out property <length> dock-right: root.dock-left + root.dock-width;
     out property <length> dock-top: root.height - root.dock-height - 12px;
@@ -910,21 +953,21 @@ export component ReaderWindow inherits Window {
     property <float> zoom-lift: root.zoom-dragging ? root.captured-lift : root.reveal-lift;
     property <float> reveal-lift: root.show-zoom-pop ? 1 : 0;
     animate reveal-lift { duration: 180ms; easing: cubic-bezier(0.22,0.68,0.13,1); }
-    out property <length> knob-pop-width: 124px;
-    out property <length> knob-pop-height: 64px;
+    out property <length> knob-pop-width: 100px;
+    out property <length> knob-pop-height: 48px;
     out property <bool> zoom-can-cover: root.pdf-fill-zoom > root.pdf-fit-width-zoom * 1.035;
     out property <length> knob-pop-left: root.dock-right - root.knob-pop-width;
     out property <length> knob-pop-top: root.dock-top - root.knob-pop-height;
-    out property <length> knob-center-x: root.dock-right - 88px + 28px * root.zoom-lift;
-    out property <length> knob-center-y: root.dock-top + 24px - 34px * root.zoom-lift;
-    out property <length> knob-radius: 12px + 31px * root.zoom-lift;
+    out property <length> knob-center-x: root.dock-right - 73px + 23px * root.zoom-lift;
+    out property <length> knob-center-y: root.dock-top + 24px - 24px * root.zoom-lift;
+    out property <length> knob-radius: 12px + 22px * root.zoom-lift;
     property <length> dock-rise: root.knob-pop-height * root.zoom-lift;
-    out property <length> readout-x: root.dock-right - 35px - 25px * root.zoom-lift;
+    out property <length> readout-x: root.dock-right - 30px - 20px * root.zoom-lift;
     out property <length> readout-y: root.knob-center-y;
-    out property <length> preset-page-x: root.knob-center-x - 28px;
+    out property <length> preset-page-x: root.knob-center-x - 22px;
     out property <length> preset-width-x: root.knob-center-x;
-    out property <length> preset-page-y: root.knob-center-y + 27px;
-    out property <length> preset-width-y: root.knob-center-y + 38px;
+    out property <length> preset-page-y: root.knob-center-y + 21px;
+    out property <length> preset-width-y: root.knob-center-y + 30px;
     property <int> preset-hover: -1;
     property <bool> presets-ready;
     arm-presets := Timer {
@@ -956,13 +999,13 @@ export component ReaderWindow inherits Window {
         }
         // Enter well inside the canvas, then give the pointer a wider exit band.
         let reveal = clamp(root.height * 0.08,44px,72px);
-        let across = abs(px - root.mode-center-x)/(root.mode-span/2);
-        let under-wheel = across <= 1 && py <= root.header-height + 57px;
-        let on-face = under-wheel && py <= root.header-height + root.mode-depth * DrumGeometry.height-at(across);
-        root.mode-hit-enabled = !under-wheel || on-face;
+        let dx = (px - root.mode-center-x)/1px; let dy = py/1px;
+        let r = root.mode-radius/1px + 1;
+        let on-face = dx*dx + dy*dy <= r*r;
+        root.mode-hit-enabled = on-face;
         root.mode-hot = on-face;
         root.top-hover = root.mode-hot || py <= (root.top-hover ? max(reveal + 12px,root.header-height + 12px) : reveal);
-        let in-knob = px >= root.dock-right - 120px && px <= root.dock-right && py >= root.dock-top;
+        let in-knob = px >= root.dock-right - 100px && px <= root.dock-right && py >= root.dock-top;
         let in-pop = root.show-zoom-pop && px >= root.knob-pop-left && px <= root.dock-right && py >= root.knob-pop-top && py < root.dock-top;
         if !root.controls-busy { root.zoom-hover = !root.reflowable && root.has-document && (in-knob || in-pop); }
         if root.zoom-hover && !root.presets-ready && !arm-presets.running { arm-presets.running = true; }
@@ -1017,6 +1060,10 @@ export component ReaderWindow inherits Window {
     keyboard := FocusScope {
         // Also handle platform-dispatched keys (e.g. accessibility and QA).
         capture-key-pressed(event) => {
+            if root.home-session && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta {
+                if event.text == Key.LeftArrow { root.cycle-home(-1); return accept; }
+                if event.text == Key.RightArrow { root.cycle-home(1); return accept; }
+            }
             if root.reading-keys && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta {
                 if event.text == Key.RightArrow || event.text == Key.PageDown { root.next-page(1); return accept; }
                 if event.text == Key.LeftArrow || event.text == Key.PageUp { root.next-page(-1); return accept; }
@@ -1042,7 +1089,7 @@ export component ReaderWindow inherits Window {
         canvas := Rectangle {
             background: ReaderTheme.paper; clip: true;
             if !root.has-document && !root.opening-document: Frontispiece {
-                message: root.status;
+                message: root.status; variant: root.home-variant; frame: root.home-frame;
                 open => { root.open-file(); }
             }
             if !root.has-document && root.opening-document: Text {
@@ -1085,16 +1132,7 @@ export component ReaderWindow inherits Window {
             x: 0px; y: 0px; width: parent.width; height: root.header-height;
             background: ReaderTheme.chrome;
             Rectangle { x: root.window-inset; y: 1px; width: parent.width - 2 * self.x; height: 1px; background: ReaderTheme.edge; }
-            DrumOutline {
-                y: parent.height - 2px; width: parent.width; height: root.mode-depth + 4px;
-                center: root.mode-center-x; span: root.mode-span; depth: root.mode-depth; rim: 2.5px;
-                fill: ReaderTheme.line;
-            }
-            DrumOutline {
-                y: parent.height - 2px; width: parent.width; height: root.mode-depth + 3px;
-                center: root.mode-center-x; span: root.mode-span; depth: root.mode-depth; rim: 1.5px;
-                fill: ReaderTheme.chrome;
-            }
+            Rectangle { y: parent.height - 1px; width: parent.width; height: 1px; background: ReaderTheme.line; }
             TouchArea {}
             HorizontalLayout {
                 padding-left: root.window-inset; padding-right: root.window-inset; padding-top: 6px; padding-bottom: 6px; spacing: 8px;
@@ -1111,7 +1149,7 @@ export component ReaderWindow inherits Window {
         }
         if root.has-document && root.top-visible: ModeDrum {
             x: root.mode-center-x - self.width/2; y: 0; width: root.mode-span;
-            seam: root.header-height; depth: root.mode-depth; hit-enabled: root.mode-dragging || root.mode-hit-enabled;
+            radius: root.mode-radius; indicated(p) => { root.mode-position = p; } hit-enabled: root.mode-dragging || root.mode-hit-enabled;
             count: root.reflowable ? 2 : 3;
             gripping(v) => { root.mode-dragging = v; if !v { root.focus-reading(); } }
             value: !root.reflowable && root.pdf-multi ? 2 : root.double-page ? 1 : 0;
@@ -1297,14 +1335,14 @@ export component ReaderWindow inherits Window {
             }
             DockOutline {
                 x: 1px; y: 1px - root.dock-rise; width: parent.width - 2px; height: parent.height + root.dock-rise - 2px;
-                rise: root.dock-rise; bay: 119px; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.surface;
+                rise: root.dock-rise; bay: 99px; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.surface;
             }
             TouchArea {}
             Rectangle {
                 x: 16px; y: 0px; width: parent.width - 32px; height: parent.height;
                 if root.show-progress || root.page-entry-active: PageScrubber {
                     x: 0px; y: (parent.height - self.height) / 2;
-                    width: parent.width - (root.reflowable ? 0px : 112px);
+                    width: parent.width - (root.reflowable ? 0px : 94px);
                     first: root.first-page; last: root.last-page; total: root.page-total; editing: root.page-entry-active;
                     grouped: root.effective-spread;
                     edit => { root.focus-page-entry(); }
@@ -1330,22 +1368,22 @@ export component ReaderWindow inherits Window {
             }
             if root.zoom-lift > 0.08: Rectangle {
                 width: parent.width; height: parent.height; opacity: clamp((root.zoom-lift - 0.08)/0.92,0,1);
-                PresetMark { x: root.knob-center-x - 28px * root.zoom-lift - self.width / 2;
-                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 0; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 1;
+                PresetMark { x: root.knob-center-x - 22px * root.zoom-lift - self.width / 2;
+                    y: root.knob-center-y + 21px * root.zoom-lift - self.height / 2; kind: 0; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 1;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-page",0); root.focus-reading(); } }
                 PresetMark { x: root.knob-center-x - self.width / 2;
-                    y: root.knob-center-y + 38px * root.zoom-lift - self.height / 2; kind: 1; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 3;
+                    y: root.knob-center-y + 30px * root.zoom-lift - self.height / 2; kind: 1; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 3;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-width",0); root.focus-reading(); } }
-                PresetMark { x: root.knob-center-x + 28px * root.zoom-lift - self.width / 2;
-                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 2; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 2;
+                PresetMark { x: root.knob-center-x + 22px * root.zoom-lift - self.width / 2;
+                    y: root.knob-center-y + 21px * root.zoom-lift - self.height / 2; kind: 2; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 2;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-cover",0); root.focus-reading(); } }
             }
             ZoomGrip {
-                x: root.dock-right - 120px; y: root.dock-top - root.dock-rise;
-                width: 120px; height: root.dock-height + root.dock-rise;
+                x: root.dock-right - 100px; y: root.dock-top - root.dock-rise;
+                width: 100px; height: root.dock-height + root.dock-rise;
                 cx: root.knob-center-x; cy: root.knob-center-y; radius: root.knob-radius;
                 marks-enabled: root.presets-ready && root.zoom-lift > 0.94;
                 accessible-role: slider; accessible-label: "PDF 缩放"; accessible-value: round(root.pdf-zoom * 100) + "%";

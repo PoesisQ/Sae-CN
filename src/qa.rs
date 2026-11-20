@@ -111,6 +111,7 @@ struct Run {
     chrome_viewport: Option<(f32, f32)>,
     pan_origin: f32,
     panel_generation: Option<u64>,
+    home_before: i32,
     dial_last: Option<f32>,
     dial_stops: [usize; 4],
     dial_signature: Option<(f32, blake3::Hash)>,
@@ -187,6 +188,8 @@ pub fn start(
                     let value = json!({"seq":command,"sample":run.operations,"dpi":ui.window().scale_factor(),
                         "window":[ui.get_viewport_width(),ui.get_viewport_height()],
                         "mode_x":ui.get_mode_center_x(),"header":ui.get_header_height_logical(),"depth":ui.get_mode_depth(),
+                        "mode_position":ui.get_mode_position(),"mode_held":ui.get_mode_dragging(),
+                        "presets":[ui.get_preset_page_x(),ui.get_preset_page_y(),ui.get_preset_width_y()],
                         "mode":if ui.get_pdf_multi(){2}else if ui.get_double_page(){1}else{0},
                         "dock_right":ui.get_dock_right(),"dock_top":ui.get_dock_top(),
                         "center":[ui.get_knob_center_x(),ui.get_knob_center_y()],"radius":ui.get_knob_radius(),
@@ -221,6 +224,71 @@ pub fn start(
             }
             if Instant::now() < run.ready.unwrap() {
                 return;
+            }
+            if scenario == "home-motion" {
+                let step = run.step;
+                let count = ui.get_home_frames();
+                run.snapshots.push(json!({"step":step,"frames":count,"cover":ui.get_home_variant(),
+                    "texture":ui.get_home_frame().size().width,"home_session":ui.get_home_session()}));
+                let next = || {
+                    use slint::platform::{Key,WindowEvent};
+                    ui.window().dispatch_event(WindowEvent::KeyPressed{text:Key::RightArrow.into()});
+                    ui.window().dispatch_event(WindowEvent::KeyReleased{text:Key::RightArrow.into()});
+                };
+                let capture = |name:&str| -> anyhow::Result<()> {
+                    if let Some(dir)=&screenshots { snapshot(&ui,&dir.join(name))?; }
+                    Ok(())
+                };
+                let action = match step {
+                    0 => {
+                        ui.window().with_winit_window(|w| w.focus_window());
+                        Ok(())
+                    }
+                    1 => {
+                        if count==0 || ui.get_home_variant()!=1 { run.errors.push("first cover did not animate".into()); }
+                        capture("plasma.png")
+                    }
+                    2 => { next(); Ok(()) }
+                    3 => {
+                        if count<=run.home_before || ui.get_home_variant()!=2 { run.errors.push("second cover did not animate".into()); }
+                        let image=capture("blue.png");
+                        ui.invoke_home_picker(true);
+                        image
+                    }
+                    4 => {
+                        if count!=run.home_before { run.errors.push("cover ran underneath the file dialog".into()); }
+                        ui.invoke_home_picker(false); Ok(())
+                    }
+                    5 => {
+                        if count<=run.home_before { run.errors.push("cancelled picker did not resume".into()); }
+                        ui.window().set_minimized(true); Ok(())
+                    }
+                    6 => { Ok(()) }
+                    7 => {
+                        if count!=run.home_before { run.errors.push("minimized cover timer advanced".into()); }
+                        ui.window().set_minimized(false);
+                        ui.window().with_winit_window(|w| w.focus_window()); Ok(())
+                    }
+                    8 => { next(); Ok(()) }
+                    9 => {
+                        if ui.get_home_variant()!=0 || ui.get_home_frame().size().width!=0 {run.errors.push("print retained a motion texture".into());}
+                        let image=capture("print.png");next();image
+                    }
+                    10 => {
+                        if count<=run.home_before { run.errors.push("cover failed to resume after print".into()); }
+                        open(PathBuf::from("tests/fixtures/core.pdf"),&ui,&state,&mailbox);Ok(())
+                    }
+                    _ => {
+                        if !ui.get_has_document() || ui.get_home_session() || count!=run.home_before || ui.get_home_frame().size().width!=0 {
+                            run.errors.push("home resources or updates survived the selected book".into());
+                        }
+                        finish(&ui,&state,&report,&scenario,&run);
+                        if let Some(t)=stop.upgrade(){t.stop();}return;
+                    }
+                };
+                if let Err(e)=action {run.errors.push(e.to_string());}
+                run.home_before=count;run.step+=1;run.operations+=1;
+                run.ready=Some(Instant::now()+Duration::from_millis(500));return;
             }
             if scenario == "frontispiece" {
                 if let Some(folder) = &screenshots {
@@ -396,7 +464,9 @@ pub fn start(
                     ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
                 };
                 let mode_center = ui.get_mode_center_x();
-                let adjacent_mode = ui.get_mode_span() * 0.29;
+                let track = (ui.get_header_height_logical() + ui.get_mode_depth()) * 0.67;
+                let adjacent_mode = track * 48f32.to_radians().sin();
+                let adjacent_y = track * 48f32.to_radians().cos();
                 if run.step >= 108 {
                     match run.step {
                         108=>{ui.set_double_page(true);ui.invoke_mode_changed(true);ui.window().set_size(slint::LogicalSize::new(640.0,480.0));},
@@ -407,7 +477,7 @@ pub fn start(
                     run.step+=1;run.ready=Some(Instant::now()+Duration::from_millis(200));run.waiting=true;return;
                 }
                 match phase {
-                    0 => { ui.set_show_toolbar(true); if !ui.get_double_page() {click(mode_center+adjacent_mode,36.0);} },
+                    0 => { ui.set_show_toolbar(true); if !ui.get_double_page() {click(mode_center+adjacent_mode,adjacent_y);} },
                     1|8|11|16|22 => { key(Key::RightArrow.into()); run.navigation_expected=Some(2); },
                     2|9|12|17|23 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     3 => { key(Key::DownArrow.into()); run.navigation_expected=Some(2); },
@@ -422,7 +492,7 @@ pub fn start(
                     19 => key("ab".into()),
                     20 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(page); },
                     21 => key(Key::Escape.into()),
-                    24 => { ui.set_show_toolbar(true); click(mode_center-adjacent_mode,36.0); },
+                    24 => { ui.set_show_toolbar(true); click(mode_center-adjacent_mode,adjacent_y); },
                     25 => { key(Key::RightArrow.into()); run.navigation_expected=Some(1); },
                     26 => { key(Key::LeftArrow.into()); run.navigation_expected=Some(0); },
                     _ => unreachable!(),
@@ -650,8 +720,8 @@ pub fn start(
                     },
                     86 => {
                         ui.invoke_typography("fit-page".into(),0.0);
-                        let center=slint::LogicalPosition::new(ui.get_dock_right()-88.0,ui.get_dock_top()+ui.get_dock_height()/2.0);
-                        if !circle(center,11.0,true) {run.errors.push("compact rim changed direction".into());}
+                        let center=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
+                        if !circle(center,ui.get_knob_radius()*0.92,true) {run.errors.push("compact rim changed direction".into());}
                     },
                     _ => {
                         if ui.get_pdf_zoom()<1.05 { run.errors.push("linear dial drag did not enlarge the page".into()); }

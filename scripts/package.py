@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.1-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.6.1-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.2-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.2-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -101,11 +101,15 @@ does not contain user ebooks, test profiles, SumatraPDF, Rust, MSVC or libclang.
 The application icon was supplied by the owner as AI-generated artwork for this
 application. Its original, provenance and size-conversion script are in the
 corresponding source assets/ directory; it is not a CC0 test fixture.
+The native covers use project-supplied effect inputs and three outlined Nimbus
+Roman glyphs from the bundled MuPDF URW fonts. See assets/README.md in source
+and the MuPDF font notices under licenses/.
 '''
 (runtime/'THIRD-PARTY-NOTICES.txt').write_text(notices,encoding='utf-8')
 readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2 路径作为命令行参数打开。
+首页的两种动画逐次轮换，左右键可切回静态版画。选择书籍后动画释放，直接打开文档跳过首页。
 点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
@@ -213,11 +217,10 @@ with ExitStack() as stack:
         previous_prefix=previous_name+'-source/'
         def dependency_lock(data):
             value=data.decode('utf-8-sig').replace('\r\n','\n')
-            value=re.sub(r'(name = "sae-reader"\nversion = ")[^"]+("\n)',r'\1APPLICATION_VERSION\2',value)
-            # The sole new application edge is build-only cc, already locked.
-            # Package versions/checksums and all other edges remain verified.
-            value=re.sub(r'(\[\[package\]\]\nname = "sae-reader"\n)(.*?)(?=\n\[\[package\]\]|\Z)',
-                         lambda match:match.group(0).replace(' "cc",\n',''),value,flags=re.S)
+            # We reuse registry source trees only. The application's own version
+            # and direct edges are shipped from this checkout, including its lock.
+            value=re.sub(r'\[\[package\]\]\nname = "sae-reader"\n.*?(?=\n\[\[package\]\]|\Z)',
+                         '',value,flags=re.S)
             # Only this additional edge is permitted; the Winit package itself
             # was already present. All versions/checksums/other edges must match.
             value=re.sub(r'(\[\[package\]\]\nname = "slint"\n)(.*?)(?=\n\[\[package\]\]|\Z)',

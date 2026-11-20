@@ -16,6 +16,7 @@ use std::{
     time::{Duration, Instant},
 };
 slint::include_modules!();
+mod home;
 #[cfg(feature = "qa")]
 mod qa;
 
@@ -275,6 +276,9 @@ fn run() -> anyhow::Result<()> {
             .map_or(-1, |index| index as i32)
     });
     ui.set_opening_document(startup_path.is_some());
+    let cover = startup_path
+        .is_none()
+        .then(|| home::Cover::attach(&ui, &config));
     sync_style(&ui, &preferences.typography);
     ui.set_double_page(preferences.spread);
     ui.set_pdf_multi(preferences.pdf_multi);
@@ -782,6 +786,13 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         let mailbox = mailbox.clone();
         ui.on_open_file(move || {
+            let Some(ui) = weak.upgrade() else {
+                return;
+            };
+            let home = ui.get_home_session();
+            if home {
+                ui.invoke_home_picker(true);
+            }
             if let Some(path) = rfd::FileDialog::new()
                 .add_filter(
                     "电子书与文档",
@@ -789,9 +800,9 @@ fn run() -> anyhow::Result<()> {
                 )
                 .pick_file()
             {
-                if let Some(ui) = weak.upgrade() {
-                    open(path, &ui, &state, &mailbox);
-                }
+                open(path, &ui, &state, &mailbox);
+            } else if home {
+                ui.invoke_home_picker(false);
             }
         });
     }
@@ -1196,6 +1207,7 @@ fn run() -> anyhow::Result<()> {
     }
     {
         let weak = ui.as_weak();
+        let cover = cover.clone();
         let mut modifiers = winit::keyboard::ModifiersState::empty();
         let mut maximize_pending = false;
         // Window-level shortcuts work while a button, slider or text field owns
@@ -1213,6 +1225,9 @@ fn run() -> anyhow::Result<()> {
             let Some(ui) = weak.upgrade() else {
                 return EventResult::Propagate;
             };
+            if let Some(cover) = &cover {
+                cover.event(&ui, event);
+            }
             #[cfg(feature = "qa")]
             if scripted_pointer
                 && matches!(
@@ -1352,6 +1367,9 @@ fn run() -> anyhow::Result<()> {
         });
     }
     ui.show()?;
+    if let Some(cover) = &cover {
+        cover.shown(&ui);
+    }
     if let Some(path) = startup_path {
         // Defer to the event loop, then compare Slint's viewport with the real
         // native client area. The old unconditional 100ms floor penalized every
@@ -1402,6 +1420,9 @@ fn run() -> anyhow::Result<()> {
 }
 
 fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>) {
+    if ui.get_home_session() {
+        ui.invoke_retire_home();
+    }
     ui.set_opening_document(true);
     ui.set_status("正在打开…".into());
     // Winit supplies the initial client geometry after show(). Do not lay out a
