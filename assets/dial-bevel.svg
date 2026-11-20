@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <!-- Translucent ink and light sit over the native theme colour. The bevel
+       is stationary; the UI draws the rotating index as a separate stroke. -->
+  <defs>
+    <linearGradient id="rim" x1=".18" y1=".05" x2=".82" y2=".95">
+      <stop stop-color="#ffffff" stop-opacity=".55"/>
+      <stop offset=".42" stop-color="#ffffff" stop-opacity=".09"/>
+      <stop offset=".65" stop-color="#172a22" stop-opacity=".05"/>
+      <stop offset="1" stop-color="#172a22" stop-opacity=".28"/>
+    </linearGradient>
+    <linearGradient id="face" x1="0" y1=".25" x2=".92" y2=".75">
+      <stop stop-color="#ffffff" stop-opacity=".19"/>
+      <stop offset=".6" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="1" stop-color="#182d22" stop-opacity=".10"/>
+    </linearGradient>
+  </defs>
+  <circle cx="40" cy="40" r="38.4" fill="url(#rim)"/>
+  <circle cx="40" cy="40" r="26.3" fill="url(#face)" stroke="#284135" stroke-opacity=".14" stroke-width=".8"/>
+  <path d="M5.4 40A34.6 34.6 0 0 1 38.3 5.4" fill="none" stroke="#ffffff" stroke-opacity=".48" stroke-width=".8"/>
+  <path d="M49.4 73.1A34.4 34.4 0 0 0 72.5 51.4" fill="none" stroke="#20382a" stroke-opacity=".2" stroke-width=".8"/>
+</svg>

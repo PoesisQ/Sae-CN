@@ -19,3 +19,5 @@ Resource format references:
 [Microsoft ICON resource](https://learn.microsoft.com/en-us/windows/win32/menurc/icon-resource),
 [RC command line](https://learn.microsoft.com/en-us/windows/win32/menurc/using-rc-the-rc-command-line-).
 The small controls in `icons/*.svg` are source-authored geometric UI assets supplied under the application's AGPL license. They are separate from the owner's AI-generated application artwork; no image-generation service or external icon package is used for them.
+
+`open-folio.svg` is the original folded-paper illustration for the frontispiece. `dial-bevel.svg` supplies the fixed light on the PDF dial. Both are distributed under the application's AGPL license.

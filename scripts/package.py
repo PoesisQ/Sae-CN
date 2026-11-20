@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.2-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.5.2-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.3-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.5.3-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -110,7 +110,8 @@ readme='''Sae Reader · Windows x64 预览版
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
 鼠标靠近下沿显示进度，拖动时显示目标页，松手跳转。点击页码或按 Ctrl+G 输入页码。
-悬停 PDF 底部拨盘可展开挡位，点击可固定面板。向右或向上直拖放大，反向缩小，也支持滚轮。
+悬停 PDF 底部拨盘可展开挡位。可沿外圈转动，或从盘心和读数处向右、向上直拖放大，反向缩小，也支持滚轮。
+拖动后面板保留，可再次拖动。点击正文或按 Esc 收起。
 点 100% 回到整页，点适宽填满当前页栏。图片未载入等情况可在阅读设置的「文档信息」查看。
 PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；

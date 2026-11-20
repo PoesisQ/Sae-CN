@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="376" height="236" viewBox="0 0 376 236">
+  <!-- All leaves pivot on one spine. The right-hand leaves turn toward
+       the light. Opposing facets of a single ink give the fold its volume. -->
+  <defs>
+    <linearGradient id="cover" x2="1" y2="0" gradientUnits="objectBoundingBox">
+      <stop stop-color="#456d65"/><stop offset="1" stop-color="#173e35"/>
+    </linearGradient>
+    <linearGradient id="verso" x1="0" x2="0.91" y1="0.52" y2="0.20">
+      <stop stop-color="#d6e0cd"/><stop offset="0.57" stop-color="#a0beaf"/><stop offset="1" stop-color="#557e72"/>
+    </linearGradient>
+    <linearGradient id="recto" x1="0.08" x2="0.92" y1="0.72" y2="0.21">
+      <stop stop-color="#365f59"/><stop offset="0.4" stop-color="#81a897"/><stop offset="1" stop-color="#dbe5ce"/>
+    </linearGradient>
+  </defs>
+  <path fill="#465c50" opacity=".10" d="M11 145 155 135 308 117 371 203 213 226 75 219Z"/>
+  <path fill="url(#cover)" d="M6 134 151 125 310 106 373 191 216 218 68 219Z"/>
+  <path fill="#719185" d="M12 131 151 126 214 213 75 216Z"/>
+  <path fill="#a3b9a8" d="M12 121 151 126 214 213 75 206Z"/>
+  <path fill="#577d70" d="M14 109 151 126 214 213 77 194Z"/>
+  <path fill="#a4beae" d="M23 89 151 126 214 213 86 174Z"/>
+  <path fill="#6e9485" d="M37 68 151 126 214 213 100 153Z"/>
+  <path fill="url(#verso)" d="M56 44 151 126 214 213 119 130Z"/>
+  <path fill="#507468" d="M151 126 305 104 368 189 214 213Z"/>
+  <path fill="#86a698" d="M151 126 301 88 364 173 214 213Z"/>
+  <path fill="#436f61" d="M151 126 291 68 354 153 214 213Z"/>
+  <path fill="#91ad9c" d="M151 126 274 46 337 131 214 213Z"/>
+  <path fill="#638a79" d="M151 126 251 27 314 112 214 213Z"/>
+  <path fill="url(#recto)" d="M151 126 220 7 283 92 214 213Z"/>
+  <path fill="none" stroke="#e4ecdb" stroke-width="1" d="m220 7 63 85-69 121"/>
+</svg>

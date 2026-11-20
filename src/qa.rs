@@ -186,6 +186,27 @@ pub fn start(
             if Instant::now() < run.ready.unwrap() {
                 return;
             }
+            if scenario == "frontispiece" {
+                if let Some(folder) = &screenshots {
+                    if let Err(e) = snapshot(&ui, &folder.join(format!("home-{}.png", run.step))) {
+                        run.errors.push(e.to_string());
+                    }
+                }
+                match run.step {
+                    0 => ui.window().set_size(slint::LogicalSize::new(640.0, 480.0)),
+                    1 => ui.invoke_theme_changed(2),
+                    2 => ui.window().set_size(slint::LogicalSize::new(1280.0, 800.0)),
+                    _ => {
+                        finish(&ui, &state, &report, &scenario, &run);
+                        if let Some(timer) = stop.upgrade() { timer.stop(); }
+                        return;
+                    }
+                }
+                run.step += 1;
+                run.operations += 1;
+                run.ready = Some(Instant::now() + Duration::from_millis(180));
+                return;
+            }
             if scenario == "multipage" {
                 use slint::platform::{Key, PointerEventButton, WindowEvent};
                 let click = |x,y| {
@@ -376,8 +397,8 @@ pub fn start(
                     if stop == 0 && !spread {
                         if let Ok(pixels) = ui.window().take_snapshot() {
                             let dpi = ui.window().scale_factor();
-                            let cx = (ui.get_dock_right()-84.0)*dpi;
-                            let cy = (ui.get_dock_top()+22.0)*dpi;
+                            let cx = (ui.get_dock_right()-88.0)*dpi;
+                            let cy = (ui.get_dock_top()+ui.get_dock_height()/2.0)*dpi;
                             let mut hash = blake3::Hasher::new();
                             for y in ((cy-13.0*dpi).max(0.0) as u32)..((cy+13.0*dpi) as u32).min(pixels.height()) {
                                 let a = ((y*pixels.width() + (cx-13.0*dpi).max(0.0) as u32)*4) as usize;
@@ -410,6 +431,16 @@ pub fn start(
                     if step==76 && !ui.get_zoom_pinned() {
                         run.errors.push("a click on the compact dial did not open the presets".into());
                     }
+                    if matches!(step,75|78|80|82|83|84|85|87) && !ui.get_show_zoom_pop() {
+                        run.errors.push(format!("released gesture lost its controls at {step}"));
+                    }
+                    let expected = match step { 82|85|87 => Some(4.0), 83 => Some(1.0), 84 => Some(2.0), _ => None };
+                    if expected.is_some_and(|target: f32| (target-value).abs()>0.012) {
+                        run.errors.push(format!("unexpected circular or second drag scale at {step}: {value}"));
+                    }
+                    if step == 86 && (ui.get_show_zoom_pop() || ui.get_zoom_pinned() || ui.get_first_page() != 1) {
+                        run.errors.push("outside click on pinned dial was not consumed".into());
+                    }
                     if let Some(folder) = &screenshots {
                         if matches!(step,1|4|6|26|30|33|73|75|76|78|80) {
                             if let Err(e) = snapshot(&ui,&folder.join(format!("detent-{step:02}.png"))) { run.errors.push(e.to_string()); }
@@ -424,6 +455,22 @@ pub fn start(
                     ui.invoke_edge_hover(position.x,position.y);
                     ui.window().dispatch_event(WindowEvent::PointerMoved {position});
                 };
+                let circle = |center: slint::LogicalPosition, radius: f32, clockwise: bool| {
+                    let at = |degrees: i32| {
+                        let angle = (degrees as f32).to_radians();
+                        slint::LogicalPosition::new(center.x+radius*angle.sin(),center.y-radius*angle.cos())
+                    };
+                    movement(at(0)); press(at(0));
+                    let mut previous=ui.get_pdf_zoom();
+                    let mut monotonic=true;
+                    for step in (12..=360).step_by(12) {
+                        movement(at(if clockwise {step} else {-step}));
+                        let now=ui.get_pdf_zoom();
+                        monotonic &= if clockwise {now+0.001>=previous} else {now<=previous+0.001};
+                        previous=now;
+                    }
+                    release(at(0)); monotonic
+                };
                 match run.step {
                     0 => { ui.set_show_toolbar(true); ui.set_double_page(false); ui.invoke_mode_changed(false); ui.invoke_typography("fit-page".into(),0.0); },
                     1 | 26 => ui.invoke_typography("zoom".into(),0.8),
@@ -437,7 +484,11 @@ pub fn start(
                         movement(to);
                         release(to);
                     },
-                    75 => { press(point); release(point); },
+                    75 => {
+                        let canvas=slint::LogicalPosition::new(ui.get_viewport_width()/2.0,ui.get_viewport_height()/2.0);
+                        movement(canvas); press(canvas); release(canvas);
+                        movement(point); press(point); release(point);
+                    },
                     76 | 78 => ui.invoke_typography("fit-page".into(),0.0),
                     77 => {
                         let from=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
@@ -460,12 +511,34 @@ pub fn start(
                         release(to);
                     },
                     79 => {
+                        ui.set_show_toolbar(false);
                         ui.set_zoom_pinned(false);
                         ui.invoke_edge_hover(point.x,point.y);
                         let from=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
                         press(from);
                         movement(slint::LogicalPosition::new(from.x+3.0,from.y-60.0));
                         release(slint::LogicalPosition::new(from.x+10.0,from.y-144.0));
+                    },
+                    80 => ui.invoke_typography("fit-page".into(),0.0),
+                    81|82 => {
+                        let center=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
+                        if !circle(center,34.0,run.step==81) {run.errors.push("circular input changed direction at a quadrant".into());}
+                    },
+                    83|84 => {
+                        let center=slint::LogicalPosition::new(ui.get_knob_center_x(),ui.get_knob_center_y());
+                        movement(center); press(center);
+                        let outside=slint::LogicalPosition::new(center.x+2.0,center.y-144.0);
+                        movement(outside); release(outside);
+                        ui.invoke_edge_hover(-1.0,-1.0);
+                    },
+                    85 => {
+                        let canvas=slint::LogicalPosition::new(ui.get_viewport_width()*0.75,ui.get_viewport_height()/2.0);
+                        movement(canvas); press(canvas); release(canvas);
+                    },
+                    86 => {
+                        ui.invoke_typography("fit-page".into(),0.0);
+                        let center=slint::LogicalPosition::new(ui.get_dock_right()-88.0,ui.get_dock_top()+ui.get_dock_height()/2.0);
+                        if !circle(center,11.0,true) {run.errors.push("compact rim changed direction".into());}
                     },
                     _ => {
                         if ui.get_pdf_zoom()<1.05 { run.errors.push("linear dial drag did not enlarge the page".into()); }
@@ -544,9 +617,9 @@ pub fn start(
                     ui.window().dispatch_event(WindowEvent::PointerReleased{position:to,button});
                 };
                 match run.step {
-                    0=>{run.chrome_viewport=Some(viewport);ui.set_top_hover(true);},
-                    1=>{ui.set_top_hover(false);ui.set_bottom_hover(true);},
-                    2=>{ui.set_bottom_hover(false);ui.set_show_toolbar(true);},
+                    0=>{run.chrome_viewport=Some(viewport);ui.invoke_edge_hover(viewport.0/2.0,40.0);},
+                    1=>{ui.invoke_edge_hover(viewport.0/2.0,viewport.1-40.0);},
+                    2=>{ui.invoke_edge_hover(viewport.0/2.0,viewport.1/2.0);ui.set_show_toolbar(true);},
                     3=>{ui.window().with_winit_window(|w|w.set_maximized(true));},
                     4=>ui.invoke_fullscreen(),
                     5=>{ui.set_show_toolbar(false);ui.set_top_hover(false);ui.set_bottom_hover(false);ui.set_show_settings(true);},
@@ -710,6 +783,15 @@ pub fn start(
                     if ui.get_reflowable() && run.step == 8 && ui.get_font_size_pt() <= 18.0 {
                         run.errors.push("typography slider did not apply the chosen font size".into());
                     }
+                    if matches!(run.step,9|11) && !ui.get_choice_open() {
+                        run.errors.push("font list did not open".into());
+                    }
+                    if matches!(run.step,10|12) && (ui.get_choice_open() || !ui.get_show_settings()) {
+                        run.errors.push("font list did not close back to the settings panel".into());
+                    }
+                    if run.step==12 && ui.get_fonts().row_count()>1 && ui.get_family_label()=="默认衬线" {
+                        run.errors.push("font choice was not committed".into());
+                    }
                     if let Some(folder) = &screenshots {
                         let path = folder.join(format!("view-{:02}.png", run.step));
                         if let Err(e) = snapshot(&ui, &path) {
@@ -744,12 +826,20 @@ pub fn start(
                         ui.window().set_size(slint::LogicalSize::new(640.0, 480.0));
                         ui.set_show_settings(true);
                     }
-                    7 if ui.get_reflowable() => {
+                    7|8|10 if ui.get_reflowable() => {
                         use slint::platform::{PointerEventButton, WindowEvent};
                         let position =
-                            slint::LogicalPosition::new(ui.get_viewport_width() - 155.0, 276.0);
+                            slint::LogicalPosition::new(ui.get_viewport_width() - 155.0, if run.step==7 {276.0} else {240.0});
                         ui.window().dispatch_event(WindowEvent::PointerPressed { position, button:PointerEventButton::Left });
                         ui.window().dispatch_event(WindowEvent::PointerReleased { position, button:PointerEventButton::Left });
+                    }
+                    9|11 if ui.get_reflowable() => {
+                        use slint::platform::{Key,WindowEvent};
+                        let key=|text: slint::SharedString| {
+                            ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
+                            ui.window().dispatch_event(WindowEvent::KeyReleased{text});
+                        };
+                        if run.step==9 {key(Key::Escape.into());} else {key(Key::DownArrow.into());key(Key::Return.into());}
                     }
                     _ => {
                         finish(&ui, &state, &report, &scenario, &run);

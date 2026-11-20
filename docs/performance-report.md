@@ -1,5 +1,7 @@
 # 性能实测
 
+**v0.5.3** 对照首页、PDF 与复杂 EPUB 的暖启动、稳态私有内存和空闲 CPU，并记录 Windows 的全屏尺寸变化。[本版 Windows 记录](iteration-0.5.3.md)
+
 **v0.5.2** 复测原生界面改版后的首屏、空闲 CPU、稳态私有内存和缩放，并运行实书 PDF 压力样本。[同机新旧对照](iteration-0.5.2.md#windows-实测)
 
 **v0.5.1** 用前后两个 Windows 构建对测空白、PDF 和 EPUB 的暖启动与稳态资源。 [底栏改版实测](iteration-0.5.1.md#windows-实测)

@@ -1,4 +1,4 @@
-<#
+﻿<#
 Install a released runtime into a stable per-user directory and register it with
 Windows. Run again with a new package to update the same installation. Windows
 default choices are made in Settings, never by writing protected UserChoice keys.
@@ -57,7 +57,7 @@ if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::Ordi
     New-Item -ItemType Directory -Path $readerTarget -Force | Out-Null
     # Only distribution files are copied. Portable data and personal books are
     # deliberately excluded; the normal LocalAppData profile is never touched.
-    foreach ($readerName in @('LICENSE', 'THIRD-PARTY-NOTICES.txt', 'dependency-inventory.json', 'README.txt',
+    foreach ($readerName in @('LICENSE', 'THIRD-PARTY-NOTICES.txt', 'dependency-inventory.json', 'README.txt', '使用说明.txt',
                              'README.md', 'CHANGELOG.md', 'assets', 'docs', 'licenses')) {
         $readerItem = Join-Path $readerSource $readerName
         if (Test-Path -LiteralPath $readerItem) {

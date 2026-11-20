@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.5.2-preview.1')
+parser.add_argument('--name', default='SaeReader-0.5.3-preview.1')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -62,7 +62,8 @@ for kind in ('source', 'windows-x64'):
                         'vendor/mupdf-sys-0.8.0/wrapper/font.c', 'vendor/mupdf-sys-0.8.0/wrapper/page.c',
                         'vendor/mupdf-0.8.0/src/context.rs',
                         'legal/third-party/sources.json', 'docs/markdown-math.md', 'docs/iteration-0.4.1.md',
-                        'docs/iteration-0.5.2.md', 'docs/evidence/iteration-0.5.2/pdf-zoom.png']
+                        'ui/surface.slint', 'assets/open-folio.svg', 'assets/dial-bevel.svg',
+                        'scripts/check-fullscreen.py', 'docs/iteration-0.5.3.md', 'docs/evidence/iteration-0.5.3/home.png']
             for rel in required:
                 assert archive.read(source_prefix + rel) == (root / rel).read_bytes(), rel
             dependency_dirs = {PurePosixPath(n).parts[2] for n in names

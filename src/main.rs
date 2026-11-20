@@ -5,7 +5,7 @@ use sae_reader::{
     rendering::{Bounds, Frame},
     settings::Typography,
     storage::{self, BookState, Preferences},
-    zoom::{self, Drag, Position, Stop},
+    zoom::{self, Drag, Grip, Position, Stop},
 };
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Image, Model, ModelRc, VecModel};
@@ -34,7 +34,7 @@ struct State {
     count: i32,
     pagination_complete: bool,
     wheel: WheelPager,
-    zoom_drag: Option<Drag>,
+    zoom_drag: Option<(Drag, Grip)>,
     zoom_pending: bool,
     preferences: Preferences,
     config: PathBuf,
@@ -172,15 +172,18 @@ fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f3
             stop: Stop::Fill,
         },
         "fit-page" | "size" => zoom::position(1.0),
-        "zoom-drag" => {
-            let Some(drag) = s.zoom_drag else {
-                return false;
-            };
-            drag.at(value)
-        }
         "zoom" => zoom::step(ui.get_pdf_zoom(), fill, value),
         _ => zoom::step(ui.get_pdf_zoom(), fill, 1.12f32.powf(value)),
     };
+    apply_zoom(
+        &mut s,
+        ui,
+        position,
+        name.starts_with("fit-") || name == "size",
+    )
+}
+
+fn apply_zoom(s: &mut State, ui: &ReaderWindow, position: Position, reset_pan: bool) -> bool {
     let Some(request) = s.request.as_mut() else {
         return false;
     };
@@ -200,7 +203,6 @@ fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f3
     request.view.fit_cover = fit_cover;
     request.pdf_zoom = zoom;
     // A preset click also returns a previously panned page to its starting edge.
-    let reset_pan = name.starts_with("fit-") || name == "size";
     let panned = reset_pan && request.view.pan != [0.5, 0.0];
     if reset_pan {
         request.view.pan = [0.5, 0.0];
@@ -259,7 +261,17 @@ fn run() -> anyhow::Result<()> {
     let portable = std::env::args_os().any(|a| a == "--portable");
     let config = storage::config_path(portable);
     let preferences = Preferences::load(&config);
+    let startup_path = std::env::args_os()
+        .skip(1)
+        .find(|arg| !arg.to_string_lossy().starts_with("--"));
     let ui = ReaderWindow::new()?;
+    ui.on_choice_index(|model, value| {
+        model
+            .iter()
+            .position(|item| item == value)
+            .map_or(-1, |index| index as i32)
+    });
+    ui.set_opening_document(startup_path.is_some());
     sync_style(&ui, &preferences.typography);
     ui.set_double_page(preferences.spread);
     ui.set_pdf_multi(preferences.pdf_multi);
@@ -387,6 +399,7 @@ fn run() -> anyhow::Result<()> {
                     ui.set_search_marks(marks(update.search));
                     ui.set_right_search_marks(marks(update.right_search));
                     ui.set_has_document(true);
+                    ui.set_opening_document(false);
                     ui.set_book_title(update.title.into());
                     ui.set_reflowable(update.reflowable);
                     ui.set_pdf_fit_width_zoom(update.pdf_fit_width_zoom);
@@ -486,6 +499,7 @@ fn run() -> anyhow::Result<()> {
                     }
                 }
                 Err(error) => {
+                    ui.set_opening_document(false);
                     s.completed_generation = generation;
                     ui.set_status(format!("无法读取：{error:#}").into());
                     if s.frame.is_none() {
@@ -545,11 +559,36 @@ fn run() -> anyhow::Result<()> {
     {
         let state = state.clone();
         let weak = ui.as_weak();
-        ui.on_zoom_begin(move || {
+        ui.on_zoom_begin(move |x, y, radius| {
             if let Some(ui) = weak.upgrade() {
-                state.lock().unwrap().zoom_drag =
-                    Some(Drag::start(ui.get_pdf_zoom(), ui.get_pdf_fill_zoom()));
+                state.lock().unwrap().zoom_drag = Some((
+                    Drag::start(ui.get_pdf_zoom(), ui.get_pdf_fill_zoom()),
+                    Grip::new(x, y, radius),
+                ));
             }
+        });
+    }
+    {
+        let state = state.clone();
+        let weak = ui.as_weak();
+        ui.on_zoom_motion(move |x, y| {
+            let Some(ui) = weak.upgrade() else {
+                return false;
+            };
+            let mut s = state.lock().unwrap();
+            let Some((dial, grip)) = s.zoom_drag.as_mut() else {
+                return false;
+            };
+            let Some(travel) = grip.sample(x, y, *dial) else {
+                return false;
+            };
+            let position = dial.at(travel);
+            let changed = apply_zoom(&mut s, &ui, position, false);
+            drop(s);
+            if changed {
+                ui.invoke_refresh_zoom(false);
+            }
+            true
         });
     }
     {
@@ -645,12 +684,28 @@ fn run() -> anyhow::Result<()> {
         let mailbox = mailbox.clone();
         let timer = resize_timer.clone();
         ui.on_resized(move || {
+            // During a free window drag collect nearby sizes. A settled
+            // fullscreen monitor has a known destination and can render now.
+            let at_full_size = weak.upgrade().is_some_and(|ui| {
+                ui.get_is_fullscreen()
+                    && ui
+                        .window()
+                        .with_winit_window(|w| {
+                            w.current_monitor()
+                                .is_some_and(|m| w.inner_size() == m.size())
+                        })
+                        .unwrap_or(false)
+            });
             let weak = weak.clone();
             let state = state.clone();
             let mailbox = mailbox.clone();
             timer.start(
                 slint::TimerMode::SingleShot,
-                Duration::from_millis(100),
+                if at_full_size {
+                    Duration::ZERO
+                } else {
+                    Duration::from_millis(100)
+                },
                 move || {
                     if let Some(ui) = weak.upgrade() {
                         let should_submit = {
@@ -811,7 +866,7 @@ fn run() -> anyhow::Result<()> {
         let timer = style_timer.clone();
         ui.on_typography(move |name, value| {
             let Some(ui) = weak.upgrade() else { return };
-            let fixed_action = matches!(name.as_str(), "zoom" | "zoom-drag")
+            let fixed_action = name.as_str() == "zoom"
                 || name.starts_with("fit-")
                 || !ui.get_reflowable() && matches!(name.as_str(), "size" | "delta-size");
             if fixed_action {
@@ -1005,9 +1060,20 @@ fn run() -> anyhow::Result<()> {
         let mailbox = mailbox.clone();
         let weak = ui.as_weak();
         ui.on_search(move |text| {
+            let query: String = text.chars().filter(|c| *c != '\0').take(256).collect();
+            if query.is_empty()
+                && state
+                    .lock()
+                    .unwrap()
+                    .request
+                    .as_ref()
+                    .is_none_or(|r| r.query.is_empty())
+            {
+                return;
+            }
             if let Some(ui) = weak.upgrade() {
                 ui.set_status(
-                    if text.is_empty() {
+                    if query.is_empty() {
                         ""
                     } else {
                         "正在全文查找…"
@@ -1016,11 +1082,6 @@ fn run() -> anyhow::Result<()> {
                 );
             }
             submit(&state, &mailbox, |r| {
-                let query = text
-                    .chars()
-                    .filter(|c| *c != '\0')
-                    .take(256)
-                    .collect::<String>();
                 if query != r.query {
                     r.view.search_hit = None;
                 }
@@ -1057,15 +1118,24 @@ fn run() -> anyhow::Result<()> {
     }
     {
         let weak = ui.as_weak();
+        let restore_normal = std::cell::Cell::new(false);
         ui.on_fullscreen(move || {
             if let Some(ui) = weak.upgrade() {
                 let enter = !ui.get_is_fullscreen();
                 ui.set_is_fullscreen(enter);
-                if enter && ui.window().is_maximized() {
-                    // Restore first so Winit saves the normal window rect.
-                    ui.window().set_maximized(false);
+                if enter {
+                    // Windows keeps the normal placement even when maximized.
+                    // Restoring here would briefly display that smaller window.
+                    restore_normal.set(ui.window().is_maximized());
                 }
                 ui.window().set_fullscreen(enter);
+                if !enter && restore_normal.replace(false) {
+                    ui.window().with_winit_window(|native| {
+                        native.set_fullscreen(None);
+                        native.set_maximized(false);
+                    });
+                    ui.window().set_maximized(false);
+                }
                 ui.invoke_focus_reading();
             }
         });
@@ -1177,6 +1247,9 @@ fn run() -> anyhow::Result<()> {
                             return EventResult::PreventDefault;
                         }
                         Key::Named(NamedKey::Escape) => {
+                            if ui.get_choice_open() {
+                                return EventResult::Propagate;
+                            }
                             if ui.get_page_entry_active() {
                                 ui.invoke_focus_reading();
                             } else if ui.get_show_contents()
@@ -1201,10 +1274,7 @@ fn run() -> anyhow::Result<()> {
         });
     }
     ui.show()?;
-    if let Some(path) = std::env::args_os()
-        .skip(1)
-        .find(|a| !a.to_string_lossy().starts_with("--"))
-    {
+    if let Some(path) = startup_path {
         // Defer to the event loop, then compare Slint's viewport with the real
         // native client area. The old unconditional 100ms floor penalized every
         // command-line open even when both were already settled. Keep that
@@ -1254,6 +1324,7 @@ fn run() -> anyhow::Result<()> {
 }
 
 fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>) {
+    ui.set_opening_document(true);
     ui.set_status("正在打开…".into());
     // Winit supplies the initial client geometry after show(). Do not lay out a
     // fake 160px page and then jump to a second pagination on the first frame.

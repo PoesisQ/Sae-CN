@@ -1,0 +1,27 @@
+// Two mirrored cubics per corner meet at the diagonal with a common tangent
+// and curvature. Their outer controls lie on the adjoining straight edge.
+// Only the four small corners need a path raster, regardless of panel size.
+export component SmoothSurface inherits Rectangle {
+    in property <color> tone;
+    in property <length> corner: 16px;
+    property <length> r: min(root.corner, min(root.width, root.height) / 2);
+    Rectangle { x: 0px; y: root.r; width: parent.width; height: parent.height - 2 * root.r; background: root.tone; }
+    Rectangle { x: root.r; y: 0px; width: parent.width - 2 * root.r; height: root.r; background: root.tone; }
+    Rectangle { x: root.r; y: parent.height - root.r; width: parent.width - 2 * root.r; height: root.r; background: root.tone; }
+    Path {
+        x: 0px; y: 0px; width: root.r; height: root.r; viewbox-width: 100; viewbox-height: 100;
+        commands: "M100 0 C64 0 32 0 16 16 C0 32 0 64 0 100 H100 Z"; fill: root.tone;
+    }
+    Path {
+        x: parent.width - root.r; y: 0px; width: root.r; height: root.r; viewbox-width: 100; viewbox-height: 100;
+        commands: "M0 0 C36 0 68 0 84 16 C100 32 100 64 100 100 H0 Z"; fill: root.tone;
+    }
+    Path {
+        x: parent.width - root.r; y: parent.height - root.r; width: root.r; height: root.r; viewbox-width: 100; viewbox-height: 100;
+        commands: "M100 0 C100 36 100 68 84 84 C68 100 36 100 0 100 V0 Z"; fill: root.tone;
+    }
+    Path {
+        x: 0px; y: parent.height - root.r; width: root.r; height: root.r; viewbox-width: 100; viewbox-height: 100;
+        commands: "M100 100 C64 100 32 100 16 84 C0 68 0 36 0 0 H100 Z"; fill: root.tone;
+    }
+}

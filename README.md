@@ -7,28 +7,28 @@
 <p align="center">Windows 原生电子书阅读器。</p>
 
 <p align="center">
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.2-preview.1/SaeReader-0.5.2-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.2-preview.1">更新说明与源码</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-0.5.3-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.3-preview.1">更新说明与源码</a> ·
   <a href="LICENSE">AGPL-3.0-or-later</a>
 </p>
 
 Sae Reader 支持暖纸、白纸与夜读主题。阅读时文档占满窗口，工具栏、目录和设置随用随开。
 可重排文档的排版独立可调，PDF 保留原页版式，并提供单页、双页和多页。
 
-当前为 **v0.5.2-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
+当前为 **v0.5.3-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
 
-![PDF 阅读区与底部缩放拨盘](docs/evidence/iteration-0.5.2/pdf-zoom.png)
+![Sae Reader 首页，青墨色的书页沿同一条书脊展开](docs/evidence/iteration-0.5.3/home.png)
 
 ## 下载与使用
 
-1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.2-preview.1/SaeReader-0.5.2-preview.1-windows-x64.zip)。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-0.5.3-preview.1-windows-x64.zip)。
 2. 完整解压，双击 `SaeReader.exe`，通过「打开」选择书籍。
-3. 鼠标移至窗口上沿展开工具条，选择「单页」或「双页」。点击阅读区域左侧上一页，右侧下一页。
+3. 鼠标靠近窗口上方即可展开工具条，选择「单页」或「双页」。点击阅读区域左侧上一页，右侧下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.2-preview.1) 同时提供独立 EXE、
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.3-preview.1) 同时提供独立 EXE、
 完整依赖源码、许可证和 SHA256 校验文件；推荐使用包含使用说明与许可文件的 Windows 压缩包。
 
 作为默认阅读器使用时，可用完整包里的 `Install.ps1` 更新固定目录中的程序。
@@ -43,7 +43,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **阅读工具**：章节目录、内部链接与返回、文字选择与复制、跨章节全文查找及前后定位。
 - **PDF 多页**：工具条选择「多页」，横向讲义等可自动排成 2×2；按页面实际比例和窗口尺寸显示两页或四页，窄窗口暂用单页。保留独立单页、双页模式，方向键与滚轮按整组翻页。
 - **收起侧栏**：点击文档或页边空白即可关闭目录、排版或查找面板；这一次点击只收起面板。
-- **PDF 缩放**：悬停底部百分比旁的拨盘可展开挡位，点击可固定面板。向右或向上直拖放大，反向拖动缩小，滚轮也可调节。点「100%」看整页，点「适宽」填满当前页栏。放大后仍可用左右键按当前模式翻页。
+- **PDF 缩放**　靠近底部，悬停百分比旁的拨盘即可展开。沿外圈顺时针转半圈，倍率翻倍。逆时针转动可缩小，也可以从盘心或读数向上、向右直拖，或使用滚轮。拖动后面板会保留，可松手再抓；点击正文或按 `Esc` 收起。点「100%」看整页，点「适宽」填满当前页栏。放大后左右键仍按当前模式翻页。
 - **跳页**：拖细进度线能先看到目标页码，松手才跳转。点击页码或按 `Ctrl+G`，在原位置输入页数后回车。双页和四页模式显示包含目标页的整组。
 - **Kindle 与 FB2**：无 DRM 的 AZW3/KF8、MOBI 以及 FictionBook；保留文字、目录、图片、样式与链接，按需解析，共用原生渲染与搜索。
 - **文本与 Markdown**：自动识别编码，可手动切换；保留 TXT 空行与缩进，Markdown 支持标题、列表、引用、代码、表格、本地图片与链接。图片未载入等情况可在阅读设置的「文档信息」查看。
@@ -87,7 +87,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - 不支持 DRM、嵌入脚本或多媒体播放。
 
 详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
-和 [本版设计与实测](docs/iteration-0.5.2.md)。
+和 [本版界面与 Windows 实测](docs/iteration-0.5.3.md)。
 
 ## 开发与许可
 
@@ -96,4 +96,4 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
 每个二进制 Release 同时提供对应源码及许可文件。
 
-图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.2-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.2-preview.1/SaeReader.ico)。
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader.ico)。
