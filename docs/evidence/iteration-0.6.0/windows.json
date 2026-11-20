@@ -1,0 +1,660 @@
+{
+  "platform": "Windows 11 x64 26200.9974",
+  "cpu": "Intel Core i9-14900HX",
+  "method": {
+    "startup": "Release with QA instrumentation, entry to native Slint software-rendered window pixel snapshot. Warm OS cache. 20 old/new pairs per original fixture, alternating which version goes first. Blank shows the frontispiece.",
+    "memory": "Regular production executable, external Win32 process counters. Three 6 s launches per version and fixture, median private bytes after 3 s. Long PDF per mode: three warm launches and two 12 s process samples.",
+    "ui": "Real Windows renderer and input dispatch. Physical display scale 150%. Additional 100%, 125% and 200% checks use Slint scale overrides."
+  },
+  "builds": {
+    "0.5.3": {
+      "bytes": 25198592,
+      "sha256": "ee485c6a78aeb906436c01bfd91dfd4f378fe109e4534483a835cc72a3edc745"
+    },
+    "0.6.0": {
+      "bytes": 24974848,
+      "sha256": "ed1ea7a40bc61b41203d06277260c9ad561bbe6a16368d51f1fbe08aeccf0474"
+    }
+  },
+  "paired_measurements": {
+    "blank": {
+      "0.5.3": {
+        "warm_start_ms": [
+          58.8479,
+          76.5712,
+          81.6292,
+          65.8442,
+          67.1678,
+          62.034,
+          64.0637,
+          62.3954,
+          65.1853,
+          67.2345,
+          71.9122,
+          67.3618,
+          63.0845,
+          66.4872,
+          71.4947,
+          67.4884,
+          73.0655,
+          72.0699,
+          62.0564,
+          66.5764
+        ],
+        "median_ms": 66.87,
+        "p95_ms": 76.57,
+        "windows": [
+          {
+            "private_bytes": 16211968.0,
+            "private_working_set": 13139968.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2841.27
+          },
+          {
+            "private_bytes": 16207872,
+            "private_working_set": 13078528,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2616.17
+          },
+          {
+            "private_bytes": 16171008.0,
+            "private_working_set": 12992512.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2837.4
+          }
+        ],
+        "private_mib": 15.46
+      },
+      "0.6.0": {
+        "warm_start_ms": [
+          165.5373,
+          173.8592,
+          165.8644,
+          160.2804,
+          165.8674,
+          176.0778,
+          161.1455,
+          167.2607,
+          172.3931,
+          158.949,
+          163.2745,
+          172.6065,
+          174.1019,
+          181.0726,
+          171.6679,
+          170.2056,
+          167.7744,
+          178.7936,
+          177.3862,
+          171.7906
+        ],
+        "median_ms": 170.94,
+        "p95_ms": 178.79,
+        "windows": [
+          {
+            "private_bytes": 14741504.0,
+            "private_working_set": 12156928.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2854.65
+          },
+          {
+            "private_bytes": 14876672.0,
+            "private_working_set": 12279808.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2864.89
+          },
+          {
+            "private_bytes": 14921728.0,
+            "private_working_set": 12361728.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2846.62
+          }
+        ],
+        "private_mib": 14.19
+      }
+    },
+    "pdf": {
+      "0.5.3": {
+        "warm_start_ms": [
+          138.4948,
+          134.6423,
+          138.1801,
+          152.7886,
+          134.4253,
+          393.8714,
+          150.3593,
+          137.814,
+          148.743,
+          161.8384,
+          139.2771,
+          141.1661,
+          139.2972,
+          150.3802,
+          139.0,
+          144.0105,
+          142.1414,
+          146.2596,
+          142.3893,
+          154.0829
+        ],
+        "median_ms": 142.27,
+        "p95_ms": 161.84,
+        "windows": [
+          {
+            "private_bytes": 22786048.0,
+            "private_working_set": 20512768.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2846.23
+          },
+          {
+            "private_bytes": 23060480.0,
+            "private_working_set": 20774912.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2847.64
+          },
+          {
+            "private_bytes": 23044096.0,
+            "private_working_set": 20705280.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2836.24
+          }
+        ],
+        "private_mib": 21.98
+      },
+      "0.6.0": {
+        "warm_start_ms": [
+          142.1708,
+          147.7475,
+          148.4703,
+          136.9168,
+          138.3297,
+          149.0956,
+          151.2075,
+          158.8458,
+          140.6818,
+          135.4443,
+          138.5644,
+          142.9519,
+          164.276,
+          148.4111,
+          142.5684,
+          160.5712,
+          154.8785,
+          150.2723,
+          151.6729,
+          142.3668
+        ],
+        "median_ms": 148.08,
+        "p95_ms": 160.57,
+        "windows": [
+          {
+            "private_bytes": 22708224,
+            "private_working_set": 20463616,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2593.73
+          },
+          {
+            "private_bytes": 22908928.0,
+            "private_working_set": 20639744.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2845.26
+          },
+          {
+            "private_bytes": 22798336,
+            "private_working_set": 20516864,
+            "idle_cpu_ms": 62.5,
+            "idle_wall_ms": 2620.32
+          }
+        ],
+        "private_mib": 21.74
+      }
+    },
+    "epub": {
+      "0.5.3": {
+        "warm_start_ms": [
+          155.2277,
+          155.4151,
+          158.7302,
+          141.4895,
+          157.2091,
+          137.8267,
+          156.0829,
+          163.8147,
+          144.2322,
+          160.8781,
+          158.619,
+          153.9476,
+          156.6398,
+          155.9555,
+          158.5863,
+          160.1415,
+          159.2909,
+          153.7335,
+          152.2683,
+          155.7319
+        ],
+        "median_ms": 156.02,
+        "p95_ms": 160.88,
+        "windows": [
+          {
+            "private_bytes": 20193280.0,
+            "private_working_set": 17874944.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2858.13
+          },
+          {
+            "private_bytes": 19992576.0,
+            "private_working_set": 17588224.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2864.39
+          },
+          {
+            "private_bytes": 19963904.0,
+            "private_working_set": 17657856.0,
+            "idle_cpu_ms": 46.875,
+            "idle_wall_ms": 2858.7
+          }
+        ],
+        "private_mib": 19.07
+      },
+      "0.6.0": {
+        "warm_start_ms": [
+          154.5254,
+          157.3259,
+          150.5625,
+          159.7431,
+          154.0291,
+          156.6605,
+          148.3212,
+          156.3326,
+          165.4348,
+          160.4882,
+          157.9236,
+          157.9895,
+          154.3258,
+          157.523,
+          156.0287,
+          161.988,
+          162.5518,
+          158.9334,
+          159.2378,
+          157.5546
+        ],
+        "median_ms": 157.54,
+        "p95_ms": 162.55,
+        "windows": [
+          {
+            "private_bytes": 20094976.0,
+            "private_working_set": 17772544.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2844.48
+          },
+          {
+            "private_bytes": 20168704,
+            "private_working_set": 17747968,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2623.59
+          },
+          {
+            "private_bytes": 19861504.0,
+            "private_working_set": 17592320.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2838.35
+          }
+        ],
+        "private_mib": 19.16
+      }
+    }
+  },
+  "long_pdf": {
+    "spread": {
+      "pages": 1156,
+      "visible_pages": 2,
+      "warm_start_ms": [
+        184.1503,
+        211.9537,
+        201.9629
+      ],
+      "median_ms": 201.96,
+      "p95_ms": 211.95,
+      "windows": [
+        {
+          "private_bytes": 31137792,
+          "private_working_set": 28684288,
+          "idle_cpu_ms": 93.75,
+          "idle_wall_ms": 8857.65
+        },
+        {
+          "private_bytes": 32006144,
+          "private_working_set": 29274112,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8873.02
+        }
+      ],
+      "private_mib": 30.11
+    },
+    "multi": {
+      "pages": 1156,
+      "visible_pages": 8,
+      "warm_start_ms": [
+        218.2227,
+        186.7349,
+        184.4633
+      ],
+      "median_ms": 186.73,
+      "p95_ms": 218.22,
+      "windows": [
+        {
+          "private_bytes": 26742784,
+          "private_working_set": 24444928,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8834.31
+        },
+        {
+          "private_bytes": 33685504,
+          "private_working_set": 31215616,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8841.85
+        }
+      ],
+      "private_mib": 28.81
+    }
+  },
+  "rust_tests_passed": 42,
+  "markdown_math_benchmark": "passed",
+  "native_windows": {
+    "chrome": {
+      "operations": 27,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 13463120
+    },
+    "contents": {
+      "operations": 7,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 4092704
+    },
+    "detents": {
+      "operations": 87,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 6772520
+    },
+    "dpi-1": {
+      "operations": 27,
+      "dpi_scale": 1.0,
+      "max_page_cache_bytes": 12058240
+    },
+    "dpi-125": {
+      "operations": 27,
+      "dpi_scale": 1.25,
+      "max_page_cache_bytes": 14061630
+    },
+    "dpi-2": {
+      "operations": 27,
+      "dpi_scale": 2.0,
+      "max_page_cache_bytes": 11935360
+    },
+    "features": {
+      "operations": 23,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 13545040
+    },
+    "home": {
+      "operations": 3,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 0
+    },
+    "instruments": {
+      "operations": 22,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 16290560
+    },
+    "multipage": {
+      "operations": 18,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 14021424
+    },
+    "navigation": {
+      "operations": 111,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 15869300
+    },
+    "stress": {
+      "operations": 730,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 16411520
+    },
+    "visual": {
+      "operations": 0,
+      "dpi_scale": 1.5,
+      "max_page_cache_bytes": 4087584
+    }
+  },
+  "grid_pixels": {
+    "four_page_pixels_after_resize": "passed",
+    "before": [
+      [
+        [
+          530,
+          574
+        ],
+        [
+          1220,
+          1264
+        ]
+      ],
+      [
+        [
+          530,
+          574
+        ],
+        [
+          1220,
+          1264
+        ]
+      ]
+    ],
+    "after": [
+      [
+        [
+          530,
+          574
+        ],
+        [
+          1220,
+          1264
+        ]
+      ],
+      [
+        [
+          530,
+          574
+        ],
+        [
+          1220,
+          1264
+        ]
+      ]
+    ],
+    "portrait_4_by_2_footer_pixels": [
+      21181,
+      21181,
+      21181,
+      21181,
+      21181,
+      19551,
+      18282,
+      21181
+    ]
+  },
+  "control_pixels": {
+    "scale": 1.5,
+    "arc_below_toolbar_physical_px": [
+      3,
+      9,
+      24,
+      38,
+      44,
+      38,
+      23,
+      9,
+      3
+    ],
+    "zoom_face_physical_px": [
+      127,
+      127
+    ]
+  },
+  "maximize": {
+    "initial": [
+      1770,
+      1260
+    ],
+    "monitor": [
+      2560,
+      1600
+    ],
+    "rounds": {
+      "maximize": {
+        "enter": [
+          {
+            "ms": 0,
+            "size": [
+              1770,
+              1260
+            ]
+          },
+          {
+            "ms": 0.5,
+            "size": [
+              2560,
+              1494
+            ]
+          },
+          {
+            "ms": 3.95,
+            "size": [
+              2582,
+              1550
+            ]
+          },
+          {
+            "ms": 4.7,
+            "size": [
+              2560,
+              1600
+            ]
+          }
+        ],
+        "exit": [
+          {
+            "ms": 0,
+            "size": [
+              2560,
+              1600
+            ]
+          },
+          {
+            "ms": 1.36,
+            "size": [
+              2560,
+              1494
+            ]
+          },
+          {
+            "ms": 8.6,
+            "size": [
+              1770,
+              1260
+            ]
+          }
+        ],
+        "shrank_after_maximize": false,
+        "fills_screen": true,
+        "restored": true
+      },
+      "F11": {
+        "enter": [
+          {
+            "ms": 0,
+            "size": [
+              1770,
+              1260
+            ]
+          },
+          {
+            "ms": 0.75,
+            "size": [
+              1792,
+              1316
+            ]
+          },
+          {
+            "ms": 3.17,
+            "size": [
+              2560,
+              1600
+            ]
+          }
+        ],
+        "exit": [
+          {
+            "ms": 0,
+            "size": [
+              2560,
+              1600
+            ]
+          },
+          {
+            "ms": 1.11,
+            "size": [
+              2538,
+              1544
+            ]
+          },
+          {
+            "ms": 5.13,
+            "size": [
+              1770,
+              1260
+            ]
+          }
+        ],
+        "shrank_after_maximize": false,
+        "fills_screen": true,
+        "restored": true
+      }
+    }
+  },
+  "anonymous_local_epubs": [
+    {
+      "sample": 1,
+      "old_open": false,
+      "new_open": true,
+      "first_window_ms": 212.99,
+      "pages": 309,
+      "toc_entries": 7,
+      "last_toc_destination_page": 308,
+      "original_hash_unchanged": true
+    },
+    {
+      "sample": 2,
+      "old_open": false,
+      "new_open": true,
+      "first_window_ms": 195.31,
+      "pages": 315,
+      "toc_entries": 10,
+      "last_toc_destination_page": 314,
+      "original_hash_unchanged": true
+    },
+    {
+      "sample": 3,
+      "old_open": false,
+      "new_open": true,
+      "first_window_ms": 234.72,
+      "pages": 306,
+      "toc_entries": 7,
+      "last_toc_destination_page": 305,
+      "original_hash_unchanged": true
+    }
+  ]
+}

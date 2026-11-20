@@ -76,7 +76,41 @@ fn native_pdf_grid_keeps_all_text_links_search_and_bounded_tiles() {
     request.path = "tests/fixtures/mixed-pages.pdf".into();
     request.navigation = Navigation::Page(4);
     let portrait = get(request.clone());
-    assert_eq!((portrait.step, portrait.rows), (2, 1));
+    assert_eq!((portrait.step, portrait.rows), (4, 2));
+    request.path = "tests/fixtures/core.pdf".into();
+    request.width = 1706.0;
+    request.height = 1066.0;
+    request.navigation = Navigation::Page(0);
+    let portrait = get(request.clone());
+    assert_eq!(
+        (portrait.step, portrait.rows, portrait.extra.len()),
+        (8, 2, 6)
+    );
+    request.query = "Paragraph 08-01".into();
+    request.navigation = Navigation::Search(1);
+    let searched = get(request.clone());
+    assert_eq!(searched.search_hit.map(|(p, _)| p), Some(7));
+    assert!(!searched.extra_search[5].is_empty());
+    request.query.clear();
+    for (idx, (cols, rows)) in sae_reader::paging::PDF_GRIDS.into_iter().enumerate() {
+        request.view.grid = idx as u8 + 1;
+        request.navigation = Navigation::Page(29);
+        let end = get(request.clone());
+        assert_eq!((end.step, end.rows), (cols * rows, rows));
+        assert_eq!(end.frame.page, 29 / end.step * end.step);
+        let visible: Vec<_> = std::iter::once(&end.frame)
+            .chain(end.right.iter())
+            .chain(&end.extra)
+            .collect();
+        assert_eq!(visible.last().unwrap().page, 29);
+        assert!(
+            visible
+                .iter()
+                .all(|f| !f.glyphs.is_empty()
+                    && f.display_width <= request.width / cols as f32 + 1.0)
+        );
+        assert!(end.cache_bytes <= 16 * 1024 * 1024);
+    }
     request.width = 640.0;
     let narrow = get(request.clone());
     assert_eq!(narrow.step, 1);

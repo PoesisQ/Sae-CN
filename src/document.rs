@@ -87,8 +87,10 @@ impl Book {
                         notice.push_str(" · ");
                     }
                     notice.push_str(&compat.notice);
-                    conversion_style =
-                        Some((typography.foreground.clone(), typography.family.clone()));
+                    if report.ruby > 0 || report.math > 0 {
+                        conversion_style =
+                            Some((typography.foreground.clone(), typography.family.clone()));
+                    }
                     converted = Some(compat);
                 }
                 if report.repaired_html > 0 {

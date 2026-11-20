@@ -269,22 +269,31 @@ pub fn convert(
                 encoding_rs::Encoding::for_bom(&bytes).unwrap_or((encoding_rs::UTF_8, 0));
             let (text, errors) = encoding.decode_without_bom_handling(&bytes[skip..]);
             ensure!(!errors, "兼容转换的字符编码无效");
-            let mut text = text.into_owned();
-            if text.starts_with("<?xml") {
-                if let Some(end) = text.find("?>") {
-                    text.drain(..end + 2);
-                }
-            }
+            let text = text
+                .strip_prefix("<?xml")
+                .and_then(|s| s.split_once("?>"))
+                .map_or(text.as_ref(), |(_, body)| body);
             let doc = roxmltree::Document::parse_with_options(
-                &text,
+                text,
                 roxmltree::ParsingOptions {
                     allow_dtd: true,
                     nodes_limit: 300_000,
                 },
             )?;
-            let mut replacements = Vec::new();
+            // Stream unchanged spans directly. Large chapters with hundreds of
+            // inline annotations need neither a second String nor repeated shifts.
+            let mut cursor = 0;
             for node in doc.descendants().filter(Node::is_element) {
                 let tag = node.tag_name().name();
+                let range = node.range();
+                if range.start < cursor {
+                    continue;
+                }
+                if tag.eq_ignore_ascii_case("script") {
+                    target.write_all(&text.as_bytes()[cursor..range.start])?;
+                    cursor = range.end;
+                    continue;
+                }
                 if !matches!(tag, "math" | "ruby")
                     || node
                         .ancestors()
@@ -293,7 +302,11 @@ pub fn convert(
                 {
                     continue;
                 }
-                let layout = if node.descendants().take(1025).count() > 1024 {
+                let layout = if node.descendants().take(1025).count() > 1024
+                    || (report.scripts > 0
+                        && node.descendants().any(|n| {
+                            n.is_element() && n.tag_name().name().eq_ignore_ascii_case("script")
+                        })) {
                     None
                 } else if tag == "math" {
                     math(node, 0)
@@ -327,8 +340,9 @@ pub fn convert(
                         xml(family),
                         layout.svg
                     );
-                    replacements
-                        .push((node.range(), svg.replace("currentColor", &style.foreground)));
+                    target.write_all(&text.as_bytes()[cursor..range.start])?;
+                    target.write_all(svg.replace("currentColor", &style.foreground).as_bytes())?;
+                    cursor = range.end;
                     if tag == "math" {
                         math_count += 1;
                     } else {
@@ -338,10 +352,7 @@ pub fn convert(
                     unsupported += 1;
                 }
             }
-            for (range, svg) in replacements.into_iter().rev() {
-                text.replace_range(range, &svg);
-            }
-            target.write_all(text.as_bytes())?;
+            target.write_all(&text.as_bytes()[cursor..])?;
         } else {
             // Preserve unchanged compressed payloads; no decode/recompress or
             // expansion of a large book just to repair a few inline elements.
@@ -349,8 +360,20 @@ pub fn convert(
         }
     }
     target.finish()?;
-    result.notice =
-        format!("原生矢量兼容：Ruby {ruby_count} 处、MathML {math_count} 处（保留矢量文字）");
+    if report.ruby > 0 || report.math > 0 {
+        result.notice =
+            format!("原生矢量兼容：Ruby {ruby_count} 处、MathML {math_count} 处（保留矢量文字）");
+    } else {
+        result.notice.clear();
+    }
+    if report.scripts > 0 {
+        if !result.notice.is_empty() {
+            result.notice.push_str(" · ");
+        }
+        result
+            .notice
+            .push_str(&format!("静态阅读，已略过 {} 处脚本", report.scripts));
+    }
     if unsupported > 0 {
         result.notice.push_str(&format!(
             " · {unsupported} 处复杂结构未转换，原生显示可能有差异"
@@ -362,6 +385,48 @@ pub fn convert(
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn static_chapter_omits_scripts_and_preserves_surrounding_markup() {
+        let original = Converted::temporary("static-fixture").unwrap();
+        let mut zip = ZipWriter::new(File::create(&original.path).unwrap());
+        for (name, bytes) in [
+            ("mimetype", "application/epub+zip"),
+            ("META-INF/container.xml", "<container/>"),
+            (
+                "book.xhtml",
+                r##"<html><head><script src="unused.js"/></head><body><p id="start">First</p><script>literal_script_token</script><p><a href="#start">Second</a></p></body></html>"##,
+            ),
+            ("other.xhtml", "<html><body>Untouched chapter</body></html>"),
+        ] {
+            zip.start_file(name, SimpleFileOptions::default()).unwrap();
+            zip.write_all(bytes.as_bytes()).unwrap();
+        }
+        zip.finish().unwrap();
+        let check = crate::security::inspect_epub(&original.path).unwrap();
+        assert_eq!(check.scripts, 2);
+        assert_eq!(check.complex_entries.len(), 1);
+        let copy = convert(&original.path, &check, &Typography::default())
+            .unwrap()
+            .unwrap();
+        let mut archive = ZipArchive::new(File::open(&copy.path).unwrap()).unwrap();
+        let mut contents = String::new();
+        archive
+            .by_name("book.xhtml")
+            .unwrap()
+            .read_to_string(&mut contents)
+            .unwrap();
+        assert!(!contents.contains("script") && !contents.contains("unused.js"));
+        assert!(
+            contents.contains(r##"<p id="start">First</p><p><a href="#start">Second</a></p>"##)
+        );
+        contents.clear();
+        archive
+            .by_name("other.xhtml")
+            .unwrap()
+            .read_to_string(&mut contents)
+            .unwrap();
+        assert_eq!(contents, "<html><body>Untouched chapter</body></html>");
+    }
     #[test]
     fn fraction_and_ruby_keep_two_levels_and_unsupported_math_is_not_removed() {
         let doc = roxmltree::Document::parse(

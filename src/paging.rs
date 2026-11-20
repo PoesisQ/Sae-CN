@@ -47,28 +47,39 @@ pub fn spread_start(page: i32) -> i32 {
     page.max(0) / 2 * 2
 }
 
-/// Compare real page fit, not an assumed paper size. Four pages are useful only
-/// when they gain substantial occupied area without making each page much smaller.
-pub fn pdf_grid_rows(sizes: &[(f32, f32)], width: f32, height: f32) -> i32 {
-    if sizes.is_empty() || width < 800.0 || height < 600.0 {
-        return 1;
+/// Fixed presets share the same row-major geometry as the automatic overview.
+pub const PDF_GRIDS: [(i32, i32); 5] = [(3, 1), (4, 1), (2, 2), (3, 2), (4, 2)];
+
+pub fn pdf_grid(aspect: f32, width: f32, height: f32, choice: u8) -> (i32, i32) {
+    if width < 800.0 {
+        return (1, 1);
     }
-    let column = width / 2.0;
-    let cell = height / 2.0;
-    let mut areas = [0.0f32; 2];
-    for &(w, h) in sizes {
-        if !w.is_finite() || !h.is_finite() || w <= 0.0 || h <= 0.0 {
-            return 1;
-        }
-        let pair = (column / w).min(height / h);
-        let grid = (column / w).min(cell / h);
-        if grid < pair * 0.85 || column.min(w * grid) < 220.0 || h * grid < 150.0 {
-            return 1;
-        }
-        areas[0] += w * h * pair * pair;
-        areas[1] += w * h * grid * grid;
+    if let Some(&grid) = choice
+        .checked_sub(1)
+        .and_then(|i| PDF_GRIDS.get(i as usize))
+    {
+        return grid;
     }
-    if areas[1] >= areas[0] * 0.73 { 2 } else { 1 }
+    if !aspect.is_finite() || aspect <= 0.0 {
+        return (2, 1);
+    }
+    let mut best = (2, 1);
+    let mut best_score = 0.0;
+    for (columns, rows) in PDF_GRIDS {
+        let page_width = (width / columns as f32).min(height / rows as f32 * aspect);
+        let page_height = page_width / aspect;
+        if page_width < 220.0 || page_height < 150.0 {
+            continue;
+        }
+        let count = (columns * rows) as f32;
+        // Maximize actual paper area. A small density preference breaks near ties.
+        let score = count * page_width * page_height * (1.0 + 0.025 * count);
+        if score > best_score {
+            best_score = score;
+            best = (columns, rows);
+        }
+    }
+    best
 }
 
 #[cfg(test)]
@@ -100,10 +111,9 @@ mod tests {
     }
 }
 /// Links and text drags are handled before this navigation rule is applied.
-pub fn click_direction(spread: bool, slot: i32, x: f32, width: f32) -> i32 {
-    if spread {
-        if slot % 2 == 0 { -1 } else { 1 }
-    } else if x < width * 0.5 {
+pub fn click_direction(columns: i32, slot: i32, x: f32, width: f32) -> i32 {
+    let mid = 2 * (slot % columns) + 1;
+    if mid < columns || (mid == columns && x < width * 0.5) {
         -1
     } else {
         1

@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.5.3-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.5.3-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.0-preview.1/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.0-preview.1')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -112,7 +112,7 @@ F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc �
 鼠标靠近下沿显示进度，拖动时显示目标页，松手跳转。点击页码或按 Ctrl+G 输入页码。
 悬停 PDF 底部拨盘可展开挡位。可沿外圈转动，或从盘心和读数处向右、向上直拖放大，反向缩小，也支持滚轮。
 拖动后面板保留，可再次拖动。点击正文或按 Esc 收起。
-点 100% 回到整页，点适宽填满当前页栏。图片未载入等情况可在阅读设置的「文档信息」查看。
+圆盘下弧从左至右的三道刻线分别是整页（100%）、适宽、铺满，悬停显示名称。图片未载入等情况可在阅读设置的「文档信息」查看。
 PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
@@ -127,7 +127,7 @@ PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反
 部分 Ruby/MathML 使用原生矢量兼容，保留矢量文字选择；竖排和复杂固定版式仍有限制。详见 docs/。
 公式写法见 docs/markdown-math.md。
 Markdown 支持 $...$、$$...$$ 和 math 围栏块中的常见 LaTeX；代码保持原文，复杂公式保留源码。
-PDF 工具条中的多页模式可按比例排成 2×2，最多四页；点击正文可收起侧栏，首次点击不会翻页。
+PDF 顶栏拨轮切换单页、双页和多页。多页可自动排版，也可在设置中固定为 3×1、4×1、2×2、3×2 或 4×2。点击正文收起侧栏。盘缘可转动，盘心可直拖。
 
 Windows 10/11 x64。当前主机已实测；尚未做无开发环境的干净虚拟机验收。
 依赖 Windows 系统 DLL 和 Microsoft Visual C++ v14 x64 运行库；

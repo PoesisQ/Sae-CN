@@ -199,3 +199,60 @@ fn local_pdfs_magnify_real_pages_without_allocating_a_full_zoomed_bitmap() {
         }
     }
 }
+
+#[test]
+fn static_epub_chapters_open_keep_contents_and_reach_the_last_page() {
+    let Some(list) = std::env::var_os("SAE_READER_STATIC_EPUBS") else {
+        return;
+    };
+    for (i, path) in std::env::split_paths(&list).enumerate() {
+        let before = blake3::hash(&std::fs::read(&path).unwrap());
+        let mut book = sae_reader::document::Book::open(&path).unwrap();
+        book.layout(&Typography::default(), 540.0, 720.0, 0)
+            .unwrap();
+        while !book.pagination_complete {
+            book.paginate_next().unwrap();
+        }
+        let toc = book.contents().unwrap();
+        let dest = toc
+            .iter()
+            .rev()
+            .filter_map(|item| book.engine.resolve_link(&item.uri).ok().flatten())
+            .next()
+            .unwrap();
+        assert!(dest.loc.page_number > 0);
+        let text = book
+            .engine
+            .load_page(book.page_count / 2)
+            .unwrap()
+            .text(Default::default())
+            .unwrap();
+        assert!(text.chars().filter(|c| !c.is_whitespace()).count() > 10);
+        let cover = book
+            .engine
+            .load_page(0)
+            .unwrap()
+            .to_pixmap(
+                &mupdf::Matrix::IDENTITY,
+                &mupdf::Colorspace::device_rgb(),
+                false,
+                true,
+            )
+            .unwrap();
+        assert!(
+            cover
+                .samples()
+                .chunks_exact(3)
+                .any(|p| p[0] < 180 || p[1] < 180 || p[2] < 180)
+        );
+        assert!(book.engine.load_page(book.page_count - 1).is_ok());
+        assert_eq!(before, blake3::hash(&std::fs::read(&path).unwrap()));
+        println!(
+            "static-sample={} pages={} toc={} destination={} readonly=true",
+            i + 1,
+            book.page_count,
+            toc.len(),
+            dest.loc.page_number
+        );
+    }
+}

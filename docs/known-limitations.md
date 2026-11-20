@@ -4,7 +4,7 @@ The repository is under staged development. Unverified features must not be adve
 
 - G0 native feasibility passed on original synthetic EPUB2/3 and PDF. G1 native-window validation is in progress; G2–G5 are not accepted.
 - EPUB3 is not assumed complete; MuPDF's official documentation explicitly describes its EPUB3 support as limited.
-- DRM, embedded scripts, multimedia/media overlays are outside the product support scope.
+- The reader opens static XHTML in EPUBs that also contain scripts. Script-generated pages, DRM and multimedia playback are outside the supported scope.
 - PDF typography cannot be reflowed by changing the app's text settings.
 - The initial release flattened Ruby/MathML. Version 0.2 adds a targeted native vector fallback, retaining SVG text coordinates/search; full MathML/Ruby conformance remains unaccepted.
 - Native layout cannot be preempted mid-call; cancellation currently coalesces work and suppresses stale results between calls.

@@ -7,29 +7,29 @@
 <p align="center">Windows 原生电子书阅读器。</p>
 
 <p align="center">
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-0.5.3-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.3-preview.1">更新说明与源码</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.0-preview.1/SaeReader-0.6.0-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.0-preview.1">更新说明与源码</a> ·
   <a href="LICENSE">AGPL-3.0-or-later</a>
 </p>
 
 Sae Reader 支持暖纸、白纸与夜读主题。阅读时文档占满窗口，工具栏、目录和设置随用随开。
 可重排文档的排版独立可调，PDF 保留原页版式，并提供单页、双页和多页。
 
-当前为 **v0.5.3-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
+当前为 **v0.6.0-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
 
-![Sae Reader 首页，青墨色的书页沿同一条书脊展开](docs/evidence/iteration-0.5.3/home.png)
+![Sae Reader 首页，一张沿透视线翻折的朱红与墨黑网格海报](docs/evidence/iteration-0.6.0/home.png)
 
 ## 下载与使用
 
-1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-0.5.3-preview.1-windows-x64.zip)。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.0-preview.1/SaeReader-0.6.0-preview.1-windows-x64.zip)。
 2. 完整解压，双击 `SaeReader.exe`，通过「打开」选择书籍。
-3. 鼠标靠近窗口上方即可展开工具条，选择「单页」或「双页」。点击阅读区域左侧上一页，右侧下一页。
+3. 鼠标靠近窗口上方即可展开工具条，滚动顶栏的半露拨轮，或点中心两侧的视图名称。点击阅读区域左侧上一页，右侧下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.5.3-preview.1) 同时提供独立 EXE、
-完整依赖源码、许可证和 SHA256 校验文件；推荐使用包含使用说明与许可文件的 Windows 压缩包。
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.0-preview.1) 同时提供独立 EXE、
+完整依赖源码、许可证和 SHA256 校验文件。Windows 压缩包内附使用说明与许可。
 
 作为默认阅读器使用时，可用完整包里的 `Install.ps1` 更新固定目录中的程序。
 Windows 会记住程序路径；每次换到不同的版本目录可能仍会启动旧版。
@@ -41,15 +41,17 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **真实重排**：可重排文档的字体、字号、行距、段距、缩进、对齐、正文宽度及四边距可调。
 - **舒适主题**：暖纸、白纸和深色；PDF 可选原色、随主题着色或反色，使用 MuPDF 原生处理。
 - **阅读工具**：章节目录、内部链接与返回、文字选择与复制、跨章节全文查找及前后定位。
-- **PDF 多页**：工具条选择「多页」，横向讲义等可自动排成 2×2；按页面实际比例和窗口尺寸显示两页或四页，窄窗口暂用单页。保留独立单页、双页模式，方向键与滚轮按整组翻页。
+- **PDF 多页**　顶栏半滚轮从工具栏下沿探出，当前挡位停在弧面中心。可在弧面上拖动、滚动或点选单页、双页和多页。多页会按窗口和页面比例排列。在阅读设置的「多页布局」中也可指定 3×1、4×1、2×2、3×2 或 4×2。方向键按整组翻页，末组保留余页，窄窗口自动显示单页。
 - **收起侧栏**：点击文档或页边空白即可关闭目录、排版或查找面板；这一次点击只收起面板。
-- **PDF 缩放**　靠近底部，悬停百分比旁的拨盘即可展开。沿外圈顺时针转半圈，倍率翻倍。逆时针转动可缩小，也可以从盘心或读数向上、向右直拖，或使用滚轮。拖动后面板会保留，可松手再抓；点击正文或按 `Esc` 收起。点「100%」看整页，点「适宽」填满当前页栏。放大后左右键仍按当前模式翻页。
-- **跳页**：拖细进度线能先看到目标页码，松手才跳转。点击页码或按 `Ctrl+G`，在原位置输入页数后回车。双页和四页模式显示包含目标页的整组。
+- **PDF 缩放**　靠近底部倍率，正视圆盘会从原位抬起，进度条同时让出空间。抓住盘心或百分比横拖、竖拖，拉到屏幕边缘按住可以继续缩放。抓住盘缘顺时针转动可放大，逆时针可缩小。松手后仍可查看盘心的倍率和再次拖动。下弧三道刻线从左到右依次是整页（100%）、适宽和铺满。指向刻线显示名称，点击切换。点击正文或按 `Esc` 收起。
+- **跳页**：拖细进度线能先看到目标页码，松手才跳转。点击页码或按 `Ctrl+G`，在原位置输入页数后回车。多页模式显示包含目标页的整组。
 - **Kindle 与 FB2**：无 DRM 的 AZW3/KF8、MOBI 以及 FictionBook；保留文字、目录、图片、样式与链接，按需解析，共用原生渲染与搜索。
 - **文本与 Markdown**：自动识别编码，可手动切换；保留 TXT 空行与缩进，Markdown 支持标题、列表、引用、代码、表格、本地图片与链接。图片未载入等情况可在阅读设置的「文档信息」查看。
 - **Markdown 公式**：支持 `$...$`、`$$...$$` 和 `math` 块中的常见 LaTeX；分式、根式、上下标、矩阵和对齐公式由原生引擎绘制，保留文字坐标。普通代码保持原义，复杂命令保留源码。[语法与范围](docs/markdown-math.md) · [实测记录](docs/iteration-0.4.1.md)。
 - **记住位置**：正常关闭或切书时保存排版、阅读模式及每本书的阅读位置及手动文本编码。
 - **沉浸阅读**：点击系统最大化按钮、双击标题栏或按 `F11`，都会进入隐藏标题栏和任务栏的全屏。鼠标靠近边缘时显示工具栏；目录与设置覆盖在正文之上。
+
+[顶栏半滚轮](docs/evidence/iteration-0.6.0/view-wheel.png) · [PDF 缩放盘](docs/evidence/iteration-0.6.0/zoom.png) · [竖版 PDF 八页实图](docs/evidence/iteration-0.6.0/portrait.png)
 
 ## 快捷键
 
@@ -84,10 +86,10 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - 尚未提供拖入打开、OCR 或整本书的常驻搜索索引。全文查找按需逐页扫描，扫描 PDF 需要已有文本层。每页查找上限 4096 个区域，同时最多高亮 256 个及当前区域。
 - 常见 Ruby 与部分 MathML 使用按需生成的 SVG 兼容，保留上下结构与分数、上下标；矢量文字保留选择与搜索。复杂数学结构、竖排、不同画布尺寸的固定布局等仍有限制，不能宣称 EPUB 3 全兼容。
 - 部分编辑控件下的全局快捷键、完整无障碍与干净 Windows 虚拟机验收仍待补齐。
-- 不支持 DRM、嵌入脚本或多媒体播放。
+- 带脚本的规范 EPUB 章节可阅读其中的静态正文、图片和目录。依赖 JavaScript 生成的内容、DRM 及多媒体播放暂未支持。
 
 详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
-和 [本版界面与 Windows 实测](docs/iteration-0.5.3.md)。
+和 [本版界面与 Windows 实测](docs/iteration-0.6.0.md)。
 
 ## 开发与许可
 
@@ -96,4 +98,4 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
 每个二进制 Release 同时提供对应源码及许可文件。
 
-图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.5.3-preview.1/SaeReader.ico)。
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.0-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.0-preview.1/SaeReader.ico)。

@@ -1,4 +1,4 @@
-use anyhow::{Context, Result, bail, ensure};
+use anyhow::{Context, Result, ensure};
 use std::{
     collections::HashSet,
     fs::File,
@@ -17,10 +17,11 @@ pub struct EpubInspection {
     pub repaired_html: usize,
     pub ruby: usize,
     pub math: usize,
+    pub scripts: usize,
     pub vertical: bool,
     pub fixed: bool,
     pub viewport: Option<(f32, f32)>,
-    pub complex_entries: Vec<String>,
+    pub complex_entries: HashSet<String>,
     pub unconverted_complex_html: bool,
 }
 pub fn preflight_epub(path: &Path) -> Result<()> {
@@ -82,12 +83,12 @@ pub fn inspect_epub(path: &Path) -> Result<EpubInspection> {
             let html = [".xhtml", ".html", ".htm"]
                 .iter()
                 .any(|ext| lower.ends_with(ext));
-            let before = (report.ruby, report.math);
+            let before = (report.ruby, report.math, report.scripts);
             if validate_markup_inspected(&bytes, html, Some(&mut report))? {
                 report.repaired_html += 1;
             }
-            if html && before != (report.ruby, report.math) {
-                report.complex_entries.push(name);
+            if html && before != (report.ruby, report.math, report.scripts) {
+                report.complex_entries.insert(name);
             }
         } else if lower.ends_with(".css") && item.size() <= MAX_XML {
             let mut css = String::new();
@@ -147,9 +148,11 @@ fn validate_markup_inspected(
     let text = decoded.as_ref();
     // roxmltree never resolves an external DTD. Common EPUB2 PUBLIC DOCTYPEs
     // are accepted, but declared entities are forbidden before either parser.
-    let upper = text.to_ascii_uppercase();
     ensure!(
-        !upper.contains("<!ENTITY"),
+        !text.match_indices("<!").any(|(i, _)| text
+            .as_bytes()
+            .get(i..i + 8)
+            .is_some_and(|prefix| prefix.eq_ignore_ascii_case(b"<!ENTITY"))),
         "XML entity declarations are forbidden"
     );
     let parsed = roxmltree::Document::parse_with_options(
@@ -168,12 +171,20 @@ fn validate_markup_inspected(
     }
     let doc = parsed.context("Malformed EPUB XML")?;
     for node in doc.descendants() {
-        ensure!(
-            node.ancestors().take(129).count() <= 128,
-            "EPUB XML nesting exceeds limit"
-        );
-        if node.is_element() && node.tag_name().name() == "script" {
-            bail!("Scripted EPUB content is unsupported; no script is executed");
+        if !node.has_children() {
+            ensure!(
+                node.ancestors().take(129).count() <= 128,
+                "EPUB XML nesting exceeds limit"
+            );
+        }
+        if node.is_element() && node.tag_name().name().eq_ignore_ascii_case("script") {
+            ensure!(
+                html,
+                "Script outside an EPUB content document is unsupported"
+            );
+            if let Some(report) = report.as_deref_mut() {
+                report.scripts += 1;
+            }
         }
         if let Some(report) = report.as_deref_mut() {
             if node.is_element() {

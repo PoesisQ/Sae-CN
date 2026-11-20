@@ -26,7 +26,7 @@ Engine/binding versions will be recorded from the actual build. `待测` means n
 | E20 | P1 RTL/bidi | advanced.epub | 待测 | Text order and navigation |
 | E21 | P1 EPUB3 fixed layout/spreads | fixed.epub | 同尺寸画布已测；混合画布与出版方跨页待补 | 600×800 固定画布、绝对定位图像和底部文字断言，字号/窗口变化不重排；支持阅读器单双页与缩放 |
 | E22 | P1 cross chapter search/highlight | core-epub3.epub | 跨章与双页查找回归通过 | reader_features 前后循环、右页命中、缩放视区定位；ui-whole-book-search.png；无常驻索引 |
-| E23 | P2 audio/video/media overlay/script | not supplied | 不支持（产品范围） | Must surface limitation; never execute scripts |
+| E23 | 含脚本的静态 XHTML、媒体 | 自建回归与三本本地 EPUB | 忽略章节脚本，保留静态正文、图片与目录 | [Windows 实测](iteration-0.6.0.md)。依赖脚本生成内容和音视频播放仍未支持。 |
 | E24 | P2 DRM | not supplied | 不支持（产品范围） | No bypass |
 | S01 | Security ZIP bomb/traversal/XXE/depth | generated hostile fixtures | 当前自动回归通过 | test-feedback-final.log；容错 HTML 仍拒绝实体/脚本/深度炸弹，容器 XML 仍严格 |
 

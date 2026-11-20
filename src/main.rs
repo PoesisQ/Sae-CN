@@ -8,7 +8,7 @@ use sae_reader::{
     zoom::{self, Drag, Grip, Position, Stop},
 };
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
-use slint::{ComponentHandle, Image, Model, ModelRc, VecModel};
+use slint::{ComponentHandle, Model, ModelRc, VecModel};
 use std::{
     path::PathBuf,
     rc::Rc,
@@ -44,6 +44,9 @@ struct State {
     metrics: qa::Metrics,
 }
 fn marks(boxes: Vec<Bounds>) -> ModelRc<Mark> {
+    if boxes.is_empty() {
+        return ModelRc::default();
+    }
     ModelRc::new(VecModel::from(
         boxes
             .into_iter()
@@ -275,6 +278,7 @@ fn run() -> anyhow::Result<()> {
     sync_style(&ui, &preferences.typography);
     ui.set_double_page(preferences.spread);
     ui.set_pdf_multi(preferences.pdf_multi);
+    ui.set_grid_choice(preferences.pdf_grid as i32);
     ui.set_theme_index(preferences.theme as i32);
     ui.set_page_color(preferences.page_color as i32);
     ui.set_fonts(ModelRc::new(VecModel::from(vec!["默认衬线".into()])));
@@ -315,7 +319,7 @@ fn run() -> anyhow::Result<()> {
                 return;
             }
             match result {
-                Ok(update) => {
+                Ok(mut update) => {
                     let frame = &update.frame;
                     let changed = s
                         .frame
@@ -338,66 +342,59 @@ fn run() -> anyhow::Result<()> {
                     ui.set_visible_count(update.step);
                     ui.set_effective_spread(update.step > 1);
                     let previous_tiles = ui.get_pages();
-                    let tiles = std::iter::once(&update.frame)
-                        .chain(update.right.iter())
-                        .chain(update.extra.iter())
-                        .enumerate()
-                        .map(|(i, f)| PageTile {
-                            source: f.pixels.image(),
-                            w: f.display_width,
-                            h: f.display_height,
-                            selection: if changed {
-                                marks(Vec::new())
+                    // Pagination metadata often follows the same first frame. Reuse the
+                    // tile model and its native images on that second notification.
+                    let repaint_tiles = changed
+                        || layout_changed
+                        || !update.search.is_empty()
+                        || !update.right_search.is_empty()
+                        || update.extra_search.iter().any(|hits| !hits.is_empty())
+                        || previous_tiles
+                            .iter()
+                            .any(|tile| tile.matches.row_count() != 0);
+                    if repaint_tiles {
+                        let search = std::iter::once(std::mem::take(&mut update.search))
+                            .chain(std::iter::once(std::mem::take(&mut update.right_search)))
+                            .chain(std::mem::take(&mut update.extra_search));
+                        let tiles: Vec<_> = std::iter::once(&update.frame)
+                            .chain(update.right.iter())
+                            .chain(update.extra.iter())
+                            .zip(search)
+                            .enumerate()
+                            .map(|(i, (frame, hits))| {
+                                if !changed && let Some(mut tile) = previous_tiles.row_data(i) {
+                                    tile.matches = marks(hits);
+                                    return tile;
+                                }
+                                PageTile {
+                                    source: frame.pixels.image(),
+                                    w: frame.display_width,
+                                    h: frame.display_height,
+                                    selection: ModelRc::default(),
+                                    matches: marks(hits),
+                                }
+                            })
+                            .collect();
+                        if !layout_changed
+                            && let Some(model) =
+                                previous_tiles.as_any().downcast_ref::<VecModel<PageTile>>()
+                        {
+                            if model.row_count() == tiles.len() {
+                                for (i, tile) in tiles.into_iter().enumerate() {
+                                    model.set_row_data(i, tile);
+                                }
                             } else {
-                                previous_tiles
-                                    .row_data(i)
-                                    .map(|t| t.selection)
-                                    .unwrap_or_default()
-                            },
-                            matches: marks(match i {
-                                0 => update.search.clone(),
-                                1 => update.right_search.clone(),
-                                _ => update.extra_search[i - 2].clone(),
-                            }),
-                        })
-                        .collect::<Vec<_>>();
-                    if layout_changed {
-                        ui.set_pages(ModelRc::new(VecModel::from(tiles)));
-                    } else if let Some(model) =
-                        previous_tiles.as_any().downcast_ref::<VecModel<PageTile>>()
-                    {
-                        if model.row_count() == tiles.len() {
-                            for (i, tile) in tiles.into_iter().enumerate() {
-                                model.set_row_data(i, tile);
+                                model.set_vec(tiles);
                             }
                         } else {
-                            model.set_vec(tiles);
+                            ui.set_pages(ModelRc::new(VecModel::from(tiles)));
                         }
-                    } else {
-                        ui.set_pages(ModelRc::new(VecModel::from(tiles)));
                     }
-
                     if changed {
-                        ui.set_page_image(frame.pixels.image());
-                        ui.set_image_width(frame.display_width);
-                        ui.set_image_height(frame.display_height);
-                        if let Some(right) = &update.right {
-                            ui.set_right_image(right.pixels.image());
-                            ui.set_right_width(right.display_width);
-                            ui.set_right_height(right.display_height);
-                        } else {
-                            ui.set_right_image(Image::default());
-                            ui.set_right_width(0.0);
-                            ui.set_right_height(0.0);
-                        }
-                        ui.set_highlights(marks(Vec::new()));
-                        ui.set_right_highlights(marks(Vec::new()));
                         s.selected.clear();
                         #[cfg(feature = "qa")]
                         s.metrics.frame(&update);
                     }
-                    ui.set_search_marks(marks(update.search));
-                    ui.set_right_search_marks(marks(update.right_search));
                     ui.set_has_document(true);
                     ui.set_opening_document(false);
                     ui.set_book_title(update.title.into());
@@ -504,9 +501,6 @@ fn run() -> anyhow::Result<()> {
                     ui.set_status(format!("无法读取：{error:#}").into());
                     if s.frame.is_none() {
                         ui.set_has_document(false);
-                        ui.set_page_image(Image::default());
-                        ui.set_right_image(Image::default());
-                        ui.set_image_width(0.0);
                     }
                 }
             }
@@ -556,11 +550,36 @@ fn run() -> anyhow::Result<()> {
             );
         });
     }
+    // Capture the monitor in window-local logical coordinates once per press.
+    // Only an active linear grip at a physical screen edge owns a running timer.
+    let edge_timer = Rc::new(slint::Timer::default());
+    let edge_geometry = Rc::new(std::cell::Cell::new(None));
+    let edge_sign = Rc::new(std::cell::Cell::new(0_i8));
     {
         let state = state.clone();
         let weak = ui.as_weak();
+        let geometry = edge_geometry.clone();
+        let timer = edge_timer.clone();
         ui.on_zoom_begin(move |x, y, radius| {
             if let Some(ui) = weak.upgrade() {
+                timer.stop();
+                geometry.set(
+                    ui.window()
+                        .with_winit_window(|w| {
+                            let monitor = w.current_monitor()?;
+                            let client = w.inner_position().ok()?;
+                            let offset = monitor.position();
+                            let size = monitor.size();
+                            let dpi = w.scale_factor() as f32;
+                            Some((
+                                (client.x - offset.x) as f32 / dpi,
+                                (client.y - offset.y) as f32 / dpi,
+                                size.width as f32 / dpi,
+                                size.height as f32 / dpi,
+                            ))
+                        })
+                        .flatten(),
+                );
                 state.lock().unwrap().zoom_drag = Some((
                     Drag::start(ui.get_pdf_zoom(), ui.get_pdf_fill_zoom()),
                     Grip::new(x, y, radius),
@@ -571,7 +590,8 @@ fn run() -> anyhow::Result<()> {
     {
         let state = state.clone();
         let weak = ui.as_weak();
-        ui.on_zoom_motion(move |x, y| {
+        let timer = edge_timer.clone();
+        ui.on_zoom_motion(move |x, y, window_x, window_y| {
             let Some(ui) = weak.upgrade() else {
                 return false;
             };
@@ -582,11 +602,43 @@ fn run() -> anyhow::Result<()> {
             let Some(travel) = grip.sample(x, y, *dial) else {
                 return false;
             };
+            let sign = edge_geometry.get().map_or(0, |(ox, oy, w, h)| {
+                grip.edge_direction(window_x + ox, window_y + oy, w, h)
+            });
             let position = dial.at(travel);
             let changed = apply_zoom(&mut s, &ui, position, false);
             drop(s);
             if changed {
                 ui.invoke_refresh_zoom(false);
+            }
+            let previous = edge_sign.replace(sign);
+            if sign == 0 {
+                timer.stop();
+            } else if sign != previous || !timer.running() {
+                let state = state.clone();
+                let weak = weak.clone();
+                let running = Rc::downgrade(&timer);
+                timer.start(
+                    slint::TimerMode::Repeated,
+                    Duration::from_millis(32),
+                    move || {
+                        let Some(ui) = weak.upgrade() else { return };
+                        let mut s = state.lock().unwrap();
+                        let next = s
+                            .zoom_drag
+                            .as_mut()
+                            .and_then(|(dial, grip)| grip.advance(8.0 * f32::from(sign), *dial));
+                        if let Some(next) = next {
+                            let changed = apply_zoom(&mut s, &ui, next, false);
+                            drop(s);
+                            if changed {
+                                ui.invoke_refresh_zoom(false);
+                            }
+                        } else if let Some(timer) = running.upgrade() {
+                            timer.stop();
+                        }
+                    },
+                );
             }
             true
         });
@@ -595,6 +647,7 @@ fn run() -> anyhow::Result<()> {
         let state = state.clone();
         let weak = ui.as_weak();
         ui.on_zoom_end(move || {
+            edge_timer.stop();
             state.lock().unwrap().zoom_drag = None;
             if let Some(ui) = weak.upgrade() {
                 ui.invoke_refresh_zoom(true);
@@ -824,6 +877,18 @@ fn run() -> anyhow::Result<()> {
         });
     }
     {
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        ui.on_grid_changed(move |choice| {
+            let grid = choice.clamp(0, sae_reader::paging::PDF_GRIDS.len() as i32) as u8;
+            state.lock().unwrap().preferences.pdf_grid = grid;
+            submit(&state, &mailbox, |r| {
+                r.view.grid = grid;
+                r.navigation = Navigation::Keep;
+            });
+        });
+    }
+    {
         let weak = ui.as_weak();
         let state = state.clone();
         let mailbox = mailbox.clone();
@@ -977,26 +1042,19 @@ fn run() -> anyhow::Result<()> {
                 if let Some(ui) = weak.upgrade() {
                     let tiles = ui.get_pages();
                     if let Some(model) = tiles.as_any().downcast_ref::<VecModel<PageTile>>() {
+                        let mut selection = marks(boxes);
                         for i in 0..slint::Model::row_count(model) {
                             if let Some(mut tile) = slint::Model::row_data(model, i) {
                                 tile.selection = if i == slot as usize {
-                                    marks(boxes.clone())
+                                    std::mem::take(&mut selection)
+                                } else if tile.selection.row_count() != 0 {
+                                    ModelRc::default()
                                 } else {
-                                    marks(Vec::new())
+                                    continue;
                                 };
                                 slint::Model::set_row_data(model, i, tile);
                             }
                         }
-                    }
-                    if slot >= 2 {
-                        ui.set_right_highlights(marks(Vec::new()));
-                        ui.set_highlights(marks(Vec::new()));
-                    } else if slot == 1 {
-                        ui.set_right_highlights(marks(boxes));
-                        ui.set_highlights(marks(Vec::new()));
-                    } else {
-                        ui.set_highlights(marks(boxes));
-                        ui.set_right_highlights(marks(Vec::new()));
                     }
                 }
             }
@@ -1033,12 +1091,8 @@ fn run() -> anyhow::Result<()> {
                 if let Some(uri) = uri {
                     follow(uri, source, &ui, &state, &mailbox);
                 } else {
-                    let direction = sae_reader::paging::click_direction(
-                        ui.get_effective_spread(),
-                        slot,
-                        x,
-                        width,
-                    );
+                    let direction =
+                        sae_reader::paging::click_direction(ui.get_grid_columns(), slot, x, width);
                     turn(&state, &mailbox, direction, &ui);
                 }
             }
@@ -1146,10 +1200,34 @@ fn run() -> anyhow::Result<()> {
         let mut maximize_pending = false;
         // Window-level shortcuts work while a button, slider or text field owns
         // focus. Cursor events only update overlay visibility, never layout.
+        // Scripted gestures target the native Slint window even while it is
+        // in the background. Real desktop input and focus loss belong to the
+        // physical device, and would otherwise cancel a simulated gesture.
+        #[cfg(feature = "qa")]
+        let scripted_pointer = std::env::var_os("SAE_READER_QA_REPORT").is_some()
+            && matches!(
+                std::env::var("SAE_READER_QA_SCENARIO").as_deref(),
+                Ok("chrome" | "detents" | "instruments" | "navigation" | "visual")
+            );
         ui.window().on_winit_window_event(move |window, event| {
             let Some(ui) = weak.upgrade() else {
                 return EventResult::Propagate;
             };
+            #[cfg(feature = "qa")]
+            if scripted_pointer
+                && matches!(
+                    event,
+                    winit::event::WindowEvent::CursorMoved { .. }
+                        | winit::event::WindowEvent::CursorLeft { .. }
+                        | winit::event::WindowEvent::CursorEntered { .. }
+                        | winit::event::WindowEvent::MouseInput { .. }
+                        | winit::event::WindowEvent::MouseWheel { .. }
+                        | winit::event::WindowEvent::KeyboardInput { .. }
+                        | winit::event::WindowEvent::Focused(false)
+                )
+            {
+                return EventResult::PreventDefault;
+            }
             match event {
                 winit::event::WindowEvent::ModifiersChanged(event) => {
                     modifiers = event.state();
@@ -1345,8 +1423,6 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_has_document(false);
     ui.set_page_entry_active(false);
     ui.set_pages(ModelRc::default());
-    ui.set_page_image(Image::default());
-    ui.set_right_image(Image::default());
     ui.set_text_document(
         path.extension()
             .is_some_and(|e| e.eq_ignore_ascii_case("txt") || e.eq_ignore_ascii_case("md")),
@@ -1398,6 +1474,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     viewport(ui, &mut request);
     request.view.color = s.preferences.page_color;
     request.view.multi = s.preferences.pdf_multi;
+    request.view.grid = s.preferences.pdf_grid;
     request.view.encoding = saved_encoding;
     s.back.clear();
     s.frame = None;

@@ -25,6 +25,7 @@ pub enum Navigation {
 #[derive(Clone)]
 pub struct ViewOptions {
     pub multi: bool,
+    pub grid: u8,
     pub encoding: Option<String>,
     pub color: u8,
     pub fit_width: bool,
@@ -36,6 +37,7 @@ impl Default for ViewOptions {
     fn default() -> Self {
         Self {
             multi: false,
+            grid: 0,
             encoding: None,
             color: 0,
             fit_width: false,
@@ -136,6 +138,7 @@ impl Worker {
                 let mut cache = Cache::new(16 * 1024 * 1024);
                 let mut opened_encoding = None;
                 let mut fixed_view = None;
+                let mut overview_aspect: Option<f32> = None;
                 let mut actual_page = 0;
                 loop {
                     let pending = {
@@ -172,6 +175,7 @@ impl Worker {
                             || opened_encoding != request.view.encoding
                         {
                             book = None;
+                            overview_aspect = None;
                             cache.clear();
                             book = Some(Book::open_styled(
                                 &request.path,
@@ -206,6 +210,7 @@ impl Worker {
                                 request.pdf_zoom.to_bits(),
                                 request.spread as u32,
                                 request.view.multi as u32,
+                                request.view.grid as u32,
                                 request.view.fit_width as u32,
                                 request.view.fit_cover as u32,
                                 request.view.color as u32,
@@ -260,6 +265,7 @@ impl Worker {
                         let mut search_hit = previous_hit;
                         let mut search_status = String::new();
                         let mut pan = request.view.pan;
+                        let mut matched_quad = None;
                         if let Navigation::Search(direction) = request.navigation {
                             // No persistent index, text corpus or second engine thread. Native
                             // text pages are searched and released one at a time, with cancellation.
@@ -313,28 +319,13 @@ impl Worker {
                                             search_status.push_str(" · 本页达到 4096 个区域上限");
                                         }
                                         if !b.reflowable {
-                                            let bounds = b.engine.load_page(page)?.bounds()?;
-                                            let scale =
-                                                pdf_scale(bounds, column, request.height, &request);
-                                            let q = &hits[index];
-                                            let full = [
-                                                (bounds.x1 - bounds.x0) * scale / request.dpi,
-                                                (bounds.y1 - bounds.y0) * scale / request.dpi,
-                                            ];
-                                            let center = [
-                                                ((q.ul.x + q.lr.x) * 0.5 - bounds.x0) * scale
-                                                    / request.dpi,
-                                                ((q.ul.y + q.lr.y) * 0.5 - bounds.y0) * scale
-                                                    / request.dpi,
-                                            ];
-                                            pan = [
-                                                ((center[0] - column * 0.5)
-                                                    / (full[0] - column).max(1.0))
-                                                .clamp(0.0, 1.0),
-                                                ((center[1] - request.height * 0.5)
-                                                    / (full[1] - request.height).max(1.0))
-                                                .clamp(0.0, 1.0),
-                                            ];
+                                            matched_quad = Some((
+                                                page,
+                                                hits[index].ul.x,
+                                                hits[index].ul.y,
+                                                hits[index].lr.x,
+                                                hits[index].lr.y,
+                                            ));
                                         }
                                         break;
                                     }
@@ -344,19 +335,41 @@ impl Worker {
                                 }
                             }
                         }
-                        let mut rows = 1;
-                        if spread && !b.reflowable && request.view.multi {
-                            // Inspect at most four page boxes; never scan the document.
-                            let start = actual_page / 4 * 4;
-                            let mut sizes = Vec::with_capacity(4);
-                            for page in start..(start + 4).min(b.page_count) {
-                                let bounds = b.engine.load_page(page)?.bounds()?;
-                                sizes.push((bounds.x1 - bounds.x0, bounds.y1 - bounds.y0));
-                            }
-                            rows =
-                                crate::paging::pdf_grid_rows(&sizes, request.width, request.height);
-                        }
-                        let step = if spread { 2 * rows } else { 1 };
+                        let (columns, rows) = if spread && !b.reflowable && request.view.multi {
+                            // Stable across turns, including mixed-size pages and an incomplete last row.
+                            // Sample three boxes once per book, so a portrait cover on slides cannot dominate.
+                            let aspect = if request.view.grid > 0 {
+                                1.0
+                            } else if let Some(ratio) = overview_aspect {
+                                ratio
+                            } else {
+                                let mut ratios = [1.0_f32; 3];
+                                let n = b.page_count.clamp(1, 3) as usize;
+                                for (page, ratio) in ratios[..n].iter_mut().enumerate() {
+                                    let bounds = b.engine.load_page(page as i32)?.bounds()?;
+                                    *ratio =
+                                        (bounds.x1 - bounds.x0) / (bounds.y1 - bounds.y0).max(1.0);
+                                }
+                                ratios[..n].sort_by(f32::total_cmp);
+                                let ratio = ratios[n / 2];
+                                overview_aspect = Some(ratio);
+                                ratio
+                            };
+                            crate::paging::pdf_grid(
+                                aspect,
+                                request.width,
+                                request.height,
+                                request.view.grid,
+                            )
+                        } else {
+                            (if spread { 2 } else { 1 }, 1)
+                        };
+                        let column = if columns > 2 {
+                            request.width / columns as f32
+                        } else {
+                            column
+                        };
+                        let step = columns * rows;
                         actual_page = actual_page / step * step;
                         if spread {
                             b.ensure_page(actual_page + 1)?;
@@ -368,34 +381,20 @@ impl Worker {
                             r
                         });
                         let cell_request = grid_request.as_ref().unwrap_or(&request);
-                        if rows == 2 && matches!(request.navigation, Navigation::Search(_)) {
-                            if let Some((page, index)) = search_hit {
-                                let native = b.engine.load_page(page)?;
-                                if let Some(q) = native.search(&request.query, 4096)?.get(index) {
-                                    let bounds = native.bounds()?;
-                                    let scale = pdf_scale(
-                                        bounds,
-                                        column,
-                                        cell_request.height,
-                                        cell_request,
-                                    ) / request.dpi;
-                                    let full = [
-                                        (bounds.x1 - bounds.x0) * scale,
-                                        (bounds.y1 - bounds.y0) * scale,
-                                    ];
-                                    let center = [
-                                        ((q.ul.x + q.lr.x) * 0.5 - bounds.x0) * scale,
-                                        ((q.ul.y + q.lr.y) * 0.5 - bounds.y0) * scale,
-                                    ];
-                                    pan = [
-                                        ((center[0] - column * 0.5) / (full[0] - column).max(1.0))
-                                            .clamp(0.0, 1.0),
-                                        ((center[1] - cell_request.height * 0.5)
-                                            / (full[1] - cell_request.height).max(1.0))
-                                        .clamp(0.0, 1.0),
-                                    ];
-                                }
-                            }
+                        if let Some((page, x0, y0, x1, y1)) = matched_quad {
+                            let bounds = b.engine.load_page(page)?.bounds()?;
+                            let scale =
+                                pdf_scale(bounds, column, cell_request.height, cell_request)
+                                    / request.dpi;
+                            let center_pan = |a: f32, b: f32, start: f32, end: f32, cell: f32| {
+                                ((((a + b) * 0.5 - start) * scale - cell * 0.5)
+                                    / ((end - start) * scale - cell).max(1.0))
+                                .clamp(0.0, 1.0)
+                            };
+                            pan = [
+                                center_pan(x0, x1, bounds.x0, bounds.x1, column),
+                                center_pan(y0, y1, bounds.y0, bounds.y1, cell_request.height),
+                            ];
                         }
                         let frame =
                             render_page(&mut cache, b, actual_page, column, &cell_request, pan)?;

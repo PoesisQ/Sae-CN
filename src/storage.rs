@@ -14,6 +14,7 @@ pub struct Preferences {
     pub typography: Typography,
     pub spread: bool,
     pub pdf_multi: bool,
+    pub pdf_grid: u8,
     pub theme: u8,
     pub page_color: u8,
     pub books: BTreeMap<String, BookState>,
@@ -32,6 +33,7 @@ impl Default for Preferences {
             typography: Typography::default(),
             spread: false,
             pdf_multi: false,
+            pdf_grid: 0,
             theme: 0,
             page_color: 0,
             books: BTreeMap::new(),
@@ -48,6 +50,9 @@ impl Preferences {
             .unwrap_or_default();
         value.typography.validate();
         value.theme = value.theme.min(2);
+        if value.pdf_grid as usize > crate::paging::PDF_GRIDS.len() {
+            value.pdf_grid = 0;
+        }
         value.page_color = value.page_color.min(2);
         value
     }

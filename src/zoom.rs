@@ -12,8 +12,7 @@ enum Motion {
 }
 
 /// Coordinates are relative to the centre of the dial, positive Y down.
-/// An initial tangential movement on the rim turns it. A pull from the face
-/// or a radial pull on the rim keeps the familiar straight drag.
+/// The annulus rotates. A press on the face or readout locks the dominant linear axis.
 pub struct Grip {
     start: (f32, f32),
     previous: (f32, f32),
@@ -40,16 +39,13 @@ impl Grip {
             if dx.abs().max(dy.abs()) < 4.0 {
                 return None;
             }
-            let radial = sx * dx + sy * dy;
-            let tangent = sx * dy - sy * dx;
-            let near_rim = |x: f32, y: f32| {
-                let r2 = x * x + y * y;
-                ((self.radius * 0.60).powi(2)..=(self.radius + 5.0).powi(2)).contains(&r2)
-            };
-            // A coalesced quarter-turn can arrive in a single mouse event.
-            let follows_rim = near_rim(x, y) && sx * x + sy * y >= -0.05 * self.radius.powi(2);
-            self.motion = if near_rim(sx, sy) && follows_rim && tangent.abs() > radial.abs() * 0.66
-            {
+            // The annulus and the face are distinct grips. The direction of the
+            // first sample cannot turn a horizontal pull into a rotation.
+            let start_radius_sq = sx * sx + sy * sy;
+            let rim = self.radius > 0.0
+                && ((self.radius * 0.68).powi(2)..=(self.radius + 2.0).powi(2))
+                    .contains(&start_radius_sq);
+            self.motion = if rim {
                 Motion::Circular
             } else if dx.abs() >= dy.abs() {
                 Motion::Horizontal
@@ -58,8 +54,8 @@ impl Grip {
             };
         }
         self.travel = match self.motion {
-            Motion::Horizontal => dx,
-            Motion::Vertical => -dy,
+            Motion::Horizontal => self.travel + x - self.previous.0,
+            Motion::Vertical => self.travel + self.previous.1 - y,
             Motion::Circular => {
                 let (px, py) = self.previous;
                 let central = (self.radius * 0.32).powi(2);
@@ -82,8 +78,32 @@ impl Grip {
             }
             Motion::Pending => unreachable!(),
         };
+        self.travel = self.travel.clamp(
+            (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
+            (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
+        );
         self.previous = (x, y);
         Some(self.travel)
+    }
+    pub fn edge_direction(&self, x: f32, y: f32, width: f32, height: f32) -> i8 {
+        match self.motion {
+            Motion::Horizontal if x >= width - 2.0 => 1,
+            Motion::Horizontal if x <= 2.0 => -1,
+            Motion::Vertical if y <= 2.0 => 1,
+            Motion::Vertical if y >= height - 2.0 => -1,
+            _ => 0,
+        }
+    }
+    pub fn advance(&mut self, distance: f32, dial: Drag) -> Option<Position> {
+        let next = (self.travel + distance).clamp(
+            (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
+            (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
+        );
+        if next == self.travel {
+            return None;
+        }
+        self.travel = next;
+        Some(dial.at(next))
     }
 }
 
@@ -213,6 +233,47 @@ mod tests {
     use super::*;
 
     #[test]
+    fn circular_wheel_keeps_straight_drag_distance_and_full_turn_gain() {
+        let dial = Drag::start(1.0, 1.8);
+        let radius = 43.0;
+        let mut face = Grip::new(0.0, 0.0, radius);
+        let travel = face.sample(1.0, -144.0, dial).unwrap();
+        assert!((dial.at(travel).value - 2.0).abs() < 0.001);
+        let mut rim = Grip::new(0.0, -36.0, radius);
+        for step in 1..=24 {
+            let a = step as f32 * std::f32::consts::TAU / 24.0;
+            let travel = rim.sample(36.0 * a.sin(), -36.0 * a.cos(), dial).unwrap();
+            if step == 24 {
+                assert!((dial.at(travel).value - 4.0).abs() < 0.001);
+            }
+        }
+    }
+    #[test]
+    fn face_extends_at_screen_edge_and_reverses_immediately_at_the_limit() {
+        let dial = Drag::start(1.0, 1.7);
+        for (dx, dy, x, y, sign) in [
+            (9., 0., 999., 400., 1),
+            (-9., 0., 1., 400., -1),
+            (0., -9., 400., 1., 1),
+            (0., 9., 400., 799., -1),
+        ] {
+            let mut face = Grip::new(0., 0., 40.);
+            face.sample(dx, dy, dial).unwrap();
+            assert_eq!(face.edge_direction(x, y, 1000., 800.), sign);
+            assert_eq!(face.edge_direction(400., 400., 1000., 800.), 0);
+            let end = face.advance(f32::from(sign) * 2000., dial).unwrap();
+            assert_eq!(end.value, if sign > 0 { MAX } else { MIN });
+            assert!(face.advance(f32::from(sign) * 8., dial).is_none());
+            assert_ne!(
+                face.advance(-f32::from(sign) * 8., dial).unwrap().value,
+                end.value
+            );
+        }
+        let mut rim = Grip::new(36., 0., 40.);
+        rim.sample(0., 36., dial).unwrap();
+        assert_eq!(rim.edge_direction(999., 400., 1000., 800.), 0);
+    }
+    #[test]
     fn circular_turn_wraps_reverses_and_releases_at_the_limits() {
         let dial = Drag::start(1.0, 1.7);
         let mut rim = Grip::new(0.0, -34.0, 40.0);
@@ -241,12 +302,12 @@ mod tests {
     }
 
     #[test]
-    fn radial_pull_stays_linear_and_crossing_the_hub_has_no_angle() {
+    fn face_stays_linear_and_crossing_the_hub_has_no_angle() {
         let dial = Drag::start(1.0, 1.7);
-        let mut grip = Grip::new(0.0, -34.0, 40.0);
-        assert_eq!(grip.sample(1.0, -35.0, dial), None);
-        assert_eq!(grip.sample(1.0, -45.0, dial), Some(11.0));
-        assert_eq!(grip.sample(20.0, -178.0, dial), Some(144.0));
+        let mut grip = Grip::new(0.0, 0.0, 40.0);
+        assert_eq!(grip.sample(1.0, -1.0, dial), None);
+        assert_eq!(grip.sample(1.0, -11.0, dial), Some(11.0));
+        assert_eq!(grip.sample(20.0, -144.0, dial), Some(144.0));
         let mut rim = Grip::new(0.0, -34.0, 40.0);
         assert!((rim.sample(34.0, 0.0, dial).unwrap() - 72.0).abs() < 1e-4);
         assert!((rim.sample(-34.0, 0.0, dial).unwrap() - 72.0).abs() < 1e-4);

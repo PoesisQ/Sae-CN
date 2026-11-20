@@ -1,0 +1,19 @@
+// Each shoulder uses two cubics with matching tangents at the diagonal.
+export component DockOutline inherits Path {
+    property <float> w: self.width / 1px;
+    property <float> h: self.height / 1px;
+    viewbox-width: self.w; viewbox-height: self.h;
+    MoveTo { x: 17; y: 0; } LineTo { x: root.w - 17; y: 0; }
+    CubicTo { control-1-x: root.w - 11; control-1-y: 0; control-2-x: root.w - 5.4; control-2-y: 0; x: root.w - 2.7; y: 2.7; }
+    CubicTo { control-1-x: root.w; control-1-y: 5.4; control-2-x: root.w; control-2-y: 11; x: root.w; y: 17; }
+    LineTo { x: root.w; y: root.h - 17; }
+    CubicTo { control-1-x: root.w; control-1-y: root.h - 11; control-2-x: root.w; control-2-y: root.h - 5.4; x: root.w - 2.7; y: root.h - 2.7; }
+    CubicTo { control-1-x: root.w - 5.4; control-1-y: root.h; control-2-x: root.w - 11; control-2-y: root.h; x: root.w - 17; y: root.h; }
+    LineTo { x: 17; y: root.h; }
+    CubicTo { control-1-x: 11; control-1-y: root.h; control-2-x: 5.4; control-2-y: root.h; x: 2.7; y: root.h - 2.7; }
+    CubicTo { control-1-x: 0; control-1-y: root.h - 5.4; control-2-x: 0; control-2-y: root.h - 11; x: 0; y: root.h - 17; }
+    LineTo { x: 0; y: 17; }
+    CubicTo { control-1-x: 0; control-1-y: 11; control-2-x: 0; control-2-y: 5.4; x: 2.7; y: 2.7; }
+    CubicTo { control-1-x: 5.4; control-1-y: 0; control-2-x: 11; control-2-y: 0; x: 17; y: 0; }
+    Close {}
+}
