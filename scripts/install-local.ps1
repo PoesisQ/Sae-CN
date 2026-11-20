@@ -54,14 +54,6 @@ if ($readerVersion.ProductName -ne 'Sae Reader') { throw 'This is not a Sae Read
 $readerHash = (Get-FileHash -LiteralPath $readerSourceExe -Algorithm SHA256).Hash
 if ($ExpectedSHA256 -and $readerHash -ne $ExpectedSHA256) { throw 'Executable checksum mismatch.' }
 if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::OrdinalIgnoreCase)) {
-    $readerRunning = @(Get-Process -Name SaeReader -ErrorAction SilentlyContinue | Where-Object {
-        if ($_.Path) {
-            $readerRunningDirectory = Resolve-ReaderDirectory (Split-Path -Parent $_.Path)
-            $readerRunningExe = Join-Path $readerRunningDirectory (Split-Path -Leaf $_.Path)
-            [string]::Equals($readerRunningExe, $readerTargetExe, [StringComparison]::OrdinalIgnoreCase)
-        }
-    })
-    if ($readerRunning.Count) { throw 'Close the installed Sae Reader normally before updating.' }
     New-Item -ItemType Directory -Path $readerTarget -Force | Out-Null
     # Only distribution files are copied. Portable data and personal books are
     # deliberately excluded; the normal LocalAppData profile is never touched.
@@ -72,9 +64,32 @@ if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::Ordi
             Copy-Item -LiteralPath $readerItem -Destination $readerTarget -Recurse -Force
         }
     }
-    Copy-Item -LiteralPath $readerSourceExe -Destination $readerTargetExe -Force
-    if ((Get-FileHash -LiteralPath $readerTargetExe -Algorithm SHA256).Hash -ne $readerHash) {
-        throw 'Installed executable checksum mismatch; registration was not changed.'
+    $readerStage = Join-Path $readerTarget ('SaeReader-' + [Guid]::NewGuid().ToString('N'))
+    $readerIncoming = $readerStage + '.new'
+    $readerBackup = $readerStage + '.previous'
+    try {
+        Copy-Item -LiteralPath $readerSourceExe -Destination $readerIncoming
+        if ((Get-FileHash -LiteralPath $readerIncoming -Algorithm SHA256).Hash -ne $readerHash) {
+            throw 'Staged executable checksum mismatch.'
+        }
+        if ([IO.File]::Exists($readerTargetExe)) {
+            # Preserve the registered path while existing windows retain the old image.
+            try { [IO.File]::Replace($readerIncoming, $readerTargetExe, $readerBackup) }
+            catch {
+                if (-not [IO.File]::Exists($readerTargetExe) -and [IO.File]::Exists($readerBackup)) {
+                    [IO.File]::Move($readerBackup, $readerTargetExe)
+                }
+                throw
+            }
+        } else {
+            [IO.File]::Move($readerIncoming, $readerTargetExe)
+        }
+        if ((Get-FileHash -LiteralPath $readerTargetExe -Algorithm SHA256).Hash -ne $readerHash) {
+            throw 'Installed executable checksum mismatch; registration was not changed.'
+        }
+        Remove-Item -LiteralPath $readerBackup -ErrorAction SilentlyContinue
+    } finally {
+        Remove-Item -LiteralPath $readerIncoming -ErrorAction SilentlyContinue
     }
 }
 $readerInstalledScript = Join-Path $readerTarget 'Install.ps1'

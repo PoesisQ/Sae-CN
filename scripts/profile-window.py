@@ -35,9 +35,13 @@ parser.add_argument('--seconds',type=float,default=8)
 parser.add_argument('--runs',type=int,default=1)
 parser.add_argument('--sumatra',action='store_true')
 parser.add_argument('--pid',type=int,help='Observe an already running process without changing or terminating it')
+parser.add_argument('--no-activate',action='store_true',help='Create the window without taking foreground focus on Windows')
 parser.add_argument('--output',type=Path,required=True)
 args=parser.parse_args();args.output.mkdir(parents=True,exist_ok=True)
 if args.pid and (args.runs!=1 or args.books or args.fixture):parser.error('--pid requires one run and no input files')
+startupinfo=None
+if args.no_activate:
+    startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW,wShowWindow=4) # SW_SHOWNOACTIVATE
 if args.books:
     inputs=[(f'{args.format}-{n:02}',p) for n,p in enumerate(sorted(args.books.glob('*.'+args.format)),1)]
 elif args.fixture:inputs=[('fixture',args.fixture)]
@@ -52,7 +56,7 @@ for alias,path in inputs:
         command=[str(args.exe.resolve())]
         if args.sumatra:command+=['-new-window','-appdata',str(profile.resolve()),'-view','single page','-zoom','fit page']
         if path:command.append(str(path.resolve()))
-        process=None if args.pid else subprocess.Popen(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL)
+        process=None if args.pid else subprocess.Popen(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL,startupinfo=startupinfo)
         handle=kernel.OpenProcess(0x410,False,args.pid if args.pid else process.pid);samples=[];start=time.perf_counter()
         def exit_code():
             if process:return process.poll()

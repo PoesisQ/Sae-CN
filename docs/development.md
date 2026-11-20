@@ -47,9 +47,9 @@ cargo test --release --locked --offline --no-default-features --test local_books
 ## 打包
 
 ```powershell
-./scripts/package.ps1 -Name SaeReader-0.5.0-preview.1
-python scripts/verify-package.py --name SaeReader-0.5.0-preview.1
-python scripts/prepare-release.py --name SaeReader-0.5.0-preview.1
+./scripts/package.ps1 -Name SaeReader-0.5.1-preview.1
+python scripts/verify-package.py --name SaeReader-0.5.1-preview.1
+python scripts/prepare-release.py --name SaeReader-0.5.1-preview.1
 ```
 
 打包目录必须是全新名称，避免把个人便携数据带入发行包。

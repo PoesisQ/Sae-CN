@@ -270,7 +270,6 @@ pub fn start(
                     ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
                 };
                 let width=ui.get_viewport_width();
-                let height=ui.get_viewport_height();
                 if run.step >= 108 {
                     match run.step {
                         108=>{ui.set_double_page(true);ui.invoke_mode_changed(true);ui.window().set_size(slint::LogicalSize::new(640.0,480.0));},
@@ -288,7 +287,7 @@ pub fn start(
                     4 => { key(Key::UpArrow.into()); run.navigation_expected=Some(0); },
                     5 => { key(Key::PageDown.into()); run.navigation_expected=Some(2); },
                     6 => { key(Key::PageUp.into()); run.navigation_expected=Some(0); },
-                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(width*0.5+182.0,height-34.0); } else { click(width-112.0,24.0); } },
+                    7 => { if !ui.get_reflowable() { ui.set_bottom_hover(true); click(ui.get_dock_right()-40.0,ui.get_dock_top()+18.0); } else { click(width-112.0,24.0); } },
                     10|13 => key(Key::F11.into()),
                     14 => ui.set_show_contents(true),
                     15 => click(322.0,80.0),
@@ -370,13 +369,13 @@ pub fn start(
                     }
                     run.snapshots.push(json!({"step":step,"zoom":value,"stop":stop,"spread":spread,
                         "fill_ratio":ui.get_pdf_fill_zoom(),"width_ratio":ui.get_pdf_fit_width_zoom()}));
-                    // The ROI is the 24px dial inside the desktop footer.
+                    // The ROI is the compact scale inside the desktop footer.
                     // It excludes the percent text and the document canvas.
                     if stop == 0 && !spread {
                         if let Ok(pixels) = ui.window().take_snapshot() {
                             let dpi = ui.window().scale_factor();
-                            let cx = (ui.get_viewport_width()*0.5+182.0)*dpi;
-                            let cy = (ui.get_viewport_height()-34.0)*dpi;
+                            let cx = (ui.get_dock_right()-74.0)*dpi;
+                            let cy = (ui.get_dock_top()+18.0)*dpi;
                             let mut hash = blake3::Hasher::new();
                             for y in ((cy-13.0*dpi).max(0.0) as u32)..((cy+13.0*dpi) as u32).min(pixels.height()) {
                                 let a = ((y*pixels.width() + (cx-13.0*dpi).max(0.0) as u32)*4) as usize;
@@ -399,7 +398,7 @@ pub fn start(
                     }
                 }
                 use slint::platform::WindowEvent;
-                let point = slint::LogicalPosition::new(ui.get_viewport_width()*0.5+182.0,ui.get_viewport_height()-34.0);
+                let point = slint::LogicalPosition::new(ui.get_dock_right()-40.0,ui.get_dock_top()+18.0);
                 match run.step {
                     0 => { ui.set_show_toolbar(true); ui.set_double_page(false); ui.invoke_mode_changed(false); ui.invoke_typography("fit-page".into(),0.0); },
                     1 | 26 => ui.invoke_typography("zoom".into(),0.8),
@@ -450,6 +449,7 @@ pub fn start(
                     if (run.step==9 && ui.get_pdf_zoom()<1.1) || (run.step==10 && ui.get_pdf_zoom()<1.3) {
                         run.errors.push("zoom dial wheel/drag did not change zoom".into());
                     }
+                    if run.step==8 && !ui.get_show_zoom_pop() {run.errors.push("hover did not unfold the zoom controls".into());}
                     if run.step==11 && (page!=0 || state.lock().unwrap().generation!=run.panel_generation.unwrap_or(0)) {
                         run.errors.push("progress drag rendered before release".into());
                     }
@@ -463,6 +463,8 @@ pub fn start(
                     if run.step==19 && (ui.get_pdf_zoom()-1.0).abs()>0.01 {run.errors.push("100% preset did not restore fit page".into());}
                     if run.step==21 && (page!=7 || !ui.get_page_entry_active()) {run.errors.push("out-of-range page was not rejected".into());}
                     if run.step==22 && (page!=7 || ui.get_page_entry_active()) {run.errors.push("Escape did not cancel the page editor".into());}
+                    if run.step==24 && !ui.get_show_zoom_pop() {run.errors.push("zoom controls did not fit in the narrow window".into());}
+                    if run.step==26 && !ui.get_page_entry_active() {run.errors.push("narrow reflow footer did not open the page editor".into());}
                     let step=run.step;
                     run.snapshots.push(json!({"step":step,"viewport":[viewport.0,viewport.1],"native_fullscreen":native_full,
                         "fills_monitor":fills_monitor,"top_visible":ui.get_top_visible(),"bottom_visible":ui.get_bottom_visible(),"zoom":ui.get_pdf_zoom(),"page":page,"origin_y":origin}));
@@ -471,13 +473,14 @@ pub fn start(
                     }
                 }
                 use slint::platform::{Key,WindowEvent,PointerEventButton};
-                let dock_left=(viewport.0-520.0)*0.5;
-                let dock_right=dock_left+520.0;
-                let point=slint::LogicalPosition::new(dock_right-72.0,viewport.1-34.0);
-                let pop_top = viewport.1-168.0;
-                let pop_left = dock_right-216.0;
-                let progress_start=slint::LogicalPosition::new(dock_left+146.0,point.y);
-                let progress_end=slint::LogicalPosition::new(dock_left+366.0,point.y);
+                let dock_left=ui.get_dock_left();
+                let dock_right=ui.get_dock_right();
+                let point=slint::LogicalPosition::new(dock_right-40.0,ui.get_dock_top()+18.0);
+                let pop_top=ui.get_knob_pop_top();
+                let pop_left=ui.get_knob_pop_left();
+                let preset_offset=if ui.get_zoom_can_cover() {16.0} else {22.0};
+                let progress_start=slint::LogicalPosition::new(dock_left+118.0,point.y);
+                let progress_end=slint::LogicalPosition::new(dock_right-116.0,point.y);
                 let key=|text:slint::SharedString| {
                     ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
                     ui.window().dispatch_event(WindowEvent::KeyReleased{text});
@@ -498,7 +501,7 @@ pub fn start(
                     7=>{ui.invoke_edge_hover(point.x,viewport.1-4.0);},
                     8=>ui.window().dispatch_event(WindowEvent::PointerScrolled{position:point,delta_x:0.0,delta_y:120.0}),
                     9=>{
-                        let dial=slint::LogicalPosition::new(pop_left+43.0,pop_top+50.0);
+                        let dial=slint::LogicalPosition::new(pop_left+114.0,pop_top+36.0);
                         drag(dial,slint::LogicalPosition::new(dial.x+128.0,dial.y+28.0),PointerEventButton::Left);
                     },
                     10=>{
@@ -522,16 +525,21 @@ pub fn start(
                     16=>key(Key::LeftArrow.into()),
                     17=>{
                         ui.invoke_edge_hover(point.x,point.y);
-                        let preset=slint::LogicalPosition::new(pop_left+155.0,pop_top+69.0);
+                        let preset=slint::LogicalPosition::new(pop_left+38.0,pop_top+if ui.get_zoom_can_cover(){36.0}else{50.0});
                         drag(preset,preset,PointerEventButton::Left);
                     },
                     18=>{
-                        let preset=slint::LogicalPosition::new(pop_left+106.0,pop_top+69.0);
+                        let preset=slint::LogicalPosition::new(pop_left+38.0,pop_top+preset_offset);
                         drag(preset,preset,PointerEventButton::Left);
                     },
                     19=>{ui.set_zoom_hover(false);ui.invoke_focus_page_entry();},
                     20=>{key("0".into());key(Key::Return.into());},
                     21=>{key(Key::Escape.into());ui.set_bottom_hover(false);},
+                    22=>{ui.invoke_theme_changed(2);ui.window().set_size(slint::LogicalSize::new(640.0,480.0));},
+                    23=>{ui.invoke_edge_hover(point.x,point.y);},
+                    24=>{ui.set_zoom_hover(false);open(PathBuf::from("tests/fixtures/core-epub3.epub"),&ui,&state,&mailbox);},
+                    25=>{ui.invoke_focus_page_entry();},
+                    26=>{key(Key::Escape.into());ui.set_bottom_hover(true);},
                     _=>{run.end=Some(counters());finish(&ui,&state,&report,&scenario,&run);if let Some(t)=stop.upgrade(){t.stop();}return;}
                 }
                 run.step+=1;run.waiting=true;run.ready=Some(Instant::now()+Duration::from_millis(400));return;

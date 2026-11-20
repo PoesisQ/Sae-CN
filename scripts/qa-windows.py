@@ -23,8 +23,12 @@ parser.add_argument('--fixture',type=Path)
 parser.add_argument('--blank',action='store_true')
 parser.add_argument('--scale',type=float)
 parser.add_argument('--design',type=int,default=0)
+parser.add_argument('--no-activate',action='store_true',help='Create the window without taking foreground focus on Windows')
 parser.add_argument('--output',type=Path,default=root/'artifacts'/'window-qa')
 args=parser.parse_args()
+startupinfo=None
+if args.no_activate and os.name=='nt':
+    startupinfo=subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW,wShowWindow=4) # SW_SHOWNOACTIVATE
 args.output.mkdir(parents=True,exist_ok=True)
 inputs=[]
 if args.books:
@@ -52,7 +56,7 @@ for alias,path in inputs:
         if path:command.append(str(path.resolve()))
         start=time.perf_counter()
         with (args.output/f'{name}.stderr').open('w',encoding='utf-8') as errors:
-            result=subprocess.run(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=errors,timeout=190)
+            result=subprocess.run(command,cwd=root,env=env,stdout=subprocess.DEVNULL,stderr=errors,timeout=190,startupinfo=startupinfo)
         duration=(time.perf_counter()-start)*1000
         value=json.loads(report.read_text(encoding='utf-8')) if report.exists() else {'errors':['no report']}
         value.update(sample=alias,run=n,process_total_ms=duration,exit_code=result.returncode)

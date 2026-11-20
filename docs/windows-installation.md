@@ -31,7 +31,7 @@ EPUB、PDF、AZW3 等格式分别选择一次即可。也可以在 Windows「设
 在仓库目录的 PowerShell 中运行（把包路径替换成实际解压目录）：
 
 ```powershell
-.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.5.0-preview.1' -OpenDefaults
+.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.5.1-preview.1' -OpenDefaults
 ```
 
 包含 `Install.ps1` 的后续 Windows 发布包也可直接在包目录运行：
@@ -43,8 +43,7 @@ EPUB、PDF、AZW3 等格式分别选择一次即可。也可以在 Windows「设
 运行后仍需在 Windows 界面确认所需格式的默认应用。若当前脚本执行策略不允许运行，
 按上面的手动方式使用固定目录即可。此工具不更改系统执行策略。
 
-程序复制后会校验 EXE 的 SHA256；更新时若固定目录内的程序仍在运行，工具会停止并提示先正常关闭。
-通过旧目录的兼容链接启动时也能识别运行中的程序，避免更新占用中的 EXE；从同一安装的链接入口运行工具不会重复复制自身。
+更新时先在安装目录校验待替换 EXE，再通过 Windows 文件替换 API 换入新版。已经打开的窗口可继续阅读，新开的窗口使用新版。若 Windows 报告文件占用，正常退出后重试。同一安装目录的兼容链接仍有效。 [Windows 文件替换](https://learn.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-replacefilew)
 它保留个人配置，创建开始菜单快捷方式，并随程序保留相应的许可。
 
 Windows 的注册和默认选择方式参见微软文档：[应用注册](https://learn.microsoft.com/en-us/windows/win32/shell/app-registration)、
