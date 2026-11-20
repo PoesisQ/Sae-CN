@@ -1,0 +1,750 @@
+{
+  "method": {
+    "warm_start": "Entry to snapshot of a rendered Windows window in the QA-enabled release configuration; 20 interleaved warm starts of each executable per fixture.",
+    "memory": "Uninstrumented production executable. Windows Private Bytes, median after 3 s in three separate 6 s processes. Long PDF: three starts and two 12 s processes per view.",
+    "gestures": "Native Win32 pointer, wheel and button input. Physical scale 150%. Two traces reuse 192 frame positions, original and horizontally mirrored. Turns evaluated when signed angular delta exceeds 0.06 radians with 0.006 absolute scale tolerance. Stops may hold a constant value.",
+    "screenshots": "Unscaled crops of the project's original PDF fixture. Five pixels outside the circular dial sampled per theme.",
+    "open_controls": "One additional ordinary production process per version, same PDF, 7 s per stationary state, ordered reading canvas / view wheel / zoom panel. Private Bytes median after 3 s; CPU deltas during the final ~3.8 s."
+  },
+  "machine": {
+    "Windows": "Microsoft Windows 11 家庭版 中文版",
+    "Build": "26200",
+    "CPU": "Intel(R) Core(TM) i9-14900HX",
+    "RamGiB": 63.6,
+    "Disk": "NVMe",
+    "DefenderService": "Running"
+  },
+  "builds": {
+    "0.6.0": {
+      "bytes": 24974848,
+      "sha256": "ed1ea7a40bc61b41203d06277260c9ad561bbe6a16368d51f1fbe08aeccf0474"
+    },
+    "0.6.1": {
+      "bytes": 25006592,
+      "sha256": "2ee9b3f61e02a84ab4c17396ecc9db39af4f65b3eaffcaa8b7c820bc90836662"
+    }
+  },
+  "fixtures": {
+    "blank": {
+      "0.6.0": {
+        "warm_start_ms": [
+          152.1144,
+          150.225,
+          147.4584,
+          155.5261,
+          163.6976,
+          144.9059,
+          151.0732,
+          149.5691,
+          146.9927,
+          149.5835,
+          156.6579,
+          148.8413,
+          147.7284,
+          146.9162,
+          150.3148,
+          146.6505,
+          152.0336,
+          149.2653,
+          149.8849,
+          154.1668
+        ],
+        "median_ms": 149.73,
+        "p95_ms": 156.66,
+        "windows": [
+          {
+            "private_bytes": 14753792.0,
+            "private_working_set": 12193792.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2822.39
+          },
+          {
+            "private_bytes": 14901248.0,
+            "private_working_set": 12341248.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2793.73
+          },
+          {
+            "private_bytes": 15020032.0,
+            "private_working_set": 12419072.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2806.09
+          }
+        ],
+        "private_mib": 14.21
+      },
+      "0.6.1": {
+        "warm_start_ms": [
+          155.1787,
+          144.0024,
+          146.942,
+          149.2597,
+          147.3843,
+          148.8934,
+          149.2864,
+          157.2764,
+          145.6026,
+          148.4321,
+          162.8143,
+          142.8206,
+          150.6945,
+          153.4416,
+          148.6843,
+          153.4073,
+          148.9093,
+          150.0933,
+          149.248,
+          151.2493
+        ],
+        "median_ms": 149.25,
+        "p95_ms": 157.28,
+        "windows": [
+          {
+            "private_bytes": 14700544.0,
+            "private_working_set": 12161024.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2821.58
+          },
+          {
+            "private_bytes": 14962688.0,
+            "private_working_set": 12333056.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2793.34
+          },
+          {
+            "private_bytes": 15069184.0,
+            "private_working_set": 12468224.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2808.86
+          }
+        ],
+        "private_mib": 14.27
+      }
+    },
+    "pdf": {
+      "0.6.0": {
+        "warm_start_ms": [
+          160.0746,
+          153.8161,
+          153.9068,
+          156.7506,
+          156.5468,
+          154.9807,
+          135.6068,
+          155.0429,
+          158.2059,
+          156.4215,
+          155.9655,
+          152.1765,
+          151.1556,
+          151.1687,
+          153.6425,
+          134.8795,
+          152.2019,
+          156.5497,
+          154.2081,
+          151.8198
+        ],
+        "median_ms": 154.06,
+        "p95_ms": 158.21,
+        "windows": [
+          {
+            "private_bytes": 22712320.0,
+            "private_working_set": 20439040.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2800.09
+          },
+          {
+            "private_bytes": 22818816.0,
+            "private_working_set": 20520960.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2806.1
+          },
+          {
+            "private_bytes": 22790144.0,
+            "private_working_set": 20508672.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2830.23
+          }
+        ],
+        "private_mib": 21.73
+      },
+      "0.6.1": {
+        "warm_start_ms": [
+          158.5759,
+          157.0747,
+          133.3627,
+          152.579,
+          150.8194,
+          155.9294,
+          158.9374,
+          136.168,
+          140.8162,
+          157.4668,
+          152.2687,
+          135.6771,
+          148.1985,
+          150.4628,
+          158.0309,
+          149.8751,
+          148.8392,
+          151.412,
+          157.3363,
+          153.0289
+        ],
+        "median_ms": 151.84,
+        "p95_ms": 158.58,
+        "windows": [
+          {
+            "private_bytes": 22732800.0,
+            "private_working_set": 20463616.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2826.05
+          },
+          {
+            "private_bytes": 22704128.0,
+            "private_working_set": 20439040.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2789.89
+          },
+          {
+            "private_bytes": 22855680.0,
+            "private_working_set": 20533248.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2815.77
+          }
+        ],
+        "private_mib": 21.68
+      }
+    },
+    "epub": {
+      "0.6.0": {
+        "warm_start_ms": [
+          158.0402,
+          155.325,
+          156.3866,
+          142.3482,
+          164.1991,
+          144.327,
+          138.9192,
+          160.6998,
+          153.4832,
+          151.3565,
+          160.0275,
+          160.9312,
+          153.1782,
+          158.9084,
+          165.9238,
+          153.8604,
+          157.3279,
+          168.7781,
+          168.8594,
+          154.0537
+        ],
+        "median_ms": 156.86,
+        "p95_ms": 168.78,
+        "windows": [
+          {
+            "private_bytes": 20049920.0,
+            "private_working_set": 17739776.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2805.59
+          },
+          {
+            "private_bytes": 19853312.0,
+            "private_working_set": 17584128.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2796.99
+          },
+          {
+            "private_bytes": 20025344.0,
+            "private_working_set": 17719296.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2805.65
+          }
+        ],
+        "private_mib": 19.1
+      },
+      "0.6.1": {
+        "warm_start_ms": [
+          160.1548,
+          158.0221,
+          151.7728,
+          157.3407,
+          155.1125,
+          144.4292,
+          159.0524,
+          157.0533,
+          162.2565,
+          152.9301,
+          161.7479,
+          144.6047,
+          152.6086,
+          157.4459,
+          160.1162,
+          163.206,
+          173.0083,
+          174.8874,
+          170.5489,
+          170.2036
+        ],
+        "median_ms": 158.54,
+        "p95_ms": 173.01,
+        "windows": [
+          {
+            "private_bytes": 20058112.0,
+            "private_working_set": 17649664.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2815.16
+          },
+          {
+            "private_bytes": 20074496.0,
+            "private_working_set": 17756160.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2800.6
+          },
+          {
+            "private_bytes": 19873792.0,
+            "private_working_set": 17555456.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2810.68
+          }
+        ],
+        "private_mib": 19.13
+      }
+    }
+  },
+  "long_pdf": {
+    "spread": {
+      "pages": 1156,
+      "visible_pages": 2,
+      "warm_start_ms": [
+        221.8897,
+        187.1906,
+        204.8363
+      ],
+      "median_ms": 204.84,
+      "p95_ms": 221.89,
+      "windows": [
+        {
+          "private_bytes": 32071680.0,
+          "private_working_set": 29249536.0,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8903.13
+        },
+        {
+          "private_bytes": 32014336,
+          "private_working_set": 29257728,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8702.72
+        }
+      ],
+      "private_mib": 30.56
+    },
+    "multi": {
+      "pages": 1156,
+      "visible_pages": 8,
+      "warm_start_ms": [
+        195.8456,
+        204.7783,
+        186.1486
+      ],
+      "median_ms": 195.85,
+      "p95_ms": 204.78,
+      "windows": [
+        {
+          "private_bytes": 26660864.0,
+          "private_working_set": 23941120.0,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8937.37
+        },
+        {
+          "private_bytes": 26816512,
+          "private_working_set": 24391680,
+          "idle_cpu_ms": 0.0,
+          "idle_wall_ms": 8688.75
+        }
+      ],
+      "private_mib": 25.5
+    }
+  },
+  "interaction": {
+    "samples": 852,
+    "drags": [
+      {
+        "gesture": "horizontal-rim",
+        "samples": 19,
+        "min_zoom": 1.0,
+        "max_zoom": 2.0,
+        "release_zoom": 2.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "horizontal-preset",
+        "samples": 19,
+        "min_zoom": 0.5,
+        "max_zoom": 1.0,
+        "release_zoom": 0.5,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "vertical-rim",
+        "samples": 19,
+        "min_zoom": 1.0,
+        "max_zoom": 2.0,
+        "release_zoom": 2.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "vertical-hub",
+        "samples": 19,
+        "min_zoom": 0.5,
+        "max_zoom": 1.0,
+        "release_zoom": 0.5,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-45-1",
+        "samples": 49,
+        "min_zoom": 1.0,
+        "max_zoom": 4.0,
+        "release_zoom": 4.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-45--1",
+        "samples": 49,
+        "min_zoom": 0.25,
+        "max_zoom": 1.0,
+        "release_zoom": 0.25,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-135-1",
+        "samples": 49,
+        "min_zoom": 1.0,
+        "max_zoom": 4.0,
+        "release_zoom": 4.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-135--1",
+        "samples": 49,
+        "min_zoom": 0.25,
+        "max_zoom": 1.0,
+        "release_zoom": 0.25,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-225-1",
+        "samples": 49,
+        "min_zoom": 1.0,
+        "max_zoom": 4.0,
+        "release_zoom": 4.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-225--1",
+        "samples": 49,
+        "min_zoom": 0.25,
+        "max_zoom": 1.0,
+        "release_zoom": 0.25,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-315-1",
+        "samples": 49,
+        "min_zoom": 1.0,
+        "max_zoom": 4.0,
+        "release_zoom": 4.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "orbit-315--1",
+        "samples": 49,
+        "min_zoom": 0.25,
+        "max_zoom": 1.0,
+        "release_zoom": 0.25,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "recorded-1",
+        "samples": 192,
+        "min_zoom": 1.0,
+        "max_zoom": 8.0,
+        "release_zoom": 8.0,
+        "direction_errors": 0
+      },
+      {
+        "gesture": "recorded--1",
+        "samples": 192,
+        "min_zoom": 0.25,
+        "max_zoom": 1.0,
+        "release_zoom": 0.25,
+        "direction_errors": 0
+      }
+    ],
+    "view_checks": {
+      "view_detents": "partial return, engage, hysteresis, hard-stop reversal, two wheel impulses"
+    },
+    "panel_pixels": {
+      "dial": {
+        "matte_rgb": [
+          251,
+          250,
+          246
+        ],
+        "outside_disc_samples": 5
+      },
+      "dial-dark": {
+        "matte_rgb": [
+          44,
+          52,
+          48
+        ],
+        "outside_disc_samples": 5
+      }
+    }
+  },
+  "regression": {
+    "cargo_tests": 44,
+    "math_benchmark_passed": true,
+    "windows_scenarios": {
+      "chrome": {
+        "operations": 27,
+        "max_cache_bytes": 13463120,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "contents": {
+        "operations": 7,
+        "max_cache_bytes": 4092704,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "detents": {
+        "operations": 87,
+        "max_cache_bytes": 6772520,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "dpi-1": {
+        "operations": 27,
+        "max_cache_bytes": 12058240,
+        "dpi": 1.0,
+        "errors": []
+      },
+      "dpi-125": {
+        "operations": 27,
+        "max_cache_bytes": 14061630,
+        "dpi": 1.25,
+        "errors": []
+      },
+      "dpi-2": {
+        "operations": 27,
+        "max_cache_bytes": 11935360,
+        "dpi": 2.0,
+        "errors": []
+      },
+      "features": {
+        "operations": 23,
+        "max_cache_bytes": 13545040,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "home": {
+        "operations": 3,
+        "max_cache_bytes": 0,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "instruments": {
+        "operations": 22,
+        "max_cache_bytes": 16290560,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "multipage": {
+        "operations": 18,
+        "max_cache_bytes": 14021424,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "navigation": {
+        "operations": 111,
+        "max_cache_bytes": 15869300,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "stress": {
+        "operations": 730,
+        "max_cache_bytes": 16411520,
+        "dpi": 1.5,
+        "errors": []
+      },
+      "visual": {
+        "operations": 0,
+        "max_cache_bytes": 4087584,
+        "dpi": 1.5,
+        "errors": []
+      }
+    },
+    "fullscreen": {
+      "initial": [
+        1770,
+        1260
+      ],
+      "monitor": [
+        2560,
+        1600
+      ],
+      "rounds": {
+        "maximize": {
+          "enter": [
+            {
+              "ms": 0,
+              "size": [
+                1770,
+                1260
+              ]
+            },
+            {
+              "ms": 0.48,
+              "size": [
+                2560,
+                1494
+              ]
+            },
+            {
+              "ms": 3.19,
+              "size": [
+                2582,
+                1550
+              ]
+            },
+            {
+              "ms": 4.23,
+              "size": [
+                2560,
+                1600
+              ]
+            }
+          ],
+          "exit": [
+            {
+              "ms": 0,
+              "size": [
+                2560,
+                1600
+              ]
+            },
+            {
+              "ms": 1.24,
+              "size": [
+                2560,
+                1494
+              ]
+            },
+            {
+              "ms": 14.03,
+              "size": [
+                1770,
+                1260
+              ]
+            }
+          ],
+          "shrank_after_maximize": false,
+          "fills_screen": true,
+          "restored": true
+        },
+        "F11": {
+          "enter": [
+            {
+              "ms": 0,
+              "size": [
+                1770,
+                1260
+              ]
+            },
+            {
+              "ms": 1.83,
+              "size": [
+                1792,
+                1316
+              ]
+            },
+            {
+              "ms": 5.0,
+              "size": [
+                2560,
+                1600
+              ]
+            }
+          ],
+          "exit": [
+            {
+              "ms": 0,
+              "size": [
+                2560,
+                1600
+              ]
+            },
+            {
+              "ms": 1.91,
+              "size": [
+                2538,
+                1544
+              ]
+            },
+            {
+              "ms": 5.74,
+              "size": [
+                1770,
+                1260
+              ]
+            }
+          ],
+          "shrank_after_maximize": false,
+          "fills_screen": true,
+          "restored": true
+        }
+      }
+    }
+  },
+  "open_controls": {
+    "0.6.0": {
+      "reading": {
+        "private_mib": 21.7,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3828.11
+      },
+      "view_wheel": {
+        "private_mib": 21.91,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3846.52
+      },
+      "zoom_popup": {
+        "private_mib": 22.05,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3814.09
+      }
+    },
+    "0.6.1": {
+      "reading": {
+        "private_mib": 21.84,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3807.11
+      },
+      "view_wheel": {
+        "private_mib": 22.3,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3836.06
+      },
+      "zoom_popup": {
+        "private_mib": 22.3,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 3837.09
+      }
+    }
+  }
+}

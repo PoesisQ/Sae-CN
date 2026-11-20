@@ -163,6 +163,42 @@ pub fn start(
                 }
                 return;
             }
+            // The Win32 input regression driver posts actual window messages.
+            // Sampling/PNG capture are opt-in and compiled only in the QA build.
+            if scenario == "wheel-input" && run.ready.is_some() {
+                let request = report.with_extension("probe");
+                if let Ok(command) = fs::read_to_string(&request) {
+                    let _ = fs::remove_file(request);
+                    let command = command.trim();
+                    if command == "finish" {
+                        finish(&ui, &state, &report, &scenario, &run);
+                        if let Some(t) = stop.upgrade() { t.stop(); }
+                        return;
+                    }
+                    if command == "dark" { ui.invoke_theme_changed(2); }
+                    if command.starts_with("capture-") {
+                        if let Some(folder) = &screenshots {
+                            if let Err(e) = snapshot(&ui, &folder.join(format!("wheel-{}.png", run.operations))) {
+                                run.errors.push(e.to_string());
+                            }
+                        }
+                    }
+                    let s = state.lock().unwrap();
+                    let value = json!({"seq":command,"sample":run.operations,"dpi":ui.window().scale_factor(),
+                        "window":[ui.get_viewport_width(),ui.get_viewport_height()],
+                        "mode_x":ui.get_mode_center_x(),"header":ui.get_header_height_logical(),"depth":ui.get_mode_depth(),
+                        "mode":if ui.get_pdf_multi(){2}else if ui.get_double_page(){1}else{0},
+                        "dock_right":ui.get_dock_right(),"dock_top":ui.get_dock_top(),
+                        "center":[ui.get_knob_center_x(),ui.get_knob_center_y()],"radius":ui.get_knob_radius(),
+                        "zoom":ui.get_pdf_zoom(),"fill":ui.get_pdf_fill_zoom(),"width_zoom":ui.get_pdf_fit_width_zoom(),
+                        "pinned":ui.get_zoom_pinned(),"pressed":ui.get_zoom_dragging(),
+                        "page":s.frame.as_ref().map(|f|f.page),"generation":s.generation});
+                    drop(s);
+                    let _ = fs::write(report.with_extension("sample"), value.to_string());
+                    run.operations += 1;
+                }
+                return;
+            }
             if !ready {
                 return;
             }
@@ -214,7 +250,7 @@ pub fn start(
                 let move_to=|position: slint::LogicalPosition| { ui.invoke_edge_hover(position.x,position.y); ui.window().dispatch_event(WindowEvent::PointerMoved{position}); };
                 let press=|position| ui.window().dispatch_event(WindowEvent::PointerPressed{position,button:PointerEventButton::Left});
                 let release=|position| ui.window().dispatch_event(WindowEvent::PointerReleased{position,button:PointerEventButton::Left});
-                let scroll=|delta_y| ui.window().dispatch_event(WindowEvent::PointerScrolled{position:mode,delta_x:0.0,delta_y});
+                let scroll=|delta: f32| { for _ in 0..2 { ui.window().dispatch_event(WindowEvent::PointerScrolled{position:mode,delta_x:0.0,delta_y:delta.signum()*60.0}); } };
                 let key=|text:slint::SharedString| {
                     ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
                     ui.window().dispatch_event(WindowEvent::KeyReleased{text});
@@ -248,8 +284,8 @@ pub fn start(
                     1=>{move_to(mode);press(pos(mode.x-49.0,mode.y));release(pos(mode.x-49.0,mode.y));},
                     2=>{run.panel_generation=Some(generation);scroll(120.0);},
                     3=>scroll(-120.0),
-                    4=>{press(mode);move_to(pos(mode.x-50.0,mode.y));},
-                    5=>release(pos(mode.x-50.0,mode.y)),
+                    4=>{press(mode);move_to(pos(mode.x-76.0,mode.y));},
+                    5=>release(pos(mode.x-76.0,mode.y)),
                     6=>{run.panel_generation=Some(generation);scroll(-120.0);},
                     7=>key(Key::RightArrow.into()),
                     8=>{run.panel_generation=Some(generation);scroll(-120.0);},

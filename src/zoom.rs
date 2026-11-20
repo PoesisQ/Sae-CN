@@ -1,4 +1,4 @@
-//! PDF zoom responds to pointer events only. Both grips use the same scale and detents.
+//! PDF zoom responds to pointer events only. Turns and straight pulls share one scale and the same detents.
 const MIN: f32 = 0.25;
 const MAX: f32 = 8.0;
 const LOG_PER_PIXEL: f32 = std::f32::consts::LN_2 / 144.0;
@@ -11,12 +11,15 @@ enum Motion {
     Circular,
 }
 
-/// Coordinates are relative to the centre of the dial, positive Y down.
-/// The annulus rotates. A press on the face or readout locks the dominant linear axis.
+/// Pointer positions use logical pixels around the axle captured on button-down.
+/// An initial tangent fits both a pull and a turn. Keep that travel until a bend
+/// or a straight chord distinguishes them, then keep the chosen grip to release.
 pub struct Grip {
     start: (f32, f32),
     previous: (f32, f32),
+    first_direction: Option<(f32, f32)>,
     radius: f32,
+    sweep: f32,
     motion: Motion,
     travel: f32,
 }
@@ -26,63 +29,85 @@ impl Grip {
         Self {
             start: (x, y),
             previous: (x, y),
+            first_direction: None,
             radius,
+            sweep: 0.0,
             motion: Motion::Pending,
             travel: 0.0,
         }
     }
 
-    pub fn sample(&mut self, x: f32, y: f32, dial: Drag) -> Option<f32> {
-        let (sx, sy) = self.start;
-        let (dx, dy) = (x - sx, y - sy);
-        if self.motion == Motion::Pending {
-            if dx.abs().max(dy.abs()) < 4.0 {
-                return None;
-            }
-            // The annulus and the face are distinct grips. The direction of the
-            // first sample cannot turn a horizontal pull into a rotation.
-            let start_radius_sq = sx * sx + sy * sy;
-            let rim = self.radius > 0.0
-                && ((self.radius * 0.68).powi(2)..=(self.radius + 2.0).powi(2))
-                    .contains(&start_radius_sq);
-            self.motion = if rim {
-                Motion::Circular
-            } else if dx.abs() >= dy.abs() {
-                Motion::Horizontal
-            } else {
-                Motion::Vertical
-            };
+    fn angle_from_previous(&self, x: f32, y: f32) -> f32 {
+        let (px, py) = self.previous;
+        let hub = (self.radius * 0.26).powi(2);
+        let cross = px * y - py * x;
+        let dot = px * x + py * y;
+        if px * px + py * py <= hub
+            || x * x + y * y <= hub
+            || (dot < 0.0 && cross.abs() < -0.5 * dot)
+        {
+            return 0.0;
         }
-        self.travel = match self.motion {
-            Motion::Horizontal => self.travel + x - self.previous.0,
-            Motion::Vertical => self.travel + self.previous.1 - y,
-            Motion::Circular => {
-                let (px, py) = self.previous;
-                let central = (self.radius * 0.32).powi(2);
-                if px * px + py * py <= central || x * x + y * y <= central {
-                    self.travel
+        cross.atan2(dot)
+    }
+
+    pub fn sample(&mut self, x: f32, y: f32, dial: Drag) -> Option<f32> {
+        const ARC_GAIN: f32 = 144.0 / std::f32::consts::PI;
+        let delta = match self.motion {
+            Motion::Horizontal => x - self.previous.0,
+            Motion::Vertical => self.previous.1 - y,
+            Motion::Circular => self.angle_from_previous(x, y) * ARC_GAIN,
+            Motion::Pending => {
+                let (sx, sy) = self.start;
+                let (dx, dy) = (x - sx, y - sy);
+                let distance = dx.hypot(dy);
+                self.sweep += self.angle_from_previous(x, y);
+                self.previous = (x, y);
+                if distance < 4.0 {
+                    return None;
+                }
+                let initial_radius = sx.hypot(sy);
+                let at_rim = self.radius > 0.0
+                    && (0.36 * self.radius..=1.60 * self.radius).contains(&initial_radius);
+                let first = *self
+                    .first_direction
+                    .get_or_insert((dx / distance, dy / distance));
+                let bending = first.0 * dy - first.1 * dx;
+                let r = x.hypot(y);
+                // The second condition also handles sparse input where a quarter
+                // turn arrives as one event. A straight tangent changes radius.
+                let curved = bending * self.sweep.signum() >= (distance * 0.065).max(1.2);
+                let diagonal = dx.abs().min(dy.abs()) > distance * 0.22;
+                let follows_rim = diagonal
+                    && (r - initial_radius).abs() < initial_radius * 0.13
+                    && self.sweep.abs() >= 0.71;
+                if at_rim && self.sweep.abs() >= 0.35 && (curved || follows_rim) {
+                    self.motion = Motion::Circular;
+                    self.sweep * ARC_GAIN
                 } else {
-                    let cross = px * y - py * x;
-                    let dot = px * x + py * y;
-                    // A chord through the hub has no unambiguous direction.
-                    let delta = if dot < 0.0 && cross.abs() < -0.5 * dot {
-                        0.0
+                    let radial = (sx * dx + sy * dy).abs() > initial_radius * distance * 0.86;
+                    if at_rim
+                        && !(radial && distance >= 12.0 && self.sweep.abs() < 0.16)
+                        && distance < initial_radius * 0.84
+                        && r > self.radius * 0.26
+                    {
+                        return None;
+                    }
+                    if dx.abs() >= dy.abs() {
+                        self.motion = Motion::Horizontal;
+                        dx
                     } else {
-                        cross.atan2(dot) * (144.0 / std::f32::consts::PI)
-                    };
-                    (self.travel + delta).clamp(
-                        (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
-                        (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
-                    )
+                        self.motion = Motion::Vertical;
+                        -dy
+                    }
                 }
             }
-            Motion::Pending => unreachable!(),
         };
-        self.travel = self.travel.clamp(
+        self.previous = (x, y);
+        self.travel = (self.travel + delta).clamp(
             (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
             (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
         );
-        self.previous = (x, y);
         Some(self.travel)
     }
     pub fn edge_direction(&self, x: f32, y: f32, width: f32, height: f32) -> i8 {
@@ -242,7 +267,9 @@ mod tests {
         let mut rim = Grip::new(0.0, -36.0, radius);
         for step in 1..=24 {
             let a = step as f32 * std::f32::consts::TAU / 24.0;
-            let travel = rim.sample(36.0 * a.sin(), -36.0 * a.cos(), dial).unwrap();
+            let travel = rim
+                .sample(36.0 * a.sin(), -36.0 * a.cos(), dial)
+                .unwrap_or(0.0);
             if step == 24 {
                 assert!((dial.at(travel).value - 4.0).abs() < 0.001);
             }
@@ -281,7 +308,7 @@ mod tests {
             let angle = (degrees as f32).to_radians();
             let travel = rim
                 .sample(34.0 * angle.sin(), -34.0 * angle.cos(), dial)
-                .unwrap();
+                .unwrap_or(0.0);
             dial.at(travel).value
         };
         let mut prev = 1.0;
@@ -313,6 +340,58 @@ mod tests {
         assert!((rim.sample(-34.0, 0.0, dial).unwrap() - 72.0).abs() < 1e-4);
         assert!((rim.sample(0.0, 0.0, dial).unwrap() - 72.0).abs() < 1e-4);
         assert!((rim.sample(0.0, -30.0, dial).unwrap() - 72.0).abs() < 1e-4);
+    }
+
+    #[test]
+    fn pulls_from_a_tangent_and_from_a_preset_keep_one_axis() {
+        let dial = Drag::start(1.0, 1.7);
+        let mut chord = Grip::new(-26., -30., 43.);
+        assert_eq!(chord.sample(26., -30., dial), Some(52.));
+        for (start, dir) in [
+            ((0., -40.), (1., 0.)),
+            ((0., 40.), (-1., 0.)),
+            ((40., 0.), (0., -1.)),
+            ((-40., 0.), (0., 1.)),
+            ((-28., 27.), (1., 0.)),
+            ((28., 27.), (-1., 0.)),
+        ] {
+            let mut g = Grip::new(start.0, start.1, 43.);
+            for n in 1..=144 {
+                let x = start.0 + dir.0 * n as f32;
+                let y = start.1 + dir.1 * n as f32;
+                if let Some(t) = g.sample(x, y, dial) {
+                    assert!((t - (dir.0 - dir.1) * n as f32).abs() < 1e-3);
+                }
+            }
+            assert!((g.travel.abs() - 144.).abs() < 1e-3);
+        }
+    }
+
+    #[test]
+    fn a_wandering_turn_keeps_its_sense_from_each_quadrant() {
+        let dial = Drag::start(1.0, 1.73);
+        for r in [25., 38., 48.] {
+            for start in [15_f32, 105., 195., 285.] {
+                for sign in [-1_f32, 1.] {
+                    let point = |i: usize| {
+                        let a = (start + sign * i as f32 * 3.).to_radians();
+                        let radius = r * (1.0 + 0.095 * (2.0 * a).sin());
+                        (radius * a.cos(), radius * a.sin())
+                    };
+                    let (x, y) = point(0);
+                    let mut g = Grip::new(x, y, 43.);
+                    let mut prev = 0.0;
+                    for i in 1..=120 {
+                        let (x, y) = point(i);
+                        if let Some(t) = g.sample(x, y, dial) {
+                            assert!(sign * (t - prev) >= -0.001);
+                            prev = t;
+                        }
+                    }
+                    assert!((g.travel - sign * 288.).abs() < 0.005);
+                }
+            }
+        }
     }
 
     #[test]

@@ -1,9 +1,22 @@
-// Each shoulder uses two cubics with matching tangents at the diagonal.
+// The progress rail and the rising dial bay have one continuous perimeter.
+// Each corner uses two cubics; the shoulder disappears into the top at rest.
 export component DockOutline inherits Path {
+    in property <length> rise;
+    in property <bool> has-track: true;
+    in property <length> bay: 120px;
     property <float> w: self.width / 1px;
     property <float> h: self.height / 1px;
+    property <float> b: root.has-track ? root.rise / 1px : 0;
+    property <float> a: max(17,root.w - root.bay / 1px);
+    property <float> r: min(16,root.b/2);
     viewbox-width: self.w; viewbox-height: self.h;
-    MoveTo { x: 17; y: 0; } LineTo { x: root.w - 17; y: 0; }
+    MoveTo { x: 17; y: root.b; } LineTo { x: root.a - root.r; y: root.b; }
+    CubicTo { control-1-x: root.a - root.r*0.45; control-1-y: root.b; control-2-x: root.a - root.r*0.29; control-2-y: root.b; x: root.a - root.r*0.14; y: root.b - root.r*0.14; }
+    CubicTo { control-1-x: root.a; control-1-y: root.b - root.r*0.29; control-2-x: root.a; control-2-y: root.b - root.r*0.45; x: root.a; y: root.b - root.r; }
+    LineTo { x: root.a; y: root.r; }
+    CubicTo { control-1-x: root.a; control-1-y: root.r*0.45; control-2-x: root.a; control-2-y: root.r*0.29; x: root.a + root.r*0.14; y: root.r*0.14; }
+    CubicTo { control-1-x: root.a + root.r*0.29; control-1-y: 0; control-2-x: root.a + root.r*0.45; control-2-y: 0; x: root.a + root.r; y: 0; }
+    LineTo { x: root.w - 17; y: 0; }
     CubicTo { control-1-x: root.w - 11; control-1-y: 0; control-2-x: root.w - 5.4; control-2-y: 0; x: root.w - 2.7; y: 2.7; }
     CubicTo { control-1-x: root.w; control-1-y: 5.4; control-2-x: root.w; control-2-y: 11; x: root.w; y: 17; }
     LineTo { x: root.w; y: root.h - 17; }
@@ -12,8 +25,8 @@ export component DockOutline inherits Path {
     LineTo { x: 17; y: root.h; }
     CubicTo { control-1-x: 11; control-1-y: root.h; control-2-x: 5.4; control-2-y: root.h; x: 2.7; y: root.h - 2.7; }
     CubicTo { control-1-x: 0; control-1-y: root.h - 5.4; control-2-x: 0; control-2-y: root.h - 11; x: 0; y: root.h - 17; }
-    LineTo { x: 0; y: 17; }
-    CubicTo { control-1-x: 0; control-1-y: 11; control-2-x: 0; control-2-y: 5.4; x: 2.7; y: 2.7; }
-    CubicTo { control-1-x: 5.4; control-1-y: 0; control-2-x: 11; control-2-y: 0; x: 17; y: 0; }
+    LineTo { x: 0; y: root.b + 17; }
+    CubicTo { control-1-x: 0; control-1-y: root.b + 11; control-2-x: 0; control-2-y: root.b + 5.4; x: 2.7; y: root.b + 2.7; }
+    CubicTo { control-1-x: 5.4; control-1-y: root.b; control-2-x: 11; control-2-y: root.b; x: 17; y: root.b; }
     Close {}
 }

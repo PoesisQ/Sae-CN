@@ -438,20 +438,41 @@ component PagePane inherits Rectangle {
     }
 }
 
-// The cubic contour and its hit bound share 1 - 3t² + 2t³ on each half.
-component DrumProfile inherits Path {
-    in property <length> seam;
+global DrumGeometry {
+    public pure function height-at(t: float) -> float {
+        let u = clamp(1 - abs(t), 0, 1) * 3;
+        if u <= 1 { return u*u*u/6; }
+        if u >= 2 { let q = 3 - u; return 1 - q*q*q/6; }
+        let v = u - 1;
+        return (1 + v*(3 + v*(3 - 2*v))) / 6;
+    }
+}
+
+// One continuous spline defines the rail, the drum face and its machined lip.
+// Each cubic matches the slope and curvature of its neighbours and the straight rail.
+component DrumOutline inherits Path {
+    in property <length> center;
+    in property <length> span;
     in property <length> depth;
+    in property <length> rim;
+    in property <float> corner;
     property <float> w: self.width / 1px;
-    property <float> s: root.seam / 1px;
+    property <float> a: (root.center - root.span/2) / 1px;
+    property <float> q: root.span / 6px;
     property <float> d: root.depth / 1px;
-    viewbox-width: self.w; viewbox-height: self.height / 1px;
-    MoveTo { x: 0; y: root.s - 9; }
-    CubicTo { control-1-x: root.w*0.20; control-1-y: 8; control-2-x: root.w*0.28; control-2-y: 7; x: root.w*0.50; y: 7; }
-    CubicTo { control-1-x: root.w*0.72; control-1-y: 7; control-2-x: root.w*0.80; control-2-y: 8; x: root.w; y: root.s - 9; }
-    LineTo { x: root.w; y: root.s; }
-    CubicTo { control-1-x: root.w*5/6; control-1-y: root.s; control-2-x: root.w*2/3; control-2-y: root.s+root.d; x: root.w/2; y: root.s+root.d; }
-    CubicTo { control-1-x: root.w/3; control-1-y: root.s+root.d; control-2-x: root.w/6; control-2-y: root.s; x: 0; y: root.s; }
+    property <float> s: root.rim / 1px;
+    fit: preserve;
+    MoveTo { x: 0; y: root.s; } LineTo { x: root.a; y: root.s; }
+    CubicTo { control-1-x: root.a+root.q*1/3; control-1-y: root.s; control-2-x: root.a+root.q*2/3; control-2-y: root.s; x: root.a+root.q*1; y: root.s+root.d/6; }
+    CubicTo { control-1-x: root.a+root.q*4/3; control-1-y: root.s+root.d/3; control-2-x: root.a+root.q*5/3; control-2-y: root.s+root.d*2/3; x: root.a+root.q*2; y: root.s+root.d*5/6; }
+    CubicTo { control-1-x: root.a+root.q*7/3; control-1-y: root.s+root.d; control-2-x: root.a+root.q*8/3; control-2-y: root.s+root.d; x: root.a+root.q*3; y: root.s+root.d; }
+    CubicTo { control-1-x: root.a+root.q*10/3; control-1-y: root.s+root.d; control-2-x: root.a+root.q*11/3; control-2-y: root.s+root.d; x: root.a+root.q*4; y: root.s+root.d*5/6; }
+    CubicTo { control-1-x: root.a+root.q*13/3; control-1-y: root.s+root.d*2/3; control-2-x: root.a+root.q*14/3; control-2-y: root.s+root.d/3; x: root.a+root.q*5; y: root.s+root.d/6; }
+    CubicTo { control-1-x: root.a+root.q*16/3; control-1-y: root.s; control-2-x: root.a+root.q*17/3; control-2-y: root.s; x: root.a+root.q*6; y: root.s; }
+    LineTo { x: root.w; y: root.s; } LineTo { x: root.w; y: root.corner; }
+    CubicTo { control-1-x: root.w; control-1-y: root.corner*0.2; control-2-x: root.w - root.corner*0.2; control-2-y: 0; x: root.w - root.corner; y: 0; }
+    LineTo { x: root.corner; y: 0; }
+    CubicTo { control-1-x: root.corner*0.2; control-1-y: 0; control-2-x: 0; control-2-y: root.corner*0.2; x: 0; y: root.corner; }
     Close {}
 }
 
@@ -462,73 +483,85 @@ component ModeDrum inherits Rectangle {
     in property <length> depth;
     in property <bool> hit-enabled: true;
     callback choose(int);
-    property <float> preview;
+    property <float> raw;
+    property <int> latch;
+    property <length> previous-x;
+    property <length> origin-x;
     property <bool> dragged;
+    property <bool> scrolling;
     callback gripping(bool);
-    property <length> origin;
-    property <int> initial;
-    property <float> residue;
-    property <float> position: touch.pressed && root.dragged ? root.preview : root.value;
-    animate position { duration: touch.pressed ? 35ms : 155ms; easing: ease-out; }
+    // Cam travel is shallow around the notches and steep across the saddle.
+    property <float> position: (touch.pressed && root.dragged) || root.scrolling
+        ? root.raw - sin(root.raw * 360deg) * 0.095 : root.value;
+    animate position { duration: touch.pressed || root.scrolling ? 0ms : 165ms; easing: cubic-bezier(0.18,0.74,0.16,1); }
     function select(v: int) {
         let index = clamp(v,0,root.count - 1);
         if index != root.value { root.choose(index); }
     }
+    function displace(distance: float) {
+        root.raw = clamp(root.raw + distance,0,root.count - 1);
+        if root.raw >= root.latch + 0.68 { root.latch = floor(root.raw + 0.32); }
+        else if root.raw <= root.latch - 0.68 { root.latch = ceil(root.raw - 0.32); }
+    }
     function pull() {
-        let dx = (touch.mouse-x - root.origin) / 1px;
-        if abs(dx) > 3 { root.dragged = true; }
+        if abs(touch.mouse-x - root.origin-x) > 3px { root.dragged = true; }
         if root.dragged {
-            let raw = clamp(root.initial - dx / (root.width / 1px * 0.31),0,root.count - 1);
-            let detent = round(raw);
-            let distance = raw - detent;
-            // A shallow well near each detent and a hard stop at each end.
-            root.preview = detent + distance * (0.40 + 1.20 * abs(distance));
+            root.displace((root.previous-x - touch.mouse-x) / 100px);
+            root.previous-x = touch.mouse-x;
         }
+    }
+    settle := Timer {
+        running: false; interval: 340ms;
+        triggered => { self.running = false; root.scrolling = false; }
     }
     height: root.seam + root.depth + 2px;
     accessible-role: slider; accessible-label: "阅读视图"; accessible-value: root.value == 2 ? "多页" : root.value == 1 ? "双页" : "单页";
     accessible-action-increment => { root.select(root.value + 1); }
     accessible-action-decrement => { root.select(root.value - 1); }
     forward-focus: focus;
-    DrumProfile {
-        y: 1.3px; width: parent.width; height: parent.height; seam: root.seam; depth: root.depth;
-        fill: ReaderTheme.dark ? #1017137a : #53615564;
+    // The projected face and its thin undercut follow the same contour.
+    DrumOutline {
+        x: 7px; y: 12px; width: parent.width - 14px; height: parent.height - 15px;
+        center: self.width/2; span: self.width; rim: root.seam - 20px; depth: root.depth; corner: 12;
+        fill: ReaderTheme.dark ? #111b17 : #34433c;
     }
-    DrumProfile {
-        width: parent.width; height: parent.height; seam: root.seam; depth: root.depth;
-        fill: ReaderTheme.dark
-            ? @linear-gradient(180deg, #232927 0%, #232927 33%, #303934 78%, #37413b 100%)
-            : @linear-gradient(180deg, #efefe9 0%, #efefe9 33%, #e9eae2 78%, #e2e5dc 100%);
+    DrumOutline {
+        x: 7px; y: 12px; width: parent.width - 14px; height: parent.height - 17px;
+        center: self.width/2; span: self.width; rim: root.seam - 22.5px; depth: root.depth; corner: 12;
+        fill: ReaderTheme.dark ? #394b43 : #4c6056;
     }
     for name[idx] in ["单页","双页","多页"]: Text {
         property <float> phase: idx - root.position;
         property <angle> theta: clamp(self.phase, -1.48, 1.48) * 47deg;
         property <float> depth-on-drum: cos(self.theta);
         visible: idx < root.count && abs(self.phase) < 1.49;
-        width: 42px; height: 22px;
-        x: parent.width * (0.5 + 0.401 * sin(self.theta)) - self.width / 2;
-        y: root.seam - 22px + root.depth * 0.30 - self.height/2 - 11px*(1-self.depth-on-drum);
-        transform-rotation: -9deg * sin(self.theta);
+        width: 38px; height: 20px;
+        property <length> offset: parent.width * 0.365 * sin(self.theta);
+        property <float> outer-edge: (abs(self.offset) + self.width/2) / (parent.width/2 - 7px);
+        property <length> label-floor: root.seam - 19px + root.depth * DrumGeometry.height-at(self.outer-edge);
+        x: (parent.width - self.width)/2 + self.offset;
+        y: min(root.seam - 21px + root.depth * 0.38 - self.height/2 - 12px*(1-self.depth-on-drum), self.label-floor - self.height);
+        transform-rotation: -5deg * sin(self.theta);
         opacity: clamp((1.49 - abs(self.phase)) * 1.75, 0, 1);
         text: name; horizontal-alignment: center; vertical-alignment: center;
         font-size: 13px + 2px*self.depth-on-drum;
         font-weight: abs(self.phase) < 0.46 ? 600 : 400;
-        color: abs(self.phase) < 0.46 ? ReaderTheme.ink : ReaderTheme.muted;
+        color: abs(self.phase) < 0.46 ? #f6f4e9 : #c8d3c9;
     }
-    for tooth in 23: Rectangle {
-        property <float> u: (tooth - 11 - mod(root.position*8,1)) / 12;
+    for tooth in 19: Rectangle {
+        property <float> u: (tooth - 9 - mod(root.position*8,1)) / 12;
         property <float> t: min(1,abs(self.u));
-        property <float> curve: 1 - self.t*self.t*(3 - 2*self.t);
-        x: parent.width*(0.5 + 0.5*self.u);
-        y: root.seam + root.depth*self.curve - 8px;
-        width: 1px; height: 2px;
-        transform-rotation: -self.u * 15deg; opacity: 0.53 * (1-self.t);
-        background: ReaderTheme.muted;
+        property <float> curve: DrumGeometry.height-at(self.t);
+        x: parent.width/2 + (parent.width/2 - 7px)*self.u;
+        y: root.seam + root.depth*self.curve - 12.5px - self.height;
+        width: 1px; height: mod(tooth,4) == 3 ? 5px : 3px;
+        transform-rotation: -self.u * 15deg; opacity: 0.42 + 0.48 * (1-self.t);
+        background: #d2decf;
     }
     Rectangle {
-        x: (parent.width - self.width)/2; y: root.seam + root.depth - 10px;
-        width: 1.7px; height: 5px; border-radius: 0.8px;
-        background: ReaderTheme.dark ? #eab297 : #9e472f;
+        x: (parent.width - self.width)/2; y: root.seam + root.depth - 20px;
+        width: 2px; height: 7px; border-radius: 0.8px;
+        background: #eac19a;
     }
     focus := FocusScope {
         key-pressed(e) => {
@@ -544,23 +577,29 @@ component ModeDrum inherits Rectangle {
         mouse-cursor: self.pressed ? grabbing : grab;
         pointer-event(e) => {
             if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-                root.gripping(true); root.origin = self.mouse-x; root.initial = root.value; root.preview = root.value; root.dragged = false;
+                settle.running = false; root.scrolling = false;
+                root.raw = root.value; root.latch = root.value; root.dragged = false;
+                root.origin-x = self.mouse-x; root.previous-x = self.mouse-x; root.gripping(true);
             }
             if e.kind == PointerEventKind.up && e.button == PointerEventButton.left {
                 root.pull();
-                root.select(root.dragged ? round(root.preview) : root.initial + round((self.mouse-x / self.width - 0.5)/0.29));
+                root.select(root.dragged ? root.latch : root.value + round((self.mouse-x / self.width - 0.5)/0.29));
                 root.gripping(false);
             }
-            if e.kind == PointerEventKind.cancel { root.gripping(false); }
+            if e.kind == PointerEventKind.cancel { root.dragged = false; root.gripping(false); }
         }
         moved => { if self.pressed { root.pull(); } }
-        changed has-hover => { if !self.has-hover { root.residue = 0; } }
         scroll-event(e) => {
             let delta = (abs(e.delta-y) >= abs(e.delta-x) ? -e.delta-y : e.delta-x) / 1px;
-            if delta * root.residue < 0 { root.residue = 0; }
-            root.residue += delta;
-            if abs(root.residue) >= 36 {
-                root.select(root.value + (root.residue > 0 ? 1 : -1)); root.residue = 0;
+            if !self.pressed && delta != 0 {
+                if !root.scrolling { root.raw = root.value; root.latch = root.value; }
+                root.scrolling = true;
+                root.displace(clamp(delta,-60,60) / 150);
+                if root.latch != root.value {
+                    root.select(root.latch); root.raw = root.latch;
+                }
+                settle.interval = settle.interval == 340ms ? 341ms : 340ms;
+                settle.running = true;
             }
             return accept;
         }
@@ -598,48 +637,66 @@ component ZoomGrip inherits TouchArea {
     callback started(float,float,float);
     callback motion(float,float,float,float) -> bool;
     callback released(float,float,bool);
-    callback opened();
+    callback opened(int);
     callback cancelled();
     callback stepped(float);
     mouse-cursor: self.pressed ? grabbing : grab;
+    property <length> press-x;
+    property <length> press-y;
+    property <int> pressed-mark;
+    in property <bool> marks-enabled;
+    callback pointed(int);
+    pure function mark-at(dx: length, dy: length) -> int {
+        if root.marks-enabled {
+            if abs(dx + 28px) <= 11px && abs(dy - 27px) <= 8px { return 0; }
+            if abs(dx) <= 11px && abs(dy - 38px) <= 8px { return 1; }
+            if abs(dx - 28px) <= 11px && abs(dy - 27px) <= 8px { return 2; }
+        }
+        return -1;
+    }
     function update-drag() {
         let x = self.mouse-x + self.absolute-position.x;
         let y = self.mouse-y + self.absolute-position.y;
-        if root.motion((x - self.fixed-x)/1px,(y - self.fixed-y)/1px,x/1px,y/1px) { self.travelled = true; }
+        if abs(x - self.press-x) >= 4px || abs(y - self.press-y) >= 4px { self.travelled = true; }
+        root.motion((x - self.fixed-x)/1px,(y - self.fixed-y)/1px,x/1px,y/1px);
     }
     pointer-event(e) => {
         if e.kind == PointerEventKind.cancel { root.cancelled(); }
         if e.kind == PointerEventKind.down && e.button == PointerEventButton.left {
-            self.fixed-x = self.cx; self.fixed-y = self.cy; self.travelled = false;
-            root.started((self.absolute-position.x + self.mouse-x - self.fixed-x)/1px,
-                (self.absolute-position.y + self.mouse-y - self.fixed-y)/1px,self.radius/1px);
+            self.fixed-x = self.cx; self.fixed-y = self.cy;
+            self.press-x = self.absolute-position.x + self.mouse-x;
+            self.press-y = self.absolute-position.y + self.mouse-y; self.travelled = false;
+            self.pressed-mark = self.mark-at(self.press-x - self.fixed-x,self.press-y - self.fixed-y);
+            root.started((self.press-x - self.fixed-x)/1px,(self.press-y - self.fixed-y)/1px,self.radius/1px);
         }
         if e.kind == PointerEventKind.up && e.button == PointerEventButton.left {
             self.update-drag();
-            if !self.travelled && self.has-hover { root.opened(); }
             root.released((self.absolute-position.x + self.mouse-x)/1px,(self.absolute-position.y + self.mouse-y)/1px,self.travelled);
+            if !self.travelled { root.opened(self.pressed-mark); }
         }
     }
-    moved => { if self.pressed { self.update-drag(); } }
+    moved => {
+        if self.pressed { self.update-drag(); }
+        else { root.pointed(self.mark-at(self.mouse-x + self.absolute-position.x - self.cx,self.mouse-y + self.absolute-position.y - self.cy)); }
+    }
+    changed has-hover => { if !self.has-hover { root.pointed(-1); } }
     scroll-event(e) => { if e.delta-y != 0px { root.stepped(e.delta-y/120px); } return accept; }
 }
 
 component PresetMark inherits Rectangle {
     in property <int> kind;
     in property <bool> selected;
+    in property <bool> highlighted;
     callback clicked(); callback hover(bool);
     width: 22px; height: 15px;
     accessible-role: button; accessible-label: root.kind == 0 ? "整页，100%" : root.kind == 1 ? "适宽" : "铺满";
     accessible-action-default => { root.clicked(); } forward-focus: focus;
     Rectangle { x: (parent.width - self.width)/2; y: (parent.height - self.height)/2; width: root.selected ? 2.2px : 1.5px; height: 4px; border-radius: 0.6px;
         transform-rotation: (root.kind - 1)*19deg;
-        background: root.selected || focus.has-focus || touch.has-hover ? (ReaderTheme.dark ? #ecb297 : #a94b31) : ReaderTheme.muted; }
+        background: root.selected || focus.has-focus || root.highlighted ? (ReaderTheme.dark ? #ecb297 : #a94b31) : ReaderTheme.muted; }
     focus := FocusScope {
         changed has-focus => { root.hover(self.has-focus); }
         key-pressed(e) => { if e.text == Key.Return || e.text == " " { root.clicked(); return accept; } return reject; }
-    }
-    touch := TouchArea {
-        changed has-hover => { root.hover(self.has-hover); } mouse-cursor: pointer; clicked => { root.clicked(); }
     }
 }
 
@@ -834,13 +891,13 @@ export component ReaderWindow inherits Window {
     property <length> window-inset: 16px;
     property <length> header-height: 52px;
     out property <length> header-height-logical: root.header-height;
-    out property <length> mode-span: root.reflowable ? clamp(root.width*0.25,122px,152px) : clamp(root.width*0.27,148px,198px);
+    out property <length> mode-span: root.reflowable ? clamp(root.width*0.25,134px,174px) : clamp(root.width*0.27,158px,214px);
     out property <length> mode-center-x: root.width - root.window-inset - 88px - root.mode-span/2;
     property <bool> mode-hot;
     property <bool> mode-hit-enabled: true;
-    out property <length> mode-depth: root.mode-hot || root.mode-dragging ? 28px : 17px;
+    out property <length> mode-depth: root.mode-hot || root.mode-dragging ? 56px : 12px;
     animate mode-depth { duration: 145ms; easing: cubic-bezier(0.2,0.7,0.2,1); }
-    out property <length> panel-top: root.header-height + 36px;
+    out property <length> panel-top: root.header-height + 64px;
     out property <length> dock-height: 48px;
     property <length> dock-width: min(root.reflowable ? 424px : root.show-progress || root.page-entry-active ? 528px : 120px,root.width - 2 * root.window-inset);
     out property <length> dock-left: (root.width - root.dock-width) / 2;
@@ -849,18 +906,19 @@ export component ReaderWindow inherits Window {
     property <length> side-panel-height: root.dock-top - root.panel-top - 12px;
     property <length> side-panel-width: 352px;
     out property <bool> show-zoom-pop: root.has-document && !root.reflowable && (root.zoom-hover || root.zoom-pinned || root.zoom-dragging) && !root.page-entry-active;
-    property <float> zoom-lift: root.show-zoom-pop ? 1 : 0;
-    animate zoom-lift { duration: 180ms; easing: cubic-bezier(0.22,0.68,0.13,1); }
+    property <float> captured-lift;
+    property <float> zoom-lift: root.zoom-dragging ? root.captured-lift : root.reveal-lift;
+    property <float> reveal-lift: root.show-zoom-pop ? 1 : 0;
+    animate reveal-lift { duration: 180ms; easing: cubic-bezier(0.22,0.68,0.13,1); }
     out property <length> knob-pop-width: 124px;
-    out property <length> knob-pop-height: 71px;
+    out property <length> knob-pop-height: 64px;
     out property <bool> zoom-can-cover: root.pdf-fill-zoom > root.pdf-fit-width-zoom * 1.035;
     out property <length> knob-pop-left: root.dock-right - root.knob-pop-width;
     out property <length> knob-pop-top: root.dock-top - root.knob-pop-height;
     out property <length> knob-center-x: root.dock-right - 88px + 28px * root.zoom-lift;
-    out property <length> knob-center-y: root.dock-top + 24px - 48px * root.zoom-lift;
+    out property <length> knob-center-y: root.dock-top + 24px - 34px * root.zoom-lift;
     out property <length> knob-radius: 12px + 31px * root.zoom-lift;
-    property <length> dock-skin-width: root.dock-width - (root.show-progress || root.page-entry-active ? 108px * root.zoom-lift : 0px);
-    property <float> dock-skin-opacity: root.show-progress || root.page-entry-active ? 1 : 1 - root.zoom-lift;
+    property <length> dock-rise: root.knob-pop-height * root.zoom-lift;
     out property <length> readout-x: root.dock-right - 35px - 25px * root.zoom-lift;
     out property <length> readout-y: root.knob-center-y;
     out property <length> preset-page-x: root.knob-center-x - 28px;
@@ -868,6 +926,14 @@ export component ReaderWindow inherits Window {
     out property <length> preset-page-y: root.knob-center-y + 27px;
     out property <length> preset-width-y: root.knob-center-y + 38px;
     property <int> preset-hover: -1;
+    property <bool> presets-ready;
+    arm-presets := Timer {
+        interval: 180ms; running: false;
+        triggered => { self.running = false; root.presets-ready = root.show-zoom-pop; }
+    }
+    function disarm-presets() {
+        arm-presets.running = false; root.presets-ready = false; root.preset-hover = -1;
+    }
     property <length> page-inset: root.reflowable ? 16px : 0px;
     callback open-file(); callback next-page(int); callback back();
     callback typography(string,float); callback resized(); callback follow-link(string);
@@ -891,18 +957,20 @@ export component ReaderWindow inherits Window {
         // Enter well inside the canvas, then give the pointer a wider exit band.
         let reveal = clamp(root.height * 0.08,44px,72px);
         let across = abs(px - root.mode-center-x)/(root.mode-span/2);
-        let under-wheel = across <= 1 && py <= root.header-height + 30px;
-        let on-face = under-wheel && py <= root.header-height + root.mode-depth * (1 - across*across*(3-2*across));
+        let under-wheel = across <= 1 && py <= root.header-height + 57px;
+        let on-face = under-wheel && py <= root.header-height + root.mode-depth * DrumGeometry.height-at(across);
         root.mode-hit-enabled = !under-wheel || on-face;
         root.mode-hot = on-face;
         root.top-hover = root.mode-hot || py <= (root.top-hover ? max(reveal + 12px,root.header-height + 12px) : reveal);
-        let in-knob = px >= root.dock-right - 112px && px <= root.dock-right && py >= root.dock-top;
+        let in-knob = px >= root.dock-right - 120px && px <= root.dock-right && py >= root.dock-top;
         let in-pop = root.show-zoom-pop && px >= root.knob-pop-left && px <= root.dock-right && py >= root.knob-pop-top && py < root.dock-top;
         if !root.controls-busy { root.zoom-hover = !root.reflowable && root.has-document && (in-knob || in-pop); }
+        if root.zoom-hover && !root.presets-ready && !arm-presets.running { arm-presets.running = true; }
         root.bottom-hover = root.zoom-hover || py >= root.height - (root.bottom-hover ? max(reveal + 12px,root.dock-height + 24px) : reveal);
     }
     function start-zoom(x: float, y: float, radius: float) {
         root.focus-reading();
+        root.captured-lift = root.zoom-lift; root.preset-hover = -1;
         root.controls-busy = true;
         root.zoom-dragging = true;
         root.zoom-begin(x,y,radius);
@@ -919,6 +987,7 @@ export component ReaderWindow inherits Window {
     }
     public function focus-reading() { root.page-entry-active = false; keyboard.focus(); }
     public function dismiss-panels() {
+        root.disarm-presets();
         if root.show-search { root.search(""); }
         root.show-contents = false; root.show-settings = false; root.show-search = false;
         root.zoom-pinned = false; root.zoom-hover = false;
@@ -936,7 +1005,10 @@ export component ReaderWindow inherits Window {
             root.page-entry-active = true;
         }
     }
-    changed show-zoom-pop => { if !root.show-zoom-pop { root.preset-hover = -1; } }
+    changed show-zoom-pop => {
+        if root.show-zoom-pop { if !root.presets-ready { arm-presets.running = true; } }
+        else { root.disarm-presets(); }
+    }
     changed viewport-width => { root.resized(); }
     changed viewport-height => { root.resized(); }
     changed show-settings => { if root.show-settings && root.reflowable { root.fonts-needed(); } if !root.show-settings { root.choice-open = false; } }
@@ -1013,8 +1085,16 @@ export component ReaderWindow inherits Window {
             x: 0px; y: 0px; width: parent.width; height: root.header-height;
             background: ReaderTheme.chrome;
             Rectangle { x: root.window-inset; y: 1px; width: parent.width - 2 * self.x; height: 1px; background: ReaderTheme.edge; }
-            Rectangle { y: parent.height - 1px; height: 1px; background: ReaderTheme.line; }
-            Rectangle { y: parent.height; height: 2px; background: ReaderTheme.contact; }
+            DrumOutline {
+                y: parent.height - 2px; width: parent.width; height: root.mode-depth + 4px;
+                center: root.mode-center-x; span: root.mode-span; depth: root.mode-depth; rim: 2.5px;
+                fill: ReaderTheme.line;
+            }
+            DrumOutline {
+                y: parent.height - 2px; width: parent.width; height: root.mode-depth + 3px;
+                center: root.mode-center-x; span: root.mode-span; depth: root.mode-depth; rim: 1.5px;
+                fill: ReaderTheme.chrome;
+            }
             TouchArea {}
             HorizontalLayout {
                 padding-left: root.window-inset; padding-right: root.window-inset; padding-top: 6px; padding-bottom: 6px; spacing: 8px;
@@ -1207,9 +1287,19 @@ export component ReaderWindow inherits Window {
 
         if root.bottom-visible: Rectangle {
             x: root.dock-left; y: root.dock-top; width: root.dock-width; height: root.dock-height;
-            DockOutline { y: 1px; width: root.dock-skin-width; height: parent.height; fill: ReaderTheme.contact; opacity: root.dock-skin-opacity; }
-            DockOutline { width: root.dock-skin-width; height: parent.height; fill: ReaderTheme.surface; opacity: root.dock-skin-opacity; }
-            TouchArea { width: root.dock-skin-width; height: parent.height; }
+            DockOutline {
+                y: ReaderTheme.contact-depth - root.dock-rise; width: parent.width; height: parent.height + root.dock-rise;
+                rise: root.dock-rise; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.contact;
+            }
+            DockOutline {
+                y: -root.dock-rise; width: parent.width; height: parent.height + root.dock-rise;
+                rise: root.dock-rise; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.line;
+            }
+            DockOutline {
+                x: 1px; y: 1px - root.dock-rise; width: parent.width - 2px; height: parent.height + root.dock-rise - 2px;
+                rise: root.dock-rise; bay: 119px; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.surface;
+            }
+            TouchArea {}
             Rectangle {
                 x: 16px; y: 0px; width: parent.width - 32px; height: parent.height;
                 if root.show-progress || root.page-entry-active: PageScrubber {
@@ -1226,56 +1316,50 @@ export component ReaderWindow inherits Window {
             }
         }
         if root.bottom-visible && !root.reflowable: Rectangle {
-            // A single axle rises out of the same dock that contains it at rest.
-            // Only the grips and the three marks receive pointer input.
             x: 0px; y: 0px; width: parent.width; height: parent.height;
-            ZoomGrip {
-                x: root.dock-right - 104px; y: root.dock-top + 3px; width: 99px; height: root.dock-height - 6px;
-                cx: self.absolute-position.x; cy: self.absolute-position.y; radius: -4px;
-                accessible-role: slider; accessible-label: "PDF 缩放"; accessible-value: round(root.pdf-zoom * 100) + "%";
-                accessible-action-increment => { self.stepped(1); } accessible-action-decrement => { self.stepped(-1); }
-                started(x,y,r) => { root.start-zoom(x,y,r); }
-                motion(x,y,sx,sy) => { return root.zoom-motion(x,y,sx,sy); }
-                released(x,y,d) => { root.release-zoom(x,y,d); }
-                cancelled => { root.end-zoom(); }
-                opened => { root.zoom-pinned = true; }
-                stepped(d) => { root.typography("zoom",pow(1.12,d)); }
-            }
             DialFace {
                 x: root.knob-center-x - root.knob-radius; y: root.knob-center-y - root.knob-radius;
                 width: root.knob-radius * 2; height: self.width; lift: root.zoom-lift;
                 turn: 180deg * log(clamp(root.pdf-zoom,0.25,8),2);
-                ZoomGrip {
-                    cx: self.absolute-position.x + self.width / 2; cy: self.absolute-position.y + root.knob-radius;
-                    radius: root.knob-radius;
-                    started(x,y,r) => { root.start-zoom(x,y,r); }
-                    motion(x,y,sx,sy) => { return root.zoom-motion(x,y,sx,sy); }
-                    released(x,y,d) => { root.release-zoom(x,y,d); }
-                    cancelled => { root.end-zoom(); }
-                    opened => { root.zoom-pinned = true; }
-                    stepped(d) => { root.typography("zoom",pow(1.12,d)); }
-                }
             }
             Text {
                 x: root.readout-x - self.width/2; y: root.readout-y - self.height/2; width: 58px; height: 24px;
-                text: root.show-zoom-pop && root.preset-hover >= 0 ? (root.preset-hover == 0 ? "整页" : root.preset-hover == 1 ? "适宽" : "铺满") : round(root.pdf-zoom * 100) + "%"; horizontal-alignment: center; vertical-alignment: center;
+                text: root.show-zoom-pop && !root.zoom-dragging && root.preset-hover >= 0 ? (root.preset-hover == 0 ? "整页" : root.preset-hover == 1 ? "适宽" : "铺满") : round(root.pdf-zoom * 100) + "%"; horizontal-alignment: center; vertical-alignment: center;
                 font-family: "Segoe UI"; font-size: 13px + root.zoom-lift * 2px; font-weight: 600;
                 color: ReaderTheme.ink;
             }
             if root.zoom-lift > 0.08: Rectangle {
                 width: parent.width; height: parent.height; opacity: clamp((root.zoom-lift - 0.08)/0.92,0,1);
                 PresetMark { x: root.knob-center-x - 28px * root.zoom-lift - self.width / 2;
-                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 0; selected: root.pdf-zoom-stop == 1;
+                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 0; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 1;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-page",0); root.focus-reading(); } }
                 PresetMark { x: root.knob-center-x - self.width / 2;
-                    y: root.knob-center-y + 38px * root.zoom-lift - self.height / 2; kind: 1; selected: root.pdf-zoom-stop == 3;
+                    y: root.knob-center-y + 38px * root.zoom-lift - self.height / 2; kind: 1; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 3;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-width",0); root.focus-reading(); } }
                 PresetMark { x: root.knob-center-x + 28px * root.zoom-lift - self.width / 2;
-                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 2; selected: root.pdf-zoom-stop == 2;
+                    y: root.knob-center-y + 27px * root.zoom-lift - self.height / 2; kind: 2; highlighted: root.preset-hover == self.kind; selected: root.pdf-zoom-stop == 2;
                     hover(v) => { if v { root.preset-hover = self.kind; } else if root.preset-hover == self.kind { root.preset-hover = -1; } }
                     clicked => { root.typography("fit-cover",0); root.focus-reading(); } }
+            }
+            ZoomGrip {
+                x: root.dock-right - 120px; y: root.dock-top - root.dock-rise;
+                width: 120px; height: root.dock-height + root.dock-rise;
+                cx: root.knob-center-x; cy: root.knob-center-y; radius: root.knob-radius;
+                marks-enabled: root.presets-ready && root.zoom-lift > 0.94;
+                accessible-role: slider; accessible-label: "PDF 缩放"; accessible-value: round(root.pdf-zoom * 100) + "%";
+                accessible-action-increment => { self.stepped(1); } accessible-action-decrement => { self.stepped(-1); }
+                started(x,y,r) => { root.start-zoom(x,y,r); }
+                motion(x,y,sx,sy) => { return root.zoom-motion(x,y,sx,sy); }
+                released(x,y,d) => { root.release-zoom(x,y,d); }
+                cancelled => { root.end-zoom(); root.preset-hover = -1; }
+                opened(mark) => {
+                    root.zoom-pinned = true;
+                    if mark >= 0 { root.typography(mark == 0 ? "fit-page" : mark == 1 ? "fit-width" : "fit-cover",0); }
+                }
+                pointed(mark) => { root.preset-hover = mark; }
+                stepped(d) => { root.typography("zoom",pow(1.12,d)); }
             }
         }
         if root.has-document && root.status != "": RaisedPanel {
