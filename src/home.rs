@@ -148,9 +148,9 @@ impl Cover {
             retired: Cell::new(false),
         });
         let owner = Rc::downgrade(&cover);
-        ui.on_negative_mark(move |frame, rect| {
+        ui.on_negative_mark(move |frame, rect, monochrome| {
             owner.upgrade().map_or_else(Image::default, |home| {
-                wordmark::render(&mut home.stamp.borrow_mut(), frame, rect)
+                wordmark::render(&mut home.stamp.borrow_mut(), frame, rect, monochrome)
             })
         });
         ui.set_home_session(true);
@@ -237,6 +237,9 @@ impl Cover {
         let window = ui.as_weak();
         self.timer.start(TimerMode::Repeated, period, move || {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
+                // Slint may already have queued this tick when a picker or document
+                // retires the cover in the same event-loop turn.
+                let Some(started) = home.started.get() else { return };
                 if home.last_input.get().elapsed() >= Duration::from_secs(60)
                     || !ui.window().is_visible()
                     || ui
@@ -260,8 +263,7 @@ impl Cover {
                         size,
                     );
                 }
-                let elapsed =
-                    home.played.get() + home.started.get().map_or(Duration::ZERO, |t| t.elapsed());
+                let elapsed = home.played.get() + started.elapsed();
                 if let Some(frame) = field.as_mut().and_then(|f| f.render(elapsed.as_secs_f32())) {
                     ui.set_home_frame(frame);
                     #[cfg(feature = "qa")]

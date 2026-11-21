@@ -120,6 +120,7 @@ fn follow(
         let a = source.unwrap_or(s.anchor);
         if a > 0 {
             s.back.push(a);
+            ui.set_can_go_back(true);
         }
     }
     submit(state, mailbox, |r| r.navigation = Navigation::Link(uri));
@@ -271,7 +272,7 @@ fn run() -> anyhow::Result<()> {
         .find(|arg| !arg.to_string_lossy().starts_with("--"));
     let ui = ReaderWindow::new()?;
     ui.on_glass(glass::draw);
-    ui.on_backdrop(glass::backdrop);
+    ui.on_backdrop(|scene, pages, _revision| glass::backdrop(scene, pages));
     ui.global::<Materials>().on_face(glass::panel);
     ui.on_choice_index(|model, value| {
         model
@@ -397,6 +398,10 @@ fn run() -> anyhow::Result<()> {
                         } else {
                             ui.set_pages(ModelRc::new(VecModel::from(tiles)));
                         }
+                    }
+                    if changed || layout_changed {
+                        // The tile model retains its identity while its visible pixels change.
+                        ui.set_page_revision(ui.get_page_revision().wrapping_add(1));
                     }
                     if changed {
                         s.selected.clear();
@@ -678,13 +683,15 @@ fn run() -> anyhow::Result<()> {
                     .fold((0.0f32, 0.0f32), |a, f| {
                         (a.0.max(f.overflow.0), a.1.max(f.overflow.1))
                     });
-                if let Some(r) = s.request.as_mut() {
-                    if overflow.0 > 1.0 {
-                        r.view.pan[0] = (r.view.pan[0] + dx / overflow.0).clamp(0.0, 1.0);
+                let Some(r) = s.request.as_mut() else { return };
+                let before = r.view.pan;
+                for ((axis, distance), extent) in r.view.pan.iter_mut().zip([dx, dy]).zip([overflow.0, overflow.1]) {
+                    if extent > 1.0 {
+                        *axis = (*axis + distance / extent).clamp(0.0, 1.0);
                     }
-                    if overflow.1 > 1.0 {
-                        r.view.pan[1] = (r.view.pan[1] + dy / overflow.1).clamp(0.0, 1.0);
-                    }
+                }
+                if before == r.view.pan {
+                    return;
                 }
             }
             // Coalesce to one pending refresh without postponing it throughout
@@ -932,8 +939,16 @@ fn run() -> anyhow::Result<()> {
     {
         let state = state.clone();
         let mailbox = mailbox.clone();
+        let weak = ui.as_weak();
         ui.on_back(move || {
-            let anchor = state.lock().unwrap().back.pop();
+            let anchor = {
+                let mut s = state.lock().unwrap();
+                let popped = s.back.pop();
+                if let Some(ui) = weak.upgrade() {
+                    ui.set_can_go_back(!s.back.is_empty());
+                }
+                popped
+            };
             if let Some(a) = anchor {
                 submit(&state, &mailbox, |r| r.navigation = Navigation::Anchor(a));
             }
@@ -1223,7 +1238,7 @@ fn run() -> anyhow::Result<()> {
         let scripted_pointer = std::env::var_os("SAE_READER_QA_REPORT").is_some()
             && matches!(
                 std::env::var("SAE_READER_QA_SCENARIO").as_deref(),
-                Ok("chrome" | "detents" | "instruments" | "navigation" | "visual")
+                Ok("chrome" | "detents" | "instruments" | "navigation" | "visual" | "page-input")
             );
         ui.window().on_winit_window_event(move |window, event| {
             let Some(ui) = weak.upgrade() else {
@@ -1458,6 +1473,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
     ui.set_pdf_zoom_stop(1);
     ui.set_zoom_pinned(false);
     ui.set_pdf_pannable(false);
+    ui.set_can_go_back(false);
     ui.set_search_status("".into());
     ui.set_page_total(0);
     ui.set_selected_content_uri("".into());

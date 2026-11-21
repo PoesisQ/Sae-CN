@@ -82,9 +82,9 @@ def main():
     images = args.report.with_name(args.report.stem + "-screenshots")
     with Image.open(images / "instrument-04.png") as source:
         image = source.convert("RGB")
-    span = min(max(158, image.width / scale * .27), 214)
+    span = min(max(154, image.width / scale * .27), 188)
     wheel_center = image.width - (16 + 88 + span / 2) * scale
-    outline = profile(image, wheel_center, min(100, span / 2 - 4) * scale, scale)
+    outline = profile(image, wheel_center, min(88, span / 2 - 4) * scale, scale)
     with Image.open(images / "instrument-19.png") as source:
         image = source.convert("RGB")
     dock_right = (image.width + 516 * scale) / 2

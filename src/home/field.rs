@@ -241,12 +241,13 @@ impl Field {
                 if !inflate(GRAIN, &mut original) {
                     return None;
                 }
-                // The stationary noise has no colour or directional edges. Tile it at
-                // 6/5 density, independently of the atlas and the output resolution.
-                let grain_index = |i, size, count| ((2 * i + 1) * count * 3 / (size * 5)) % count;
-                let columns: Vec<usize> = (0..w).map(|x| grain_index(x, w, GRAIN_W)).collect();
+                // The atlas grain grows stronger toward its foot. Continue with
+                // equally textured rows when the finer pitch runs past that edge.
+                let sample = |i, size, count| (2 * i + 1) * count * 3 / (size * 5);
+                let columns: Vec<usize> = (0..w).map(|x| sample(x, w, GRAIN_W) % GRAIN_W).collect();
                 for y in 0..h {
-                    let start = grain_index(y, h, GRAIN_H) * GRAIN_W;
+                    let row = sample(y, h, GRAIN_H);
+                    let start = (if row < GRAIN_H { row } else { row - GRAIN_H / 2 }) * GRAIN_W;
                     grain.extend(
                         columns
                             .iter()

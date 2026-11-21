@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.1/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.6.5-preview.1')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.2/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.5-preview.2')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -109,7 +109,7 @@ and the MuPDF font notices under licenses/.
 readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2 路径作为命令行参数打开。
-首页的两种全幅动画逐次轮换，Sae 笔画保留动画的颗粒和色相，逐像素翻转明暗。蓝白封面每 16.25 秒走完单程。左右键可切回静态版画。选择书籍后动画释放，直接打开文档跳过首页。
+首页的两种全幅动画逐次轮换，蓝白色带上的 Sae 笔画逐像素反转亮度，呈现中性的黑白颗粒。Plasma 的字标保留色相。蓝白封面每 16.25 秒走完单程。左右键可切回静态版画。选择书籍后动画释放，直接打开文档跳过首页。
 点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
@@ -171,7 +171,7 @@ for path in runtime_markdown:copy_runtime_markdown(path)
     'The reader itself does not download or load these documents.\n',encoding='utf-8')
 source_zip=dist/f'{args.name}-source.zip'
 top=['AGENTS.md','Cargo.toml','Cargo.lock','build.rs','rust-toolchain.toml','README.md','CHANGELOG.md','LICENSE','.gitignore','.gitattributes','Windows_Reader_Codex_Engineering_Brief_v1_20261025.md']
-folders=['src','ui','assets','scripts','tests','docs','vendor','legal','native']
+folders=['.github/workflows','src','ui','assets','scripts','tests','docs','vendor','legal','native']
 files=[]
 for item in top:
     path=root/item

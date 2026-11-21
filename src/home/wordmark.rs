@@ -1,11 +1,50 @@
-//! Print a hue-preserving lightness negative of the same frame through the letters.
+//! Print the current cover frame through the letters with the cover's negative.
 //! The outline is sampled at physical display resolution, independently of the grain.
 use crate::CoverRect;
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
+use std::sync::OnceLock;
 
 const OUTLINE: &[u8] = include_bytes!("../../assets/home/wordmark.spans");
 const BANDS: usize = 1024;
 const SAMPLES: usize = 4;
+
+struct SilverInk {
+    linear: [u16; 256],
+    negative: [u8; 4096],
+}
+
+impl SilverInk {
+    fn get() -> &'static Self {
+        static TABLES: OnceLock<SilverInk> = OnceLock::new();
+        TABLES.get_or_init(|| Self {
+            linear: std::array::from_fn(|i| {
+                let v = i as f64 / 255.;
+                let light = if v <= 0.04045 {
+                    v / 12.92
+                } else {
+                    ((v + 0.055) / 1.055).powf(2.4)
+                };
+                (light * 4095.).round() as u16
+            }),
+            negative: std::array::from_fn(|i| {
+                let light = 1. - i as f64 / 4095.;
+                let v = if light <= 0.0031308 {
+                    12.92 * light
+                } else {
+                    1.055 * light.powf(1. / 2.4) - 0.055
+                };
+                (v * 255.).round() as u8
+            }),
+        })
+    }
+
+    fn gray(&self, r: u8, g: u8, b: u8) -> u8 {
+        // Rec. 709 luminance in linear light, then back to a neutral sRGB ink.
+        let linear = |i: u8| u32::from(self.linear[usize::from(i)]);
+        let y = (13933 * linear(r) + 46871 * linear(g) + 4732 * linear(b) + 32768) >> 16;
+        self.negative[y as usize]
+    }
+}
 
 fn word(i: usize) -> usize {
     u16::from_le_bytes([OUTLINE[i * 2], OUTLINE[i * 2 + 1]]) as usize
@@ -92,6 +131,7 @@ impl Stamp {
         stride: usize,
         source: (usize, usize),
         rect: &CoverRect,
+        silver: Option<&SilverInk>,
     ) -> Image {
         let (w, h) = self.size;
         let buffer = &mut self.buffers[self.next];
@@ -130,11 +170,13 @@ impl Stamp {
             let line = &mut output[run.row * w + run.start..run.row * w + run.end];
             for (px, &x) in line.iter_mut().zip(&self.xs[run.start..run.end]) {
                 let (r, g, b) = (src[x], src[x + 1], src[x + 2]);
-                // Reflect HSL lightness while preserving hue and chroma exactly.
-                let shift = 255 - i16::from(r.max(g).max(b)) - i16::from(r.min(g).min(b));
-                let channel = |c| (i16::from(c) + shift) as u8;
+                let ink = if let Some(table) = silver {
+                    [table.gray(r, g, b); 3]
+                } else {
+                    let shift = 255 - i16::from(r.max(g).max(b)) - i16::from(r.min(g).min(b));
+                    [r, g, b].map(|c| (i16::from(c) + shift) as u8)
+                };
                 let alpha = u16::from(px.a);
-                let ink = [channel(r), channel(g), channel(b)];
                 [px.r, px.g, px.b] = if alpha == 255 {
                     ink
                 } else {
@@ -147,7 +189,12 @@ impl Stamp {
     }
 }
 
-pub(super) fn render(cache: &mut Option<Stamp>, frame: Image, rect: CoverRect) -> Image {
+pub(super) fn render(
+    cache: &mut Option<Stamp>,
+    frame: Image,
+    rect: CoverRect,
+    monochrome: bool,
+) -> Image {
     if rect.w < 1. || rect.h < 1. || rect.window_w < 1. || rect.window_h < 1. {
         return Image::default();
     }
@@ -162,12 +209,14 @@ pub(super) fn render(cache: &mut Option<Stamp>, frame: Image, rect: CoverRect) -
         *cache = Some(Stamp::new(size.0, size.1));
     }
     let stamp = cache.as_mut().unwrap();
+    let silver = monochrome.then(SilverInk::get);
     if let Some(rgb) = frame.to_rgb8().filter(|p| p.width() > 0 && p.height() > 0) {
         return stamp.paint(
             rgb.as_bytes(),
             3,
             (rgb.width() as usize, rgb.height() as usize),
             &rect,
+            silver,
         );
     }
     frame
@@ -179,6 +228,7 @@ pub(super) fn render(cache: &mut Option<Stamp>, frame: Image, rect: CoverRect) -
                 4,
                 (rgba.width() as usize, rgba.height() as usize),
                 &rect,
+                silver,
             )
         })
 }

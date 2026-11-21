@@ -52,7 +52,8 @@ def blue_still(path):
     colors = atlas.crop((0, 0, WIDTH, HEIGHT)).resize((w, h), Image.Resampling.BILINEAR)
     grain = zlib.decompress(path.with_name("blue-grain.zlib").read_bytes())
     columns = [((2*x+1)*640*3//(w*5)) % 640 for x in range(w)]
-    rows = [(((2*y+1)*360*3//(h*5)) % 360)*640 for y in range(h)]
+    lattice = ((2*y+1)*360*3//(h*5) for y in range(h))
+    rows = [(row if row < 360 else row-180)*640 for row in lattice]
     noise = Image.frombytes("L", (w, h), bytes(grain[row+x] for row in rows for x in columns))
     mixed = ImageChops.add(colors, noise.convert("RGB"), offset=-128)
     return mixed.resize((304, 171), Image.Resampling.LANCZOS).quantize(colors=128)

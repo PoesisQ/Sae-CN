@@ -40,7 +40,7 @@ def measure(path, kind, dpi):
     err = abs(actual-expected).max(axis=2)[free]
     assert np.quantile(err,.99) < 6.5 and err.max() < 15, (path, err.max(), np.quantile(err,.99))
     # Read the canonical glyph crossings independently of the Rust rasterizer.
-    # Erode the test region so antialiasing and the display outline are excluded.
+    # Erode the test region so antialiasing at the letter edges is excluded.
     words = np.fromfile(Path(__file__).resolve().parents[1] / "assets/home/wordmark.spans", dtype="<u2")
     offsets, edges = words[:1025], words[1025:]
     lw, lh = round(logo_w), round(logo_h)
@@ -53,14 +53,27 @@ def measure(path, kind, dpi):
             mask[row, a:b] = 255
     interior = np.asarray(Image.fromarray(mask).filter(ImageFilter.MinFilter(7))) == 255
     assert interior.sum() > 180, (path, "missing glyph samples", interior.sum())
-    shown = np.asarray(shot, dtype=np.int16)[gy:gy+lh,gx:gx+lw][interior]
-    base = np.asarray(underlying, dtype=np.int16)[gy:gy+lh,gx:gx+lw][interior]
-    shift = 255 - base.max(axis=1) - base.min(axis=1)
-    negative = base + shift[:, None]
-    delta = np.abs(shown-negative).max(axis=1)
+    actual_mark = np.asarray(shot, dtype=np.int16)[gy:gy+lh,gx:gx+lw]
+    backdrop = np.asarray(underlying, dtype=np.int16)[gy:gy+lh,gx:gx+lw]
+    shown, base = actual_mark[interior], backdrop[interior]
     def luminance(values):
         rgb = values / 255.
         return np.where(rgb <= .04045, rgb/12.92, ((rgb+.055)/1.055)**2.4) @ [.2126,.7152,.0722]
+    if kind == "blue":
+        light = 1. - luminance(backdrop)
+        gray = np.rint(255 * np.where(light <= .0031308, 12.92*light, 1.055*light**(1/2.4)-.055))
+        ink = gray[:, :, None]
+    else:
+        shift = 255 - backdrop.max(axis=2) - backdrop.min(axis=2)
+        ink = backdrop + shift[:, :, None]
+    negative = ink[interior]
+    # Antialiasing can only blend this frame's background and its own ink.
+    edge = (np.asarray(Image.fromarray(mask).filter(ImageFilter.MaxFilter(5))) > 0) & ~interior
+    low, high = np.minimum(ink[edge],backdrop[edge]), np.maximum(ink[edge],backdrop[edge])
+    error = np.maximum(low-actual_mark[edge],actual_mark[edge]-high).max(axis=1)
+    edge_match = round(float(np.mean(error <= 3)),5)
+    assert edge_match > .97, (path, "unexpected ink on the contour", edge_match)
+    delta = np.abs(shown-negative).max(axis=1)
     fg, bg = luminance(shown), luminance(base)
     ratios = (np.maximum(fg,bg)+.05)/(np.minimum(fg,bg)+.05)
     cream = np.all(np.asarray(shot) == (243,239,228),axis=2).mean()*100
@@ -70,13 +83,14 @@ def measure(path, kind, dpi):
     return {"capture":path.stem,"pixels":[w,h],"old_paper_percent":round(float(cream),4),
             "field_99pct_error_rgb_levels":round(float(np.quantile(err,.99)),2),
             "compared_stroke_pixels":int(interior.sum()),"inverse_match_within_2_levels":round(match,5),
-            "median_stroke_contrast":round(float(np.median(ratios)),2)}
+            "median_stroke_contrast":round(float(np.median(ratios)),2),
+            "contour_blend_agreement":edge_match}
 
 
 if __name__ == "__main__":
     parser=argparse.ArgumentParser()
     parser.add_argument("captures", type=Path, nargs="+")
-    parser.add_argument("--kind",choices=["blue","plasma"],default="plasma",help="Fallback for static frames")
+    parser.add_argument("--kind",choices=["blue","plasma"],default="plasma",help="Cover ink and static frame")
     parser.add_argument("--dpi",type=float,default=1.5,help="Physical pixels per logical pixel")
     args=parser.parse_args()
     print(json.dumps([measure(path,args.kind,args.dpi) for path in args.captures]))

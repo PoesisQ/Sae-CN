@@ -168,7 +168,12 @@ pub(crate) fn panel(map: FrostMap, area: FrostRect, kind: FrostKind) -> Image {
             );
             let grazing = (1. - y / 24.).clamp(0., 1.);
             let light = (0.015 + 0.046 * grazing * grazing) * (1. - 0.45 * x / area.w);
-            let color = mix(mix(base, paper, t), lift, light);
+            // Let coloured ink tint the glass. Black or white paper should
+            // change its exposure gently across the edge of the sheet.
+            let [r, g, b] = paper;
+            let chroma = (r.max(g).max(b) - r.min(g).min(b)) / 64.;
+            let transmission = t * (0.35 + 0.65 * chroma.min(1.));
+            let color = mix(mix(base, paper, transmission), lift, light);
             let alpha = fade * fade * (3. - 2. * fade);
             [px.r, px.g, px.b] = color.map(|v| (v * alpha + 0.5) as u8);
             px.a = (alpha * 255. + 0.5) as u8;

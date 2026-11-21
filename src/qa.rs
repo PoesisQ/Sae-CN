@@ -1,6 +1,7 @@
 //! Explicit, optional native-window diagnostics. Never enabled by a release build.
 //! Reports contain timings and counters, never book paths, titles or text.
 use super::*;
+mod page_input;
 use serde_json::{Value, json};
 use slint::Model;
 use std::{cell::RefCell, fs, io::BufWriter, path::Path};
@@ -242,6 +243,11 @@ pub fn start(
             if scenario == "home-motion" {
                 let step = run.step;
                 let count = ui.get_home_frames();
+                // Windows hands over focus asynchronously, including after restore.
+                if step == 1 && count == 0 && run.ready.unwrap().elapsed() < Duration::from_secs(4) {
+                    ui.window().with_winit_window(|w| w.focus_window());
+                    return;
+                }
                 run.snapshots.push(json!({"step":step,"frames":count,"cover":ui.get_home_variant(),
                     "texture":ui.get_home_frame().size().width,"home_session":ui.get_home_session()}));
                 let next = || {
@@ -304,16 +310,41 @@ pub fn start(
                 run.home_before=count;run.step+=1;run.operations+=1;
                 run.ready=Some(Instant::now()+Duration::from_millis(500));return;
             }
+            if scenario == "page-input" {
+                if page_input::step(&ui, &state, &mut run) {
+                    finish(&ui, &state, &report, &scenario, &run);
+                    if let Some(t) = stop.upgrade() { t.stop(); }
+                } else {
+                    run.step += 1;
+                    run.operations += 1;
+                    run.ready = Some(Instant::now() + Duration::from_millis(275));
+                }
+                return;
+            }
             if scenario == "frontispiece" {
+                use slint::platform::{PointerEventButton, WindowEvent};
+                let w = ui.get_viewport_width();
+                let h = ui.get_viewport_height();
+                let inset = (w.min(h)/16.).clamp(24.,64.);
+                let action = if ui.get_home_variant() == 0 {
+                    slint::LogicalPosition::new((w*0.066).clamp(28.,108.)+35., h*0.895)
+                } else {
+                    slint::LogicalPosition::new(inset+35., h-inset-19.)
+                };
                 if let Some(folder) = &screenshots {
-                    if let Err(e) = cover_snapshot(&ui, &folder.join(format!("home-{}.png", run.step))) {
-                        run.errors.push(e.to_string());
-                    }
+                    let name = match run.step {
+                        4 => "action-hover.png".to_owned(),
+                        5 => "action-pressed.png".to_owned(),
+                        _ => format!("home-{}.png", run.step),
+                    };
+                    if let Err(e) = cover_snapshot(&ui, &folder.join(name)) { run.errors.push(e.to_string()); }
                 }
                 match run.step {
                     0 => ui.window().set_size(slint::LogicalSize::new(640.0, 480.0)),
                     1 => ui.invoke_theme_changed(2),
                     2 => ui.window().set_size(slint::LogicalSize::new(1280.0, 800.0)),
+                    3 => ui.window().dispatch_event(WindowEvent::PointerMoved {position:action}),
+                    4 => ui.window().dispatch_event(WindowEvent::PointerPressed {position:action,button:PointerEventButton::Left}),
                     _ => {
                         finish(&ui, &state, &report, &scenario, &run);
                         if let Some(timer) = stop.upgrade() { timer.stop(); }
@@ -329,7 +360,7 @@ pub fn start(
                 let step = run.step;
                 let (maps,faces,map_us,face_us) = crate::glass::COST.with(|p|p.get());
                 run.snapshots.push(json!({"step":step,"maps":maps,"faces":faces,"map_us":map_us,"face_us":face_us}));
-                let names=["initial","bare","rail","search","contents","settings","dock","dock-open","night","settled","hidden","rested"];
+                let names=["initial","bare","rail","search","contents","settings","dock","dock-open","night","settled","hidden","rested","original","inverted","restored"];
                 if let Some(dir)=&screenshots {
                     if let Err(e)=snapshot(&ui,&dir.join(format!("{}.png",names[step as usize]))) {run.errors.push(e.to_string());}
                 }
@@ -345,6 +376,9 @@ pub fn start(
                     8=>{}
                     9=>{ui.invoke_dismiss_panels();ui.set_show_toolbar(false);ui.invoke_edge_hover(240.,240.);}
                     10=>{}
+                    11=>{ui.invoke_theme_changed(0);ui.set_show_toolbar(true);ui.set_show_contents(true);}
+                    12=>ui.invoke_page_color_changed(2),
+                    13=>ui.invoke_page_color_changed(0),
                     _=>{finish(&ui,&state,&report,&scenario,&run); if let Some(t)=stop.upgrade(){t.stop();}return;}
                 }
                 run.step+=1;run.operations+=1;run.ready=Some(Instant::now()+Duration::from_millis(400));return;
@@ -390,7 +424,10 @@ pub fn start(
                 let move_to=|position: slint::LogicalPosition| { ui.invoke_edge_hover(position.x,position.y); ui.window().dispatch_event(WindowEvent::PointerMoved{position}); };
                 let press=|position| ui.window().dispatch_event(WindowEvent::PointerPressed{position,button:PointerEventButton::Left});
                 let release=|position| ui.window().dispatch_event(WindowEvent::PointerReleased{position,button:PointerEventButton::Left});
-                let scroll=|delta: f32| { for _ in 0..2 { ui.window().dispatch_event(WindowEvent::PointerScrolled{position:mode,delta_x:0.0,delta_y:delta.signum()*60.0}); } };
+                let scroll=|delta: f32| {
+                    move_to(mode);
+                    for _ in 0..2 { ui.window().dispatch_event(WindowEvent::PointerScrolled{position:mode,delta_x:0.0,delta_y:delta.signum()*60.0}); }
+                };
                 let key=|text:slint::SharedString| {
                     ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
                     ui.window().dispatch_event(WindowEvent::KeyReleased{text});

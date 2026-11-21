@@ -48,7 +48,31 @@ jobs:
           $exe = 'target/x86_64-pc-windows-msvc/release/sae-reader.exe'
           python scripts/qa-windows.py --exe $exe --no-activate --fixture tests/fixtures/core.pdf --scenario navigation --output artifacts/ci/navigation
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          foreach ($layout in @('single','double','multi')) {
+            $flags = if ($layout -eq 'double') { @('--spread') } elseif ($layout -eq 'multi') { @('--multi') } else { @() }
+            python scripts/qa-windows.py --exe $exe --no-activate --fixture tests/fixtures/core.pdf --scenario page-input --output "artifacts/ci/pan-$layout" @flags
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
           python scripts/check-glass.py --exe $exe --scale 1.5 --output artifacts/ci/glass
+      - name: Exercise captured Win32 wheel input
+        shell: pwsh
+        run: |
+          # The disposable runner owns this desktop. A small display must fit
+          # both the window and the captured vertical drag below the zoom dial.
+          if (Get-Command Set-DisplayResolution -ErrorAction SilentlyContinue) {
+            try { Set-DisplayResolution -Width 1920 -Height 1080 -Force -ErrorAction Stop | Out-Null } catch { Write-Output $_ }
+          }
+          Add-Type -AssemblyName System.Windows.Forms
+          $screen = [Windows.Forms.Screen]::PrimaryScreen.Bounds
+          $env:SLINT_SCALE_FACTOR = if ($screen.Width -ge 1440 -and $screen.Height -ge 1000) { '1' } else { '0.7' }
+          $exe = 'target/x86_64-pc-windows-msvc/release/sae-reader.exe'
+          python scripts/check-wheel-input.py --exe $exe --output artifacts/ci/wheel-pdf
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/check-wheel-input.py --exe $exe --epub --output artifacts/ci/wheel-epub
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/qa-windows.py --exe $exe --scale 1.5 --scenario instruments --fixture tests/fixtures/core.pdf --output artifacts/ci/instruments
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          python scripts/check-control-snapshots.py artifacts/ci/instruments/fixture-00.json --wheel-samples artifacts/ci/wheel-pdf artifacts/ci/wheel-epub
       - name: Preserve native verification reports
         if: always()
         uses: actions/upload-artifact@v4
