@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.6.5-preview.3')
+parser.add_argument('--name', default='SaeReader-0.6.5-preview.4')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -46,7 +46,11 @@ for kind in ('source', 'windows-x64'):
         if kind == 'source':
             required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
                         'src/home/wordmark.rs', 'src/glass/surfaces.rs', 'scripts/pack-wordmark.py', 'assets/home/wordmark.spans',
-                        '.github/workflows/windows.yml', 'src/qa/page_input.rs', 'docs/iteration-0.6.5-p2.md', 'docs/evidence/iteration-0.6.5-p2/windows.json',
+                        '.github/workflows/windows.yml', 'src/file_drop.rs', 'src/home/reveal.rs', 'src/qa/opening.rs',
+                        'scripts/check-opening-transition.py', 'scripts/check-shell-drop.ps1',
+                        'docs/iteration-0.6.5-p4.md', 'docs/evidence/iteration-0.6.5-p4/windows.json',
+                        'docs/evidence/iteration-0.6.5-p4/opening.webp',
+                        'src/qa/page_input.rs', 'docs/iteration-0.6.5-p2.md', 'docs/evidence/iteration-0.6.5-p2/windows.json',
                         'docs/evidence/iteration-0.6.5-p2/covers.png', 'docs/evidence/iteration-0.6.5-p2/toolbar.png',
                         'docs/iteration-0.6.5.md', 'docs/evidence/iteration-0.6.5/windows.json',
                         'docs/evidence/iteration-0.6.5/covers.png', 'docs/evidence/iteration-0.6.5/glass.png',

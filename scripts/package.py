@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.3/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.6.5-preview.3')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.4/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.5-preview.4')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -109,7 +109,7 @@ and the MuPDF font notices under licenses/.
 readme='''Sae Reader · Windows x64 预览版
 
 双击 SaeReader.exe，或把 EPUB/PDF/TXT/MD/AZW3/MOBI/FB2 路径作为命令行参数打开。
-首页的两种全幅动画逐次轮换，蓝白色带上的 Sae 笔画逐像素反转亮度，呈现中性的黑白颗粒。Plasma 的字标保留色相。蓝白封面每 16.25 秒走完单程。左右键可切回静态版画。选择书籍后动画释放，直接打开文档跳过首页。
+直接启动后可将书拖入窗口，也可点「选择书籍」。等书页就绪，全屏各处的颗粒随机散去，露出正文。左右键可切换封面。双击文件、阅读中换书和关闭动画时直接显示书页。一次拖入多个文件时，打开第一本支持的书。
 点击阅读区域左边上一页、右边下一页；滚轮整页切换（PDF 放大后平移）。鼠标靠近上沿展开工具条，选择单页/双页。
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
@@ -117,7 +117,7 @@ F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc �
 靠近 PDF 底部倍率，圆盘与底板一起展开。向右或向上直拖、顺时针沿盘缘旋转均可放大，反向缩小。三道刻线支持点按，拖动时可越过刻线。
 拖动后面板保留，可再次拖动。点击正文或按 Esc 收起。
 圆盘下弧从左至右的三道刻线分别是整页（100%）、适宽、铺满，悬停显示名称。图片未载入等情况可在阅读设置的「文档信息」查看。
-PDF 放大后 Shift+滚轮横移，中键或右键拖动平移；左键拖动仍可选字。
+PDF 放大并超出窗口时，左键、中键或右键拖动都能平移，Shift+左键拖动可以选字，Shift+滚轮可以横移。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。
 

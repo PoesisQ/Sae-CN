@@ -13,7 +13,7 @@ The repository is under staged development. Unverified features must not be adve
 2026-10-26 feedback build:
 
 - Missing publisher-font lookups and first-window-size relayout were repaired; three local EPUBs and ten local PDFs have raw measurements. These samples do not establish universal performance/compatibility.
-- The 0.1 feedback build enabled EPUB/PDF and current-page search. Version 0.2 adds TXT/MD and on-demand whole-book search. Drag/drop, full per-book/global style choices and weight/custom-color controls remain pending G2/G3.
+- The 0.1 feedback build enabled EPUB/PDF and current-page search. Version 0.2 added TXT/MD and on-demand whole-book search. File drop arrived in 0.6.5-preview.4. Full per-book/global style choices and weight/custom-color controls remain pending G2/G3.
 - Mouse wheel turns whole pages; double mode turns an entire spread. A canvas narrower than 800 logical pixels temporarily uses single-page mode while retaining the preference.
 - Version 0.2 adds bounded visible-tile PDF zoom, fit-page/width and pan in single/double mode. Zoomed wheel gestures pan; clicking left/right still turns pages. Native tint/invert are opt-in, cached per tile and affect illustrations as well as text.
 - Preferences/location are saved on normal close or switching books, not periodically during reading. Crash recovery and invalid/future-schema backup/migration need further work.

@@ -1,6 +1,7 @@
 //! Standalone launches own one foreground-only cover session. Document launches
 //! never acquire a cover, open its state marker, or allocate a pixel buffer.
 mod field;
+mod reveal;
 mod wordmark;
 use crate::ReaderWindow;
 use field::{Field, Kind};
@@ -21,6 +22,10 @@ unsafe extern "system" {
 }
 
 fn allows_motion() -> bool {
+    #[cfg(feature = "qa")]
+    if let Some(enabled) = crate::qa::opening_motion_policy() {
+        return enabled;
+    }
     let mut enabled = 0i32;
     // SPI_GETCLIENTAREAANIMATION writes a Win32 BOOL.
     unsafe { SystemParametersInfoW(0x1042, 0, &mut enabled, 0) != 0 && enabled != 0 }
@@ -106,6 +111,7 @@ pub(crate) struct Cover {
     timer: Timer,
     field: RefCell<Option<Field>>,
     stamp: RefCell<Option<wordmark::Stamp>>,
+    reveal: RefCell<Option<reveal::Dissolve>>,
     kind: Cell<i32>,
     period: Option<Duration>,
     started: Cell<Option<Instant>>,
@@ -137,6 +143,7 @@ impl Cover {
             timer: Timer::default(),
             field: RefCell::default(),
             stamp: RefCell::default(),
+            reveal: RefCell::default(),
             kind: Cell::new(kind),
             period,
             started: Cell::new(None),
@@ -149,9 +156,12 @@ impl Cover {
         });
         let owner = Rc::downgrade(&cover);
         ui.on_negative_mark(move |frame, rect, monochrome| {
-            owner.upgrade().map_or_else(Image::default, |home| {
-                wordmark::render(&mut home.stamp.borrow_mut(), frame, rect, monochrome)
-            })
+            owner
+                .upgrade()
+                .filter(|home| !home.retired.get())
+                .map_or_else(Image::default, |home| {
+                    wordmark::render(&mut home.stamp.borrow_mut(), frame, rect, monochrome)
+                })
         });
         ui.set_home_session(true);
         ui.set_home_variant(kind);
@@ -159,6 +169,13 @@ impl Cover {
         let window = ui.as_weak();
         ui.on_cycle_home(move |direction| {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
+                if home.retired.get()
+                    || home.picker.get()
+                    || ui.get_opening_document()
+                    || ui.get_home_transition()
+                {
+                    return;
+                }
                 home.pause();
                 home.field.replace(None);
                 let kind = (home.kind.get() + direction).rem_euclid(3);
@@ -177,10 +194,31 @@ impl Cover {
         let window = ui.as_weak();
         ui.on_home_picker(move |open| {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
+                if home.retired.get() || ui.get_home_transition() {
+                    return;
+                }
                 home.picker.set(open);
                 if open {
                     home.pause();
+                    // The native dialog may repaint its owner before it returns.
+                    // Freeze the print before either the dialog or a dropped book
+                    // can overlap a desktop-size SVG render with a new page.
+                    if home.kind.get() == 0
+                        && ui.get_home_frame().size().width == 0
+                        && let Some(frame) =
+                            reveal::freeze_print(&ui.get_home_picture(), ui.window().size())
+                    {
+                        ui.set_home_frame(frame);
+                    }
+                    // Keep only the displayed artwork while the book is loading.
+                    // A failed open can regenerate the field at the saved time.
+                    if ui.get_opening_document() {
+                        home.field.replace(None);
+                    }
                 } else {
+                    if home.kind.get() == 0 {
+                        ui.set_home_frame(Image::default());
+                    }
                     home.last_input.set(Instant::now());
                     home.resume(&ui);
                 }
@@ -188,18 +226,119 @@ impl Cover {
         });
         let weak = Rc::downgrade(&cover);
         let window = ui.as_weak();
-        ui.on_retire_home(move || {
+        ui.on_home_book_ready(move || {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
-                home.retired.set(true);
-                home.stamp.replace(None);
-                home.pause();
-                ui.set_home_session(false);
-                ui.set_home_frame(Image::default());
-                home.field.replace(None);
-                ui.set_home_variant(0);
+                home.begin_reveal(&ui);
             }
         });
+        let weak = Rc::downgrade(&cover);
+        let window = ui.as_weak();
+        ui.on_retire_home(move || {
+            if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
+                home.retire(&ui);
+            }
+        });
+        #[cfg(feature = "qa")]
+        {
+            let weak = Rc::downgrade(&cover);
+            ui.on_home_resources(move || {
+                weak.upgrade().map_or(0, |home| {
+                    i32::from(home.timer.running())
+                        + i32::from(home.field.borrow().is_some())
+                        + i32::from(home.stamp.borrow().is_some())
+                        + i32::from(home.reveal.borrow().is_some())
+                })
+            });
+        }
         cover
+    }
+    fn retire(&self, ui: &ReaderWindow) {
+        self.retired.set(true);
+        self.pause();
+        ui.set_home_session(false);
+        ui.set_home_transition(false);
+        ui.set_home_reveal_progress(0.0);
+        ui.set_home_reveal_frame(Image::default());
+        ui.set_home_frame(Image::default());
+        ui.set_home_variant(0);
+        // Release the last evaluated image of this lazy Slint binding too.
+        let _ = ui.get_home_picture();
+        self.reveal.replace(None);
+        self.stamp.replace(None);
+        self.field.replace(None);
+    }
+
+    fn visible(&self, ui: &ReaderWindow) -> bool {
+        !self.occluded.get()
+            && ui.window().is_visible()
+            && ui
+                .window()
+                .with_winit_window(|w| w.is_minimized() != Some(true))
+                .unwrap_or(false)
+    }
+
+    fn begin_reveal(self: &Rc<Self>, ui: &ReaderWindow) {
+        if self.retired.get() || ui.get_home_transition() {
+            return;
+        }
+        self.pause();
+        if self.period.is_none() || !self.visible(ui) || !allows_motion() {
+            self.retire(ui);
+            return;
+        }
+        let film = if self.kind.get() == 0 {
+            ui.get_home_frame()
+        } else {
+            ui.get_home_picture()
+        };
+        let Some(dissolve) = reveal::Dissolve::new(&film) else {
+            self.retire(ui);
+            return;
+        };
+        self.reveal.replace(Some(dissolve));
+        ui.set_home_reveal_frame(film);
+        ui.set_home_transition(true);
+        #[cfg(feature = "qa")]
+        ui.set_home_reveal_frames(ui.get_home_reveal_frames() + 1);
+        let start = Instant::now();
+        let weak = Rc::downgrade(self);
+        let window = ui.as_weak();
+        self.timer
+            .start(TimerMode::Repeated, reveal::FRAME_INTERVAL, move || {
+                let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) else {
+                    return;
+                };
+                if home.retired.get() || !ui.get_home_transition() {
+                    return;
+                }
+                let elapsed = start.elapsed();
+                if !home.visible(&ui) || elapsed >= reveal::DURATION {
+                    home.retire(&ui);
+                    return;
+                }
+                let next = home
+                    .reveal
+                    .borrow_mut()
+                    .as_mut()
+                    .and_then(|r| r.frame(elapsed));
+                if let Some(frame) = next {
+                    ui.set_home_reveal_frame(frame);
+                    if home.kind.get() == 0
+                        && elapsed >= reveal::FRAME_INTERVAL
+                        && ui.get_home_frame().size().width != 0
+                    {
+                        // The grain image now owns everything the print can show.
+                        ui.set_home_frame(Image::default());
+                    }
+                    ui.set_home_reveal_progress(
+                        elapsed.as_secs_f32() / reveal::DURATION.as_secs_f32(),
+                    );
+                    #[cfg(feature = "qa")]
+                    ui.set_home_reveal_frames(ui.get_home_reveal_frames() + 1);
+                } else {
+                    home.retire(&ui);
+                }
+            });
     }
     fn pause(&self) {
         self.timer.stop();
@@ -219,15 +358,12 @@ impl Cover {
         let Some(period) = self.period else { return };
         if self.retired.get()
             || self.kind.get() == 0
+            || ui.get_opening_document()
+            || ui.get_home_transition()
             || self.timer.running()
             || !self.focused.get()
-            || self.occluded.get()
             || self.picker.get()
-            || !ui.window().is_visible()
-            || ui
-                .window()
-                .with_winit_window(|w| w.is_minimized() == Some(true))
-                .unwrap_or(true)
+            || !self.visible(ui)
             || !allows_motion()
         {
             return;
@@ -242,12 +378,7 @@ impl Cover {
                 let Some(started) = home.started.get() else {
                     return;
                 };
-                if home.last_input.get().elapsed() >= Duration::from_secs(60)
-                    || !ui.window().is_visible()
-                    || ui
-                        .window()
-                        .with_winit_window(|w| w.is_minimized() == Some(true))
-                        .unwrap_or(true)
+                if home.last_input.get().elapsed() >= Duration::from_secs(60) || !home.visible(&ui)
                 {
                     home.pause();
                     return;
@@ -281,6 +412,15 @@ impl Cover {
 
     pub fn event(self: &Rc<Self>, ui: &ReaderWindow, event: &WindowEvent) {
         if self.retired.get() {
+            return;
+        }
+        let closing = matches!(event, WindowEvent::CloseRequested | WindowEvent::Destroyed);
+        let hidden = matches!(
+            event,
+            WindowEvent::Focused(false) | WindowEvent::Occluded(true)
+        ) || matches!(event, WindowEvent::Resized(size) if size.width == 0 || size.height == 0);
+        if closing || (ui.get_home_transition() && hidden) {
+            self.retire(ui);
             return;
         }
         match event {

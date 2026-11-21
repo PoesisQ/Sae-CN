@@ -16,12 +16,13 @@ parser=argparse.ArgumentParser()
 parser.add_argument('--exe',type=Path,default=root/'artifacts/qa/sae-reader-qa.exe')
 parser.add_argument('--books',type=Path)
 parser.add_argument('--runs',type=int,default=1)
-parser.add_argument('--scenario',choices=['startup','idle','visual','frontispiece','home-motion','stress','features','chrome','detents','navigation','contents','multipage','instruments','glass','surfaces','page-input'],default='startup')
+parser.add_argument('--scenario',choices=['startup','idle','visual','frontispiece','home-motion','opening','stress','features','chrome','detents','navigation','contents','multipage','instruments','glass','surfaces','page-input'],default='startup')
 parser.add_argument('--cover', choices=['blue','plasma','print'])
 parser.add_argument('--static', action='store_true')
 parser.add_argument('--spread',action='store_true')
 parser.add_argument('--multi',action='store_true')
 parser.add_argument('--fixture',type=Path)
+parser.add_argument('--initial-state', type=Path, help='Seed the isolated profile from a previous fixture run')
 parser.add_argument('--blank',action='store_true')
 parser.add_argument('--scale',type=float)
 parser.add_argument('--design',type=int,default=0)
@@ -45,12 +46,15 @@ for alias,path in inputs:
     for n in range(args.runs):
         name=f'{alias}-{n:02}'
         report=args.output/f'{name}.json'
+        report.unlink(missing_ok=True)
         profile=args.output/f'{name}-profile'
         profile.mkdir(exist_ok=True)
-        (profile/'state.json').write_text(json.dumps({'version':1,'spread':args.spread,'pdf_multi':args.multi}),encoding='utf-8')
+        preferences = (args.initial_state.read_text(encoding='utf-8') if args.initial_state else
+                       json.dumps({'version':1,'spread':args.spread,'pdf_multi':args.multi}))
+        (profile/'state.json').write_text(preferences,encoding='utf-8')
         env=dict(os.environ,SAE_READER_QA_REPORT=str(report.resolve()),SAE_READER_QA_SCENARIO=args.scenario,
                  SAE_READER_DATA_DIR=str(profile.resolve()),SAE_READER_DESIGN=str(args.design))
-        if args.scenario in ('visual','frontispiece','home-motion','features','chrome','detents','contents','multipage','instruments','glass','surfaces'):
+        if args.scenario in ('visual','frontispiece','home-motion','opening','features','chrome','detents','contents','multipage','instruments','glass','surfaces'):
             env['SAE_READER_QA_SCREENSHOTS']=str((args.output/f'{name}-screenshots').resolve())
         if args.scale:
             env['SLINT_SCALE_FACTOR']=str(args.scale)

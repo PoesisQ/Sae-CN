@@ -1,6 +1,8 @@
 //! Explicit, optional native-window diagnostics. Never enabled by a release build.
 //! Reports contain timings and counters, never book paths, titles or text.
 use super::*;
+mod opening;
+pub(crate) use opening::{choose_file, opening_motion_policy};
 mod page_input;
 use serde_json::{Value, json};
 use slint::Model;
@@ -126,7 +128,13 @@ fn counters() -> Value {
         "cpu_ms":(kernel+user) as f64/10000.0,"handles":handles})
 }
 fn snapshot(ui: &ReaderWindow, path: &Path) -> anyhow::Result<()> {
-    let pixels = ui.window().take_snapshot()?;
+    write_snapshot(&ui.window().take_snapshot()?, path)
+}
+
+fn write_snapshot(
+    pixels: &slint::SharedPixelBuffer<slint::Rgba8Pixel>,
+    path: &Path,
+) -> anyhow::Result<()> {
     let file = BufWriter::new(fs::File::create(path)?);
     let mut encoder = png::Encoder::new(file, pixels.width(), pixels.height());
     encoder.set_color(png::ColorType::Rgba);
@@ -187,6 +195,7 @@ pub fn start(
     let screenshots = std::env::var_os("SAE_READER_QA_SCREENSHOTS").map(PathBuf::from);
     let weak = ui.as_weak();
     let run = Rc::new(RefCell::new(Run::default()));
+    let mut opening = (scenario == "opening").then(opening::Probe::new);
     let timer = Rc::new(slint::Timer::default());
     let stop = Rc::downgrade(&timer);
     timer.start(
@@ -197,6 +206,16 @@ pub fn start(
                 return;
             };
             let mut run = run.borrow_mut();
+            if let Some(probe) = &mut opening {
+                match probe.tick(&ui, &state, &mailbox, screenshots.as_deref(), &mut run) {
+                    Ok(false) => return,
+                    Ok(true) => {}
+                    Err(error) => run.errors.push(error.to_string()),
+                }
+                finish(&ui, &state, &report, &scenario, &run);
+                if let Some(timer) = stop.upgrade() { timer.stop(); }
+                return;
+            }
             if ui.get_status().starts_with("无法读取") {
                 run.errors.push("document open/render failed; see local stderr".into());
                 finish(&ui,&state,&report,&scenario,&run);

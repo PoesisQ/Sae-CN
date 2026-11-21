@@ -7,30 +7,30 @@
 <p align="center">Windows 原生电子书阅读器。</p>
 
 <p align="center">
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.3/SaeReader-0.6.5-preview.3-windows-x64.zip">下载 Windows x64 版</a> ·
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.3">更新说明与源码</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-0.6.5-preview.4-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.4">更新说明与源码</a> ·
   <a href="LICENSE">AGPL-3.0-or-later</a>
 </p>
 
 Sae Reader 支持暖纸、白纸与夜读主题。阅读时文档占满窗口，工具栏、目录和设置随用随开。
 可重排文档的排版独立可调，PDF 保留原页版式，并提供单页、双页和多页。
 
-当前为 **v0.6.5-preview.3 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
+当前为 **v0.6.5-preview.4 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
 
 ![蓝白色带上的黑白反色字标，与 Plasma 上的彩色反色字标](docs/evidence/iteration-0.6.5-p2/covers.png)
 
-直接启动时，两张动画封面逐次轮换。在蓝白色带上，Sae 字样把每一粒的明暗反印成黑白，边缘直接融入背景。Plasma 的字样则保留色相。蓝白色带单程 16.25 秒。三个封面的「选择书籍」都位于左下角。在首页按左右方向键可以比较两种动画，也可以切回朱红网格版画。双击文档直接进入阅读。
+直接启动时，两张动画封面逐次轮换。把书拖进窗口，或点击左下角的「选择书籍」。等书页排好，四角、边缘和中央的颗粒同时开始随机散去，露出上次读到的位置。双击文件直接进入正文。在首页按左右方向键可以切换蓝白色带、Plasma 与朱红网格版画。
 
 ## 下载与使用
 
-1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.3/SaeReader-0.6.5-preview.3-windows-x64.zip)。
-2. 完整解压，双击 `SaeReader.exe`，点击首页的「选择书籍」。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-0.6.5-preview.4-windows-x64.zip)。
+2. 完整解压，双击 `SaeReader.exe`。从资源管理器拖一本书进来，也可以点击「选择书籍」。
 3. 靠近窗口上沿展开工具栏。拖动半滚轮到下一挡，或直接点两侧的视图名称。点击阅读区域左侧上一页、右侧下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.3) 同时提供独立 EXE、
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.4) 同时提供独立 EXE、
 完整依赖源码、许可证和 SHA256 校验文件。Windows 压缩包内附使用说明与许可。
 
 作为默认阅读器使用时，可用完整包里的 `Install.ps1` 更新固定目录中的程序。
@@ -86,20 +86,20 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 .\SaeReader.exe --portable
 ```
 
-可用 `--cover=plasma`、`--cover=blue` 或 `--cover=print` 指定本次封面。`--motion=static` 显示静帧。首页动画遵循 Windows「动画效果」，最小化、失焦和打开选书窗口时暂停，选书后释放。
+可用 `--cover=plasma`、`--cover=blue` 或 `--cover=print` 指定本次封面。打开选书窗口时封面暂停，取消后可以继续选择。Windows 关闭「动画效果」或使用 `--motion=static` 时，书页就绪即显示。阅读中也可以拖入另一本书直接切换。一次拖入多个文件时，会打开其中第一本支持的书。
 
 便携模式下数据写入程序旁的 `data/` 文件夹。卸载时关闭程序并删除程序文件夹；
 个人阅读记录可按需另行删除。
 
 ## 当前限制
 
-- 尚未提供拖入打开、OCR 或整本书的常驻搜索索引。全文查找按需逐页扫描，扫描 PDF 需要已有文本层。每页查找上限 4096 个区域，同时最多高亮 256 个及当前区域。
+- 全文查找按需逐页扫描，扫描 PDF 需要已有文本层。每页查找上限 4096 个区域，同时最多高亮 256 个及当前区域。当前未提供 OCR。
 - 常见 Ruby 与部分 MathML 使用按需生成的 SVG 兼容，保留上下结构与分数、上下标；矢量文字保留选择与搜索。复杂数学结构、竖排、不同画布尺寸的固定布局等仍有限制，不能宣称 EPUB 3 全兼容。
 - 部分编辑控件下的全局快捷键、完整无障碍与干净 Windows 虚拟机验收仍待补齐。
 - 带脚本的规范 EPUB 章节可阅读其中的静态正文、图片和目录。依赖 JavaScript 生成的内容、DRM 及多媒体播放暂未支持。
 
 详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
-和 [本版拨轮与 Windows 实测](docs/iteration-0.6.5-p3.md)。
+和 [本版开书过渡与 Windows 实测](docs/iteration-0.6.5-p4.md)。
 
 ## 开发与许可
 
@@ -108,4 +108,4 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
 每个二进制 Release 同时提供对应源码及许可文件。
 
-图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.3/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.3/SaeReader.ico)。
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader.ico)。

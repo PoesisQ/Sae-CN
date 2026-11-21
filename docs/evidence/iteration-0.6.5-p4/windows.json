@@ -1,0 +1,1092 @@
+{
+  "host": "Windows 11 Home x64, 26200, Intel Core i9-14900HX, 150% display scaling",
+  "builds": {
+    "0.6.5-preview.3": {
+      "bytes": 26189824,
+      "sha256": "d06d498d80f4e13233b674e68208ba0ba79b313a06a2c08befa545aafa6a4f0e"
+    },
+    "0.6.5-preview.4": {
+      "bytes": 26224640,
+      "sha256": "f9500fe74843dd09757f973038eb7622c14ea8b07d3f260d191d7f4b444714c8"
+    }
+  },
+  "direct_warm_start_and_steady_private": {
+    "epub": {
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          151.4979,
+          160.3978,
+          149.8169,
+          148.8334,
+          152.8376,
+          149.7345,
+          147.111,
+          151.3299,
+          151.1528,
+          147.2494,
+          148.9183,
+          155.5371,
+          154.2189,
+          152.5872,
+          147.0028,
+          151.1213,
+          147.8839,
+          146.324,
+          154.8113,
+          152.6993
+        ],
+        "median_ms": 151.14,
+        "p95_ms": 155.54,
+        "windows": [
+          {
+            "private_bytes": 22765568.0,
+            "private_working_set": 19738624.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2759.82
+          },
+          {
+            "private_bytes": 23126016.0,
+            "private_working_set": 19853312.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2755.38
+          },
+          {
+            "private_bytes": 22908928.0,
+            "private_working_set": 19824640.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2757.96
+          }
+        ],
+        "private_mib": 21.85
+      },
+      "0.6.5-preview.4": {
+        "warm_start_ms": [
+          152.9891,
+          151.5643,
+          154.3916,
+          149.1116,
+          157.7511,
+          149.9962,
+          150.3583,
+          153.7617,
+          157.2173,
+          154.9543,
+          148.9707,
+          164.3205,
+          165.2561,
+          151.5427,
+          147.0084,
+          160.4232,
+          156.833,
+          153.6501,
+          148.9865,
+          145.1764
+        ],
+        "median_ms": 153.32,
+        "p95_ms": 164.32,
+        "windows": [
+          {
+            "private_bytes": 22773760.0,
+            "private_working_set": 19722240.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.39
+          },
+          {
+            "private_bytes": 22675456.0,
+            "private_working_set": 19668992.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.35
+          },
+          {
+            "private_bytes": 22732800.0,
+            "private_working_set": 19689472.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.36
+          }
+        ],
+        "private_mib": 21.68
+      }
+    },
+    "blank": {
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          49.5637,
+          49.5238,
+          50.4027,
+          61.3254,
+          48.5502,
+          48.3415,
+          50.8683,
+          53.7804,
+          51.232,
+          49.2387,
+          49.0892,
+          49.7298,
+          50.1699,
+          51.82,
+          52.895,
+          52.8556,
+          49.1648,
+          50.4083,
+          50.6655,
+          51.1144
+        ],
+        "median_ms": 50.41,
+        "p95_ms": 53.78,
+        "windows": [
+          {
+            "private_bytes": 18485248.0,
+            "private_working_set": 15314944.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2755.93
+          },
+          {
+            "private_bytes": 18235392.0,
+            "private_working_set": 15257600.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.5
+          },
+          {
+            "private_bytes": 18395136.0,
+            "private_working_set": 15216640.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.09
+          }
+        ],
+        "private_mib": 17.54
+      },
+      "0.6.5-preview.4": {
+        "warm_start_ms": [
+          49.3231,
+          51.2151,
+          52.9591,
+          55.8176,
+          48.2453,
+          49.7987,
+          48.0588,
+          48.4057,
+          59.1466,
+          50.9309,
+          51.3387,
+          52.2516,
+          50.19,
+          51.4957,
+          59.0481,
+          52.3572,
+          48.9679,
+          50.0271,
+          49.2274,
+          49.4957
+        ],
+        "median_ms": 50.56,
+        "p95_ms": 59.05,
+        "windows": [
+          {
+            "private_bytes": 18137088.0,
+            "private_working_set": 15179776.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.48
+          },
+          {
+            "private_bytes": 18530304.0,
+            "private_working_set": 15331328.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.18
+          },
+          {
+            "private_bytes": 18481152.0,
+            "private_working_set": 15298560.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.47
+          }
+        ],
+        "private_mib": 17.62
+      }
+    },
+    "pdf": {
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          150.877,
+          155.2969,
+          147.0172,
+          149.7196,
+          158.0012,
+          150.2071,
+          152.3783,
+          150.691,
+          149.16,
+          150.282,
+          161.2476,
+          156.0221,
+          159.716,
+          151.9923,
+          148.6285,
+          151.4598,
+          152.1169,
+          149.1596,
+          150.913,
+          164.8651
+        ],
+        "median_ms": 151.19,
+        "p95_ms": 161.25,
+        "windows": [
+          {
+            "private_bytes": 25550848.0,
+            "private_working_set": 22556672.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.89
+          },
+          {
+            "private_bytes": 25837568.0,
+            "private_working_set": 22597632.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.45
+          },
+          {
+            "private_bytes": 25587712.0,
+            "private_working_set": 22556672.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2756.02
+          }
+        ],
+        "private_mib": 24.4
+      },
+      "0.6.5-preview.4": {
+        "warm_start_ms": [
+          152.266,
+          150.5416,
+          146.9237,
+          151.5675,
+          151.1941,
+          147.4885,
+          155.7967,
+          153.6659,
+          149.4156,
+          150.0887,
+          150.6196,
+          159.5391,
+          150.649,
+          190.5391,
+          148.5445,
+          163.214,
+          152.1163,
+          154.943,
+          149.4313,
+          149.6287
+        ],
+        "median_ms": 150.92,
+        "p95_ms": 163.21,
+        "windows": [
+          {
+            "private_bytes": 25849856.0,
+            "private_working_set": 22732800.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.02
+          },
+          {
+            "private_bytes": 25538560.0,
+            "private_working_set": 22519808.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.04
+          },
+          {
+            "private_bytes": 25567232.0,
+            "private_working_set": 22540288.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.63
+          }
+        ],
+        "private_mib": 24.38
+      }
+    }
+  },
+  "isolated_production_system_picker": {
+    "0.6.5-preview.3": {
+      "blue": {
+        "max_private_mib_after_dialog": 30.832,
+        "settled": {
+          "private_mib": 30.777,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      },
+      "plasma": {
+        "max_private_mib_after_dialog": 33.852,
+        "settled": {
+          "private_mib": 30.41,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      },
+      "print": {
+        "max_private_mib_after_dialog": 31.441,
+        "settled": {
+          "private_mib": 31.383,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        }
+      }
+    },
+    "0.6.5-preview.4": {
+      "blue": {
+        "max_private_mib_after_dialog": 32.832,
+        "settled": {
+          "private_mib": 30.77,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      },
+      "plasma": {
+        "max_private_mib_after_dialog": 31.59,
+        "settled": {
+          "private_mib": 29.648,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        }
+      },
+      "print": {
+        "max_private_mib_after_dialog": 36.074,
+        "settled": {
+          "private_mib": 30.852,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      }
+    }
+  },
+  "opening_native_150_percent": {
+    "direct": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "picker": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.114,
+          "page": 0.101,
+          "ink": 0.116,
+          "cover": 0.828
+        },
+        {
+          "progress": 0.341,
+          "page": 0.353,
+          "ink": 0.368,
+          "cover": 0.576
+        },
+        {
+          "progress": 0.785,
+          "page": 0.79,
+          "ink": 0.802,
+          "cover": 0.142
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.114,
+          "tiles_page_and_grain": {
+            "0": [
+              0.1,
+              0.839
+            ],
+            "1": [
+              0.102,
+              0.841
+            ],
+            "2": [
+              0.096,
+              0.837
+            ],
+            "3": [
+              0.094,
+              0.838
+            ],
+            "4": [
+              0.099,
+              0.839
+            ],
+            "5": [
+              0.102,
+              0.835
+            ],
+            "6": [
+              0.113,
+              0.82
+            ],
+            "7": [
+              0.104,
+              0.834
+            ],
+            "8": [
+              0.105,
+              0.829
+            ]
+          }
+        },
+        {
+          "progress": 0.341,
+          "tiles_page_and_grain": {
+            "0": [
+              0.357,
+              0.588
+            ],
+            "1": [
+              0.351,
+              0.582
+            ],
+            "2": [
+              0.355,
+              0.578
+            ],
+            "3": [
+              0.361,
+              0.579
+            ],
+            "4": [
+              0.357,
+              0.579
+            ],
+            "5": [
+              0.358,
+              0.577
+            ],
+            "6": [
+              0.394,
+              0.565
+            ],
+            "7": [
+              0.36,
+              0.582
+            ],
+            "8": [
+              0.362,
+              0.574
+            ]
+          }
+        }
+      ]
+    },
+    "drop": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.115,
+          "page": 0.107,
+          "ink": 0.113,
+          "cover": 0.842
+        },
+        {
+          "progress": 0.357,
+          "page": 0.363,
+          "ink": 0.371,
+          "cover": 0.587
+        },
+        {
+          "progress": 0.699,
+          "page": 0.69,
+          "ink": 0.708,
+          "cover": 0.25
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.115,
+          "tiles_page_and_grain": {
+            "0": [
+              0.12,
+              0.839
+            ],
+            "1": [
+              0.119,
+              0.831
+            ],
+            "3": [
+              0.103,
+              0.858
+            ],
+            "4": [
+              0.109,
+              0.849
+            ],
+            "5": [
+              0.117,
+              0.843
+            ],
+            "6": [
+              0.11,
+              0.846
+            ],
+            "7": [
+              0.104,
+              0.843
+            ],
+            "8": [
+              0.11,
+              0.83
+            ]
+          }
+        },
+        {
+          "progress": 0.357,
+          "tiles_page_and_grain": {
+            "0": [
+              0.329,
+              0.616
+            ],
+            "1": [
+              0.371,
+              0.592
+            ],
+            "3": [
+              0.358,
+              0.606
+            ],
+            "4": [
+              0.369,
+              0.589
+            ],
+            "5": [
+              0.364,
+              0.596
+            ],
+            "6": [
+              0.32,
+              0.62
+            ],
+            "7": [
+              0.36,
+              0.586
+            ],
+            "8": [
+              0.372,
+              0.578
+            ]
+          }
+        }
+      ],
+      "resumed_page": 3
+    },
+    "static": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "reduced": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "print": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.111,
+          "page": 0.102,
+          "ink": 0.111,
+          "cover": 0.77
+        },
+        {
+          "progress": 0.367,
+          "page": 0.365,
+          "ink": 0.363,
+          "cover": 0.531
+        },
+        {
+          "progress": 0.708,
+          "page": 0.691,
+          "ink": 0.692,
+          "cover": 0.225
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.111,
+          "tiles_page_and_grain": {
+            "0": [
+              0.106,
+              0.808
+            ],
+            "1": [
+              0.102,
+              0.816
+            ],
+            "2": [
+              0.109,
+              0.77
+            ],
+            "3": [
+              0.101,
+              0.861
+            ],
+            "4": [
+              0.105,
+              0.795
+            ],
+            "5": [
+              0.107,
+              0.792
+            ],
+            "6": [
+              0.134,
+              0.804
+            ],
+            "7": [
+              0.104,
+              0.808
+            ],
+            "8": [
+              0.104,
+              0.803
+            ]
+          }
+        },
+        {
+          "progress": 0.367,
+          "tiles_page_and_grain": {
+            "0": [
+              0.366,
+              0.564
+            ],
+            "1": [
+              0.36,
+              0.568
+            ],
+            "2": [
+              0.374,
+              0.532
+            ],
+            "3": [
+              0.323,
+              0.633
+            ],
+            "4": [
+              0.367,
+              0.548
+            ],
+            "5": [
+              0.366,
+              0.544
+            ],
+            "6": [
+              0.396,
+              0.552
+            ],
+            "7": [
+              0.361,
+              0.562
+            ],
+            "8": [
+              0.362,
+              0.553
+            ]
+          }
+        }
+      ]
+    },
+    "replace": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 1
+    }
+  },
+  "opening_native_100_percent": {
+    "direct": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "picker": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.114,
+          "page": 0.097,
+          "ink": 0.106,
+          "cover": 0.831
+        },
+        {
+          "progress": 0.383,
+          "page": 0.357,
+          "ink": 0.368,
+          "cover": 0.57
+        },
+        {
+          "progress": 0.722,
+          "page": 0.691,
+          "ink": 0.695,
+          "cover": 0.242
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.114,
+          "tiles_page_and_grain": {
+            "0": [
+              0.1,
+              0.834
+            ],
+            "1": [
+              0.102,
+              0.832
+            ],
+            "2": [
+              0.1,
+              0.83
+            ],
+            "3": [
+              0.105,
+              0.836
+            ],
+            "4": [
+              0.089,
+              0.848
+            ],
+            "5": [
+              0.112,
+              0.833
+            ],
+            "6": [
+              0.11,
+              0.805
+            ],
+            "7": [
+              0.099,
+              0.842
+            ],
+            "8": [
+              0.101,
+              0.839
+            ]
+          }
+        },
+        {
+          "progress": 0.383,
+          "tiles_page_and_grain": {
+            "0": [
+              0.375,
+              0.565
+            ],
+            "1": [
+              0.368,
+              0.569
+            ],
+            "2": [
+              0.363,
+              0.57
+            ],
+            "3": [
+              0.351,
+              0.588
+            ],
+            "4": [
+              0.349,
+              0.59
+            ],
+            "5": [
+              0.364,
+              0.575
+            ],
+            "6": [
+              0.345,
+              0.588
+            ],
+            "7": [
+              0.353,
+              0.593
+            ],
+            "8": [
+              0.36,
+              0.579
+            ]
+          }
+        }
+      ]
+    },
+    "drop": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.221,
+          "page": 0.105,
+          "ink": 0.106,
+          "cover": 0.836
+        },
+        {
+          "progress": 0.343,
+          "page": 0.368,
+          "ink": 0.366,
+          "cover": 0.574
+        },
+        {
+          "progress": 0.683,
+          "page": 0.699,
+          "ink": 0.694,
+          "cover": 0.241
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.221,
+          "tiles_page_and_grain": {
+            "0": [
+              0.076,
+              0.891
+            ],
+            "1": [
+              0.111,
+              0.838
+            ],
+            "3": [
+              0.117,
+              0.833
+            ],
+            "4": [
+              0.104,
+              0.846
+            ],
+            "5": [
+              0.104,
+              0.854
+            ],
+            "6": [
+              0.076,
+              0.864
+            ],
+            "7": [
+              0.113,
+              0.837
+            ],
+            "8": [
+              0.106,
+              0.835
+            ]
+          }
+        },
+        {
+          "progress": 0.343,
+          "tiles_page_and_grain": {
+            "0": [
+              0.353,
+              0.619
+            ],
+            "1": [
+              0.379,
+              0.585
+            ],
+            "3": [
+              0.38,
+              0.577
+            ],
+            "4": [
+              0.366,
+              0.591
+            ],
+            "5": [
+              0.357,
+              0.603
+            ],
+            "6": [
+              0.322,
+              0.624
+            ],
+            "7": [
+              0.368,
+              0.578
+            ],
+            "8": [
+              0.36,
+              0.585
+            ]
+          }
+        }
+      ],
+      "resumed_page": 3
+    },
+    "static": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "reduced": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 0
+    },
+    "print": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 9,
+      "exposed_page": [
+        {
+          "progress": 0.114,
+          "page": 0.103,
+          "ink": 0.108,
+          "cover": 0.771
+        },
+        {
+          "progress": 0.355,
+          "page": 0.361,
+          "ink": 0.366,
+          "cover": 0.532
+        },
+        {
+          "progress": 0.693,
+          "page": 0.695,
+          "ink": 0.696,
+          "cover": 0.223
+        }
+      ],
+      "distribution": [
+        {
+          "progress": 0.114,
+          "tiles_page_and_grain": {
+            "0": [
+              0.1,
+              0.808
+            ],
+            "1": [
+              0.103,
+              0.816
+            ],
+            "2": [
+              0.102,
+              0.776
+            ],
+            "3": [
+              0.098,
+              0.851
+            ],
+            "4": [
+              0.101,
+              0.798
+            ],
+            "5": [
+              0.104,
+              0.79
+            ],
+            "6": [
+              0.105,
+              0.829
+            ],
+            "7": [
+              0.104,
+              0.811
+            ],
+            "8": [
+              0.103,
+              0.8
+            ]
+          }
+        },
+        {
+          "progress": 0.355,
+          "tiles_page_and_grain": {
+            "0": [
+              0.358,
+              0.563
+            ],
+            "1": [
+              0.356,
+              0.566
+            ],
+            "2": [
+              0.362,
+              0.54
+            ],
+            "3": [
+              0.347,
+              0.61
+            ],
+            "4": [
+              0.366,
+              0.544
+            ],
+            "5": [
+              0.369,
+              0.544
+            ],
+            "6": [
+              0.334,
+              0.612
+            ],
+            "7": [
+              0.353,
+              0.571
+            ],
+            "8": [
+              0.363,
+              0.554
+            ]
+          }
+        }
+      ]
+    },
+    "replace": {
+      "idle_home_frames": 0,
+      "idle_reveal_frames": 0,
+      "resources": 0,
+      "reveal_frames": 1
+    }
+  },
+  "nine_hundred_pages": {
+    "0.6.5-preview.3": {
+      "median_ready_ms": 156.32,
+      "all_warm_ms": [
+        176.6569,
+        147.0704,
+        150.0751,
+        152.1852,
+        160.4487,
+        161.2553
+      ],
+      "memory": {
+        "private_bytes": 25747456.0,
+        "private_working_set": 22716416.0,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 2756.31
+      }
+    },
+    "0.6.5-preview.4": {
+      "median_ready_ms": 158.73,
+      "all_warm_ms": [
+        155.2677,
+        147.8362,
+        157.6043,
+        166.1929,
+        159.8535,
+        160.9977
+      ],
+      "memory": {
+        "private_bytes": 25661440.0,
+        "private_working_set": 22683648.0,
+        "idle_cpu_ms": 0.0,
+        "idle_wall_ms": 2761.26
+      }
+    }
+  },
+  "source_of_fixtures": "Original synthetic files only"
+}

@@ -140,8 +140,13 @@ component RaisedPanel inherits Rectangle {
 
 component Frontispiece inherits Rectangle {
     in property <string> message;
+    in property <bool> book-drag-over;
     in property <int> variant;
     in property <image> frame;
+    in property <bool> departing;
+    in property <image> dissolve;
+    in property <float> progress;
+    property <float> lettering-opacity: max(0, 1 - 2.4*root.progress);
     pure callback tone(image, float, float, float, float) -> int;
     pure callback negative(image, CoverRect, bool) -> image;
     callback open();
@@ -149,7 +154,8 @@ component Frontispiece inherits Rectangle {
     property <length> margin: root.variant == 0 ? clamp(root.width * 0.066,28px,108px) : root.inset;
     property <color> ink: #23302c;
     property <length> type-size: min(root.width * 0.179, root.height * 0.242);
-    background: #f3efe4;
+    background: root.departing ? transparent : #f3efe4;
+    clip: true;
     property <length> print-width: max(root.width,root.height*1.6);
     property <length> print-height: root.print-width/1.6;
     property <length> print-x: (root.width - root.print-width)*0.16;
@@ -163,12 +169,13 @@ component Frontispiece inherits Rectangle {
     property <bool> pale-type: true;
     if root.variant == 0: Image {
         x: root.print-x; y: root.print-y; width: root.print-width; height: root.print-height;
-        image-fit: fill; image-rendering: smooth; source: @image-url("../assets/frontispiece.svg");
+        image-fit: fill; image-rendering: smooth;
+        source: root.frame.width > 0 ? root.frame : @image-url("../assets/frontispiece.svg");
     }
     if root.variant != 0: film := Rectangle {
         width: root.width; height: root.height;
-        property <image> picture: root.frame.width > 0 ? root.frame : root.variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
-        Image { width: parent.width; height: parent.height; image-fit: fill; source: film.picture; }
+        property <image> picture: root.frame;
+        Image { width: parent.width; height: parent.height; image-fit: fill; source: root.departing ? root.dissolve : film.picture; }
         property <int> exposure: root.tone(self.picture,root.logo-x/root.width,root.logo-y/root.height,root.logo-w/root.width,root.logo-h/root.height);
         init => { root.pale-type = self.exposure < 136; }
         changed exposure => {
@@ -178,16 +185,19 @@ component Frontispiece inherits Rectangle {
         Image {
             x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h; image-fit: fill;
             accessible-role: text; accessible-label: "Sae";
+            opacity: root.lettering-opacity;
             source: root.negative(film.picture,{x:self.x/1phx, y:self.y/1phx, w:self.width/1phx,
                 h:self.height/1phx, window-w:root.width/1phx, window-h:root.height/1phx},root.variant == 2);
         }
     }
     if root.variant == 0: Text {
+        opacity: root.lettering-opacity;
         x: root.margin; y: root.height*0.558;
         text: "READER";
         font-family: "Segoe UI"; font-size: 12px; font-weight: 600; letter-spacing: 3px; color: root.ink;
     }
     if root.variant == 0: Text {
+        opacity: root.lettering-opacity;
         x: root.margin - self.font-size * 0.054; y: root.height * 0.574;
         width: root.width * 0.47; height: self.font-size * 1.18;
         text: "Sae"; font-family: "Georgia"; font-weight: 400;
@@ -195,9 +205,11 @@ component Frontispiece inherits Rectangle {
         vertical-alignment: center; color: root.ink;
     }
     action := Rectangle {
+        opacity: root.lettering-opacity;
         x: root.margin; y: root.variant == 0 ? parent.height*0.895 - self.height/2 : parent.height - root.inset - self.height;
         width: root.variant == 0 ? 126px : 116px; height: root.variant == 0 ? 44px : 38px;
-        accessible-role: button; accessible-label: "选择书籍"; forward-focus: focus;
+        property <string> label: root.book-drag-over ? "松开打开" : "选择书籍";
+        accessible-role: button; accessible-label: self.label; forward-focus: focus;
         accessible-action-default => { root.open(); }
         property <bool> film: root.variant != 0;
         property <bool> pale: !touch.pressed && (root.pale-type != (touch.has-hover || focus.has-focus));
@@ -206,7 +218,7 @@ component Frontispiece inherits Rectangle {
             border-radius: self.height/2;
             background: action.pale ? #f8f5ea : #172328;
         }
-        Text { x: action.film ? 15px : 0px; width: 72px; height: parent.height; horizontal-alignment: left; text: "选择书籍";
+        Text { x: action.film ? 15px : 0px; width: 72px; height: parent.height; horizontal-alignment: left; text: action.label;
             font-size: action.film ? 14px : 15px; font-weight: 600; color: action.action-ink; vertical-alignment: center; }
         Path { x: action.film ? 86px : 80px; y: (parent.height - 16px)/2; width: 16px; height: 16px; viewbox-width: 16; viewbox-height: 16;
             commands: "M3.5 12.5L12 4 M4.5 4H12V11.5"; stroke: action.action-ink; stroke-width: 1.5px; }
@@ -216,7 +228,7 @@ component Frontispiece inherits Rectangle {
     }
     if root.message != "": RaisedPanel {
         kind: FrostKind.notice; corner: 10px;
-        material: {picture:root.frame.width>0 ? root.frame : root.variant==2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png"),
+        material: {picture:root.variant!=0 && root.frame.width>0 ? root.frame : root.variant==2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png"),
                    w:root.width/1px,h:root.height/1px,dark:false};
         x: root.margin; y: root.variant == 0 ? action.y - self.height - 8px : root.inset;
         width: min(error.preferred-width + 24px,root.width - root.margin*2,460px); height: error.preferred-height + 14px;
@@ -927,6 +939,7 @@ export component ReaderWindow inherits Window {
     in property <int> last-page: 1;
     in property <int> page-total: 0;
     in property <bool> has-document: false;
+    in-out property <bool> book-drag-over: false;
     // Rust decides whether to show the print before the first window is drawn.
     in property <bool> opening-document: true;
     pure callback glass(GlassView, [PageTile]) -> image;
@@ -950,8 +963,18 @@ export component ReaderWindow inherits Window {
     in property <int> home-variant;
     in property <image> home-frame;
     in property <int> home-frames;
+    out property <image> home-picture: !root.home-session ? root.empty-image
+        : root.home-variant == 0 && root.home-transition ? root.home-reveal-frame
+        : root.home-frame.width > 0 ? root.home-frame : root.home-variant == 0 ? @image-url("../assets/frontispiece.svg")
+        : root.home-variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
+    in property <bool> home-transition;
+    in property <float> home-reveal-progress;
+    in property <image> home-reveal-frame;
+    in property <int> home-reveal-frames;
     callback cycle-home(int);
     callback home-picker(bool);
+    callback home-book-ready();
+    callback home-resources() -> int;
     callback retire-home();
     in property <bool> reflowable: true;
     in property <[TocRow]> contents;
@@ -1142,7 +1165,7 @@ export component ReaderWindow inherits Window {
     keyboard := FocusScope {
         // Also handle platform-dispatched keys (e.g. accessibility and QA).
         capture-key-pressed(event) => {
-            if root.home-session && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta {
+            if root.home-session && !root.opening-document && !root.home-transition && !event.modifiers.control && !event.modifiers.alt && !event.modifiers.meta {
                 if event.text == Key.LeftArrow { root.cycle-home(-1); return accept; }
                 if event.text == Key.RightArrow { root.cycle-home(1); return accept; }
             }
@@ -1170,13 +1193,7 @@ export component ReaderWindow inherits Window {
 
         canvas := Rectangle {
             background: ReaderTheme.paper; clip: true;
-            if !root.has-document && !root.opening-document: Frontispiece {
-                message: root.status; variant: root.home-variant; frame: root.home-frame;
-                negative(frame,rect,mono) => { root.negative-mark(frame,rect,mono) }
-                tone(frame,x,y,w,h) => { root.cover-tone(frame,x,y,w,h) }
-                open => { root.open-file(); }
-            }
-            if !root.has-document && root.opening-document: Text {
+            if !root.home-session && !root.has-document && root.opening-document: Text {
                 text: root.status; color: ReaderTheme.muted; font-size: 13px;
                 horizontal-alignment: center; vertical-alignment: center;
             }
@@ -1521,6 +1538,16 @@ export component ReaderWindow inherits Window {
                 text: root.status; wrap: word-wrap;
                 color: ReaderTheme.ink; font-size: 13px;
             }
+        }
+        if root.home-session || (!root.has-document && !root.opening-document): Frontispiece {
+            width: parent.width; height: parent.height;
+            message: root.opening-document || root.home-transition ? "" : root.status;
+            variant: root.home-variant; frame: root.home-picture;
+            departing: root.home-transition; dissolve: root.home-reveal-frame; progress: root.home-reveal-progress;
+            book-drag-over: root.book-drag-over;
+            negative(frame,rect,mono) => { root.negative-mark(frame,rect,mono) }
+            tone(frame,x,y,w,h) => { root.cover-tone(frame,x,y,w,h) }
+            open => { if !root.home-transition { root.open-file(); } }
         }
     }
 }

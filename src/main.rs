@@ -16,6 +16,7 @@ use std::{
     time::{Duration, Instant},
 };
 slint::include_modules!();
+mod file_drop;
 mod glass;
 mod home;
 #[cfg(feature = "qa")]
@@ -23,6 +24,7 @@ mod qa;
 
 struct State {
     request: Option<Request>,
+    pending_open: Option<PathBuf>,
     generation: u64,
     completed_generation: u64,
     frame: Option<Arc<Frame>>,
@@ -251,7 +253,9 @@ fn edit_style(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f
 }
 fn save(state: &Arc<Mutex<State>>) -> anyhow::Result<()> {
     let mut s = state.lock().unwrap();
-    if let (Some(identity), Some(request)) = (s.identity.clone(), s.request.as_ref()) {
+    if s.frame.is_some()
+        && let (Some(identity), Some(request)) = (s.identity.clone(), s.request.as_ref())
+    {
         let book = BookState {
             path: request.path.clone(),
             anchor: s.anchor,
@@ -298,6 +302,7 @@ fn run() -> anyhow::Result<()> {
     }
     let state = Arc::new(Mutex::new(State {
         request: None,
+        pending_open: startup_path.as_ref().map(PathBuf::from),
         generation: 0,
         completed_generation: 0,
         frame: None,
@@ -326,9 +331,10 @@ fn run() -> anyhow::Result<()> {
         let state = shared.clone();
         let _ = weak.upgrade_in_event_loop(move |ui| {
             let mut s = state.lock().unwrap();
-            if s.generation != generation {
+            if s.generation != generation || s.pending_open.is_some() {
                 return;
             }
+            let opening_from_home = ui.get_home_session() && ui.get_opening_document();
             match result {
                 Ok(mut update) => {
                     let frame = &update.frame;
@@ -516,11 +522,21 @@ fn run() -> anyhow::Result<()> {
                     ui.set_status(format!("无法读取：{error:#}").into());
                     if s.frame.is_none() {
                         ui.set_has_document(false);
+                        ui.set_book_title("".into());
+                        s.request = None;
+                        s.identity = None;
                     }
                 }
             }
             let zoom_pending = s.zoom_pending;
             drop(s);
+            if opening_from_home {
+                if ui.get_has_document() {
+                    ui.invoke_home_book_ready();
+                } else {
+                    ui.invoke_home_picker(false);
+                }
+            }
             if zoom_pending {
                 ui.invoke_refresh_zoom(false);
             }
@@ -785,6 +801,9 @@ fn run() -> anyhow::Result<()> {
                 },
                 move || {
                     if let Some(ui) = weak.upgrade() {
+                        if open_pending(&ui, &state, &mailbox) {
+                            return;
+                        }
                         let should_submit = {
                             let s = state.lock().unwrap();
                             s.request.as_ref().is_some_and(|r| {
@@ -809,21 +828,19 @@ fn run() -> anyhow::Result<()> {
             let Some(ui) = weak.upgrade() else {
                 return;
             };
-            let home = ui.get_home_session();
-            if home {
+            if ui.get_home_session() && !ui.get_has_document() {
                 ui.invoke_home_picker(true);
             }
-            if let Some(path) = rfd::FileDialog::new()
-                .add_filter(
-                    "电子书与文档",
-                    &["epub", "pdf", "txt", "md", "azw3", "mobi", "fb2"],
-                )
-                .pick_file()
-            {
-                open(path, &ui, &state, &mailbox);
-            } else if home {
-                ui.invoke_home_picker(false);
-            }
+            let select = || {
+                rfd::FileDialog::new()
+                    .add_filter("电子书与文档", file_drop::BOOK_EXTENSIONS)
+                    .pick_file()
+            };
+            #[cfg(feature = "qa")]
+            let path = qa::choose_file(select);
+            #[cfg(not(feature = "qa"))]
+            let path = select();
+            finish_file_picker(path, &ui, &state, &mailbox);
         });
     }
     {
@@ -1236,6 +1253,9 @@ fn run() -> anyhow::Result<()> {
     {
         let weak = ui.as_weak();
         let cover = cover.clone();
+        let state = state.clone();
+        let mailbox = mailbox.clone();
+        let mut file_drop = file_drop::FileDrop::default();
         let mut modifiers = winit::keyboard::ModifiersState::empty();
         let mut maximize_pending = false;
         // Window-level shortcuts work while a button, slider or text field owns
@@ -1260,6 +1280,9 @@ fn run() -> anyhow::Result<()> {
             let Some(ui) = weak.upgrade() else {
                 return EventResult::Propagate;
             };
+            if file_drop.handle(event, &ui, &state, &mailbox) {
+                return EventResult::PreventDefault;
+            }
             #[cfg(feature = "qa")]
             qa::observe_pointer_event(event);
             if let Some(cover) = &cover {
@@ -1407,7 +1430,7 @@ fn run() -> anyhow::Result<()> {
     if let Some(cover) = &cover {
         cover.shown(&ui);
     }
-    if let Some(path) = startup_path {
+    if startup_path.is_some() {
         // Defer to the event loop, then compare Slint's viewport with the real
         // native client area. The old unconditional 100ms floor penalized every
         // command-line open even when both were already settled. Keep that
@@ -1430,11 +1453,11 @@ fn run() -> anyhow::Result<()> {
                     })
                     .unwrap_or(false);
                 if settled {
-                    open(PathBuf::from(path), &ui, &state, &mailbox);
+                    open_pending(&ui, &state, &mailbox);
                 } else {
                     slint::Timer::single_shot(Duration::from_millis(100), move || {
                         if let Some(ui) = weak.upgrade() {
-                            open(PathBuf::from(path), &ui, &state, &mailbox);
+                            open_pending(&ui, &state, &mailbox);
                         }
                     });
                 }
@@ -1456,27 +1479,53 @@ fn run() -> anyhow::Result<()> {
     Ok(())
 }
 
-fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>) {
-    if ui.get_home_session() {
-        ui.invoke_retire_home();
+pub(crate) fn finish_file_picker(
+    path: Option<PathBuf>,
+    ui: &ReaderWindow,
+    state: &Arc<Mutex<State>>,
+    mailbox: &Arc<Mailbox>,
+) {
+    if let Some(path) = path {
+        open(path, ui, state, mailbox);
+    } else if ui.get_home_session() && !ui.get_has_document() {
+        ui.invoke_home_picker(false);
     }
+}
+
+fn open_pending(ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>) -> bool {
+    let mut state_guard = state.lock().unwrap();
+    if state_guard.pending_open.is_none() {
+        return false;
+    }
+    // The next size notification will service the latest path. A minimized
+    // window should not start an interim layout of the superseded book.
+    if ui.get_viewport_width() >= 160.0 && ui.get_viewport_height() >= 160.0 {
+        let path = state_guard.pending_open.take().unwrap();
+        drop(state_guard);
+        open(path, ui, state, mailbox);
+    }
+    true
+}
+
+fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>) {
     ui.set_opening_document(true);
+    if ui.get_home_session() {
+        if ui.get_has_document() {
+            // A second book chosen during the reveal now belongs to the reader.
+            ui.invoke_retire_home();
+        } else {
+            ui.invoke_home_picker(true);
+        }
+    }
     ui.set_status("正在打开…".into());
     // Winit supplies the initial client geometry after show(). Do not lay out a
     // fake 160px page and then jump to a second pagination on the first frame.
     if ui.get_viewport_width() < 160.0 || ui.get_viewport_height() < 160.0 {
-        let weak = ui.as_weak();
-        let state = state.clone();
-        let mailbox = mailbox.clone();
-        slint::Timer::single_shot(Duration::from_millis(10), move || {
-            if let Some(ui) = weak.upgrade() {
-                open(path, &ui, &state, &mailbox);
-            }
-        });
+        state.lock().unwrap().pending_open = Some(path);
         return;
     }
+    state.lock().unwrap().pending_open = None;
     let _ = save(state);
-    ui.set_status("正在打开…".into());
     ui.set_notice("".into());
     ui.set_has_document(false);
     ui.set_page_entry_active(false);
