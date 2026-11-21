@@ -1,6 +1,7 @@
 //! Standalone launches own one foreground-only cover session. Document launches
 //! never acquire a cover, open its state marker, or allocate a pixel buffer.
 mod field;
+mod wordmark;
 use crate::ReaderWindow;
 use field::{Field, Kind};
 use slint::winit_030::{WinitWindowAccessor, winit::event::WindowEvent};
@@ -104,6 +105,7 @@ fn alternate(config: &Path) -> i32 {
 pub(crate) struct Cover {
     timer: Timer,
     field: RefCell<Option<Field>>,
+    stamp: RefCell<Option<wordmark::Stamp>>,
     kind: Cell<i32>,
     period: Option<Duration>,
     started: Cell<Option<Instant>>,
@@ -134,6 +136,7 @@ impl Cover {
         let cover = Rc::new(Self {
             timer: Timer::default(),
             field: RefCell::default(),
+            stamp: RefCell::default(),
             kind: Cell::new(kind),
             period,
             started: Cell::new(None),
@@ -144,6 +147,12 @@ impl Cover {
             picker: Cell::new(false),
             retired: Cell::new(false),
         });
+        let owner = Rc::downgrade(&cover);
+        ui.on_negative_mark(move |frame, rect| {
+            owner.upgrade().map_or_else(Image::default, |home| {
+                wordmark::render(&mut home.stamp.borrow_mut(), frame, rect)
+            })
+        });
         ui.set_home_session(true);
         ui.set_home_variant(kind);
         let weak = Rc::downgrade(&cover);
@@ -153,6 +162,9 @@ impl Cover {
                 home.pause();
                 home.field.replace(None);
                 let kind = (home.kind.get() + direction).rem_euclid(3);
+                if kind == 0 {
+                    home.stamp.replace(None);
+                }
                 home.kind.set(kind);
                 home.played.set(Duration::ZERO);
                 home.last_input.set(Instant::now());
@@ -179,6 +191,7 @@ impl Cover {
         ui.on_retire_home(move || {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
                 home.retired.set(true);
+                home.stamp.replace(None);
                 home.pause();
                 ui.set_home_session(false);
                 ui.set_home_frame(Image::default());

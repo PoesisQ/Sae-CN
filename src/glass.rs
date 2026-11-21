@@ -1,7 +1,11 @@
 //! A small frosted lens above the view selector. Read the existing first-row
 //! page tiles, filter in logical coordinates, then shade only the half-disc.
-use crate::{GlassView, PageTile};
+mod surfaces;
+use crate::{GlassView, PageScene, PageTile};
 use slint::{Color, Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer};
+#[cfg(feature = "qa")]
+pub(crate) use surfaces::COST;
+pub(crate) use surfaces::{backdrop, panel};
 
 type Rgb = [f32; 3];
 const MARGIN: f32 = 6.0;
@@ -29,7 +33,9 @@ struct Tile {
 }
 
 impl Tile {
-    fn at(view: &GlassView, page: PageTile, col: usize) -> Option<Self> {
+    fn at(view: &PageScene, page: PageTile, index: usize) -> Option<Self> {
+        let col = index % view.columns.max(1) as usize;
+        let row = index / view.columns.max(1) as usize;
         let pixels = page.source.to_rgb8()?;
         let cell = view.viewport_w / view.columns.max(1) as f32;
         let w = cell - 2.0 * view.inset;
@@ -55,7 +61,7 @@ impl Tile {
             width,
             height,
             x: col as f32 * cell + view.inset + offset,
-            y: ((h - height) * 0.5).max(0.0),
+            y: row as f32 * h + ((h - height) * 0.5).max(0.0),
         })
     }
 
@@ -71,6 +77,55 @@ impl Tile {
     }
 }
 
+// Both materials sample the same grid geometry as PagePane. Only the lens is
+// confined to the first row. A progress rail can cover the last row of a PDF.
+struct PageSamples {
+    tiles: Vec<Option<Tile>>,
+    columns: usize,
+    cell_w: f32,
+    cell_h: f32,
+    inset: f32,
+    paper: Rgb,
+}
+
+impl PageSamples {
+    fn new(scene: &PageScene, pages: &ModelRc<PageTile>, first_row: bool) -> Self {
+        let columns = scene.columns.clamp(1, 4) as usize;
+        let rows = scene.rows.clamp(1, 2) as usize;
+        let count = columns * if first_row { 1 } else { rows };
+        let tiles = (0..count)
+            .map(|i| Tile::at(scene, pages.row_data(i)?, i))
+            .collect();
+        Self {
+            tiles,
+            columns,
+            cell_w: (scene.viewport_w / columns as f32).max(1.),
+            cell_h: (scene.viewport_h / rows as f32).max(1.),
+            inset: scene.inset,
+            paper: rgb(scene.paper),
+        }
+    }
+
+    fn at(&self, x: f32, y: f32) -> Rgb {
+        let col = (x / self.cell_w) as usize;
+        let row = (y / self.cell_h) as usize;
+        let local = x - col as f32 * self.cell_w;
+        if x < 0.
+            || y < 0.
+            || col >= self.columns
+            || local < self.inset
+            || local >= self.cell_w - self.inset
+        {
+            return self.paper;
+        }
+        self.tiles
+            .get(row * self.columns + col)
+            .and_then(Option::as_ref)
+            .and_then(|t| t.sample(x, y))
+            .unwrap_or(self.paper)
+    }
+}
+
 struct Frost {
     data: Vec<Rgb>,
     cols: usize,
@@ -80,28 +135,8 @@ struct Frost {
 
 impl Frost {
     fn new(view: &GlassView, pages: &ModelRc<PageTile>) -> Self {
-        // The lens ends within the first grid row, including at the minimum window height.
-        let tiles: [Option<Tile>; 4] = std::array::from_fn(|i| {
-            if i >= view.columns as usize {
-                return None;
-            }
-            Tile::at(view, pages.row_data(i)?, i)
-        });
-        let paper = rgb(view.paper);
+        let samples = PageSamples::new(&view.scene, pages, true);
         let chrome = rgb(view.chrome);
-        let cell = view.viewport_w / view.columns.max(1) as f32;
-        let sample = |x: f32, y: f32| {
-            let i = (x / cell).floor() as usize;
-            let local = x - i as f32 * cell;
-            if local < view.inset || local >= cell - view.inset {
-                return paper;
-            }
-            tiles
-                .get(i)
-                .and_then(Option::as_ref)
-                .and_then(|t| t.sample(x, y.max(0.0)))
-                .unwrap_or(paper)
-        };
         let left = -view.radius - MARGIN;
         let cols = ((-left * 2.0) / PITCH).ceil() as usize + 2;
         let rows = ((view.radius + MARGIN) / PITCH).ceil() as usize + 2;
@@ -114,7 +149,7 @@ impl Frost {
                 let x = view.center + left + col as f32 * PITCH;
                 let mut sum = [0.; 3];
                 for (dx, dy) in [(-0.9, -0.9), (0.9, -0.9), (-0.9, 0.9), (0.9, 0.9)] {
-                    let point = sample(x + dx, y + dy);
+                    let point = samples.at(x + dx, (y + dy).max(0.));
                     for c in 0..3 {
                         sum[c] += point[c];
                     }

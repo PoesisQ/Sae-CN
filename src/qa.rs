@@ -325,6 +325,30 @@ pub fn start(
                 run.ready = Some(Instant::now() + Duration::from_millis(180));
                 return;
             }
+            if scenario == "surfaces" {
+                let step = run.step;
+                let (maps,faces,map_us,face_us) = crate::glass::COST.with(|p|p.get());
+                run.snapshots.push(json!({"step":step,"maps":maps,"faces":faces,"map_us":map_us,"face_us":face_us}));
+                let names=["initial","bare","rail","search","contents","settings","dock","dock-open","night","settled","hidden","rested"];
+                if let Some(dir)=&screenshots {
+                    if let Err(e)=snapshot(&ui,&dir.join(format!("{}.png",names[step as usize]))) {run.errors.push(e.to_string());}
+                }
+                match step {
+                    0=>{ui.invoke_typography("fit-width".into(),0.); ui.set_show_toolbar(false);ui.invoke_edge_hover(240.,240.);}
+                    1=>{ui.set_show_toolbar(true);}
+                    2=>ui.set_show_search(true),
+                    3=>{ui.set_show_search(false);ui.set_show_contents(true);}
+                    4=>{ui.set_show_contents(false);ui.set_show_settings(true);}
+                    5=>{ui.set_show_settings(false);ui.set_show_toolbar(false);ui.invoke_edge_hover(300.,ui.get_viewport_height()-6.);}
+                    6=>ui.invoke_edge_hover(ui.get_dock_right()-42.,ui.get_dock_top()+20.),
+                    7=>{ui.invoke_theme_changed(2);ui.set_show_settings(true);}
+                    8=>{}
+                    9=>{ui.invoke_dismiss_panels();ui.set_show_toolbar(false);ui.invoke_edge_hover(240.,240.);}
+                    10=>{}
+                    _=>{finish(&ui,&state,&report,&scenario,&run); if let Some(t)=stop.upgrade(){t.stop();}return;}
+                }
+                run.step+=1;run.operations+=1;run.ready=Some(Instant::now()+Duration::from_millis(400));return;
+            }
             if scenario == "glass" {
                 let step = run.step;
                 let center = ui.get_mode_center_x();

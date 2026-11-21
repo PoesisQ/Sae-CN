@@ -271,6 +271,8 @@ fn run() -> anyhow::Result<()> {
         .find(|arg| !arg.to_string_lossy().starts_with("--"));
     let ui = ReaderWindow::new()?;
     ui.on_glass(glass::draw);
+    ui.on_backdrop(glass::backdrop);
+    ui.global::<Materials>().on_face(glass::panel);
     ui.on_choice_index(|model, value| {
         model
             .iter()
