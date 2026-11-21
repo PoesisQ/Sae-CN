@@ -31,7 +31,7 @@ EPUB、PDF、AZW3 等格式分别选择一次即可。也可以在 Windows「设
 在仓库目录的 PowerShell 中运行（把包路径替换成实际解压目录）：
 
 ```powershell
-.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.6.5-preview.1' -OpenDefaults
+.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.6.5-preview.2' -OpenDefaults
 ```
 
 包含 `Install.ps1` 的后续 Windows 发布包也可直接在包目录运行：
