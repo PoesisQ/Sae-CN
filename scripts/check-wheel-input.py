@@ -111,6 +111,12 @@ def button(x, y, down):
     move(x, y)
     if down and user.WindowFromPoint(parked) != hwnd:
         raise RuntimeError("Test window does not own the press point")
+    # SetCursorPos updates the system cursor immediately. The reader may still
+    # be presenting a zoomed page when the mouse-move reaches its message queue.
+    # Let it consume the approach before SendInput starts a new capture.
+    if down:
+        time.sleep(.065)
+        probe()
     mouse_input(0x02 if down else 0x04)
     holding = down
     time.sleep(.012)
@@ -137,7 +143,7 @@ def drag(name, points, arc=False):
     x, y = points[0]
     button(cx + x, cy + y, True)
     held = probe()
-    assert held["pressed"], (name, "missing capture")
+    assert held["pressed"] and abs(held["zoom"] - start["zoom"]) < .005, (name, "press", start, held)
     values = [held["zoom"]]
     violations = []
     for (px, py), (x, y) in zip(points, points[1:]):
