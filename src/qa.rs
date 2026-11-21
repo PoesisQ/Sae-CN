@@ -4,7 +4,49 @@ use super::*;
 mod page_input;
 use serde_json::{Value, json};
 use slint::Model;
-use std::{cell::RefCell, fs, io::BufWriter, path::Path};
+use std::{
+    cell::{Cell, RefCell},
+    fs,
+    io::BufWriter,
+    path::Path,
+};
+
+#[derive(Clone, Copy, serde::Serialize)]
+struct PointerSample {
+    client_px: Option<(i32, i32)>,
+    left_down: bool,
+    wheel_events: u32,
+}
+
+thread_local! {
+    static POINTER: Cell<PointerSample> = const { Cell::new(PointerSample {
+        client_px: None, left_down: false, wheel_events: 0
+    }) };
+}
+
+pub fn observe_pointer_event(event: &winit::event::WindowEvent) {
+    use winit::event::{ElementState, MouseButton, WindowEvent};
+    POINTER.with(|pointer| {
+        let mut sample = pointer.get();
+        match event {
+            WindowEvent::CursorMoved { position, .. } => {
+                sample.client_px = Some((position.x.round() as i32, position.y.round() as i32));
+            }
+            WindowEvent::MouseInput {
+                button: MouseButton::Left,
+                state,
+                ..
+            } => {
+                sample.left_down = *state == ElementState::Pressed;
+            }
+            WindowEvent::MouseWheel { .. } => {
+                sample.wheel_events = sample.wheel_events.wrapping_add(1)
+            }
+            _ => return,
+        }
+        pointer.set(sample);
+    });
+}
 
 pub struct Metrics {
     boot: Instant,
@@ -201,6 +243,7 @@ pub fn start(
                     }
                     let s = state.lock().unwrap();
                     let value = json!({"seq":command,"sample":run.operations,"dpi":ui.window().scale_factor(),
+                        "pointer":POINTER.with(Cell::get),
                         "window":[ui.get_viewport_width(),ui.get_viewport_height()],
                         "mode_x":ui.get_mode_center_x(),"header":ui.get_header_height_logical(),"depth":ui.get_mode_depth(),
                         "mode_position":ui.get_mode_position(),"mode_held":ui.get_mode_dragging(),

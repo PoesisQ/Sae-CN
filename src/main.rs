@@ -1251,6 +1251,8 @@ fn run() -> anyhow::Result<()> {
             let Some(ui) = weak.upgrade() else {
                 return EventResult::Propagate;
             };
+            #[cfg(feature = "qa")]
+            qa::observe_pointer_event(event);
             if let Some(cover) = &cover {
                 cover.event(&ui, event);
             }

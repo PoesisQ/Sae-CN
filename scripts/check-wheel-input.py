@@ -93,9 +93,22 @@ def mouse_input(flags, data=0):
         raise OSError(ct.get_last_error(), "SendInput")
 
 
+def await_input(description, accepted):
+    # A system cursor move can precede delivery to the reader by a frame.
+    # Sample gestures only after Winit received this particular input event.
+    until = time.monotonic() + 2
+    while True:
+        pointer = probe()["pointer"]
+        if accepted(pointer):
+            return
+        if time.monotonic() >= until:
+            raise RuntimeError(f"Reader did not receive {description}; last input: {pointer}")
+
+
 def move(x, y):
     global parked
-    parked = wt.POINT(round(x*dpi), round(y*dpi))
+    client = [round(x*dpi), round(y*dpi)]
+    parked = wt.POINT(*client)
     user.ClientToScreen(hwnd, ct.byref(parked))
     if not user.SetCursorPos(parked.x, parked.y):
         raise OSError(ct.get_last_error(), "SetCursorPos")
@@ -103,7 +116,8 @@ def move(x, y):
     user.GetCursorPos(ct.byref(actual))
     if (actual.x, actual.y) != (parked.x, parked.y):
         raise RuntimeError(f"Pointer clipped by the desktop at {actual.x},{actual.y}, requested {parked.x},{parked.y}")
-    time.sleep(.009)
+    if holding or user.WindowFromPoint(parked) == hwnd:
+        await_input(f"client position {client}", lambda p: p["client_px"] == client)
 
 
 def button(x, y, down):
@@ -111,22 +125,17 @@ def button(x, y, down):
     move(x, y)
     if down and user.WindowFromPoint(parked) != hwnd:
         raise RuntimeError("Test window does not own the press point")
-    # SetCursorPos updates the system cursor immediately. The reader may still
-    # be presenting a zoomed page when the mouse-move reaches its message queue.
-    # Let it consume the approach before SendInput starts a new capture.
-    if down:
-        time.sleep(.065)
-        probe()
     mouse_input(0x02 if down else 0x04)
     holding = down
-    time.sleep(.012)
+    await_input(f"left button down={down}", lambda p: p["left_down"] == down)
 
 
 def wheel(direction):
     if user.WindowFromPoint(parked) != hwnd:
         raise RuntimeError("Test window does not own the wheel point")
+    previous = probe()["pointer"]["wheel_events"]
     mouse_input(0x0800, direction*120)
-    time.sleep(.012)
+    await_input("wheel impulse", lambda p: p["wheel_events"] != previous)
 
 
 def reset_zoom():
