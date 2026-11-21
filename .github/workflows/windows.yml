@@ -35,9 +35,9 @@ jobs:
           path: |
             ~/.cargo/registry
             target
-          key: windows2022-reader-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/**/build.rs', 'vendor/**/msbuild.rs') }}-${{ github.sha }}
+          key: windows2022-reader-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/**/build.rs', 'vendor/**/msbuild.rs') }}
           restore-keys: |
-            windows2022-reader-${{ hashFiles('rust-toolchain.toml', 'Cargo.lock', 'vendor/**/build.rs', 'vendor/**/msbuild.rs') }}-
+            windows2022-reader-
       - name: Run native Rust tests
         run: cargo test --locked --release --features qa
       - name: Build the window probe
@@ -48,8 +48,9 @@ jobs:
           $exe = 'target/x86_64-pc-windows-msvc/release/sae-reader.exe'
           python scripts/qa-windows.py --exe $exe --no-activate --fixture tests/fixtures/core.pdf --scenario navigation --output artifacts/ci/navigation
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          foreach ($layout in @('single','double','multi')) {
-            $flags = if ($layout -eq 'double') { @('--spread') } elseif ($layout -eq 'multi') { @('--multi') } else { @() }
+          $layouts = [ordered]@{ single = @(); double = @('--spread'); multi = @('--multi') }
+          foreach ($layout in $layouts.Keys) {
+            $flags = $layouts[$layout]
             python scripts/qa-windows.py --exe $exe --no-activate --fixture tests/fixtures/core.pdf --scenario page-input --output "artifacts/ci/pan-$layout" @flags
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
