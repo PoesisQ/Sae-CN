@@ -1,0 +1,573 @@
+{
+  "system": "Windows 11 x64, 150% desktop scale",
+  "layout": {
+    "measurements": {
+      "final-home-blue": {
+        "pixels": [
+          1770,
+          1260
+        ],
+        "paper_percent": 16.56
+      },
+      "final-home-plasma": {
+        "pixels": [
+          1770,
+          1260
+        ],
+        "paper_percent": 16.56
+      },
+      "press-ui/home-home-0": {
+        "pixels": [
+          1770,
+          1260
+        ],
+        "paper_percent": 16.56
+      },
+      "press-ui/home-home-1": {
+        "pixels": [
+          960,
+          720
+        ],
+        "paper_percent": 18.65
+      },
+      "press-ui/home-home-3": {
+        "pixels": [
+          1920,
+          1200
+        ],
+        "paper_percent": 14.72
+      },
+      "final-125-home-0": {
+        "pixels": [
+          1475,
+          1050
+        ],
+        "paper_percent": 16.54
+      },
+      "final-125-home-1": {
+        "pixels": [
+          960,
+          720
+        ],
+        "paper_percent": 17.7
+      },
+      "final-125-home-3": {
+        "pixels": [
+          1920,
+          1200
+        ],
+        "paper_percent": 13.7
+      },
+      "final-200-home-0": {
+        "pixels": [
+          2360,
+          1680
+        ],
+        "paper_percent": 16.6
+      },
+      "final-200-home-1": {
+        "pixels": [
+          960,
+          720
+        ],
+        "paper_percent": 21.35
+      },
+      "final-200-home-3": {
+        "pixels": [
+          1920,
+          1200
+        ],
+        "paper_percent": 15.69
+      }
+    },
+    "previous_paper_percent": 40.88,
+    "backup_print_identical": true
+  },
+  "builds": {
+    "0.6.2": {
+      "bytes": 25875968,
+      "sha256": "7ad2f67c3a4894a793b6edb1a0dff5a56c93599bad6904dd0fb9c862701ea9c5"
+    },
+    "0.6.3": {
+      "bytes": 25865728,
+      "sha256": "d0262b59dc13375bfdca93cb67bfc10ad373b545262cf0f8b9d452225caf4f10"
+    }
+  },
+  "start_and_memory": {
+    "blank": {
+      "0.6.2": {
+        "warm_start_ms": [
+          56.9669,
+          57.027,
+          54.3487,
+          56.0563,
+          55.3426,
+          53.328,
+          55.4033,
+          54.0764,
+          55.7629,
+          59.808
+        ],
+        "median_ms": 55.58,
+        "p95_ms": 59.81,
+        "windows": [
+          {
+            "private_bytes": 17608704.0,
+            "private_working_set": 15134720.0,
+            "idle_cpu_ms": 265.625,
+            "idle_wall_ms": 2816.31
+          },
+          {
+            "private_bytes": 17305600.0,
+            "private_working_set": 15081472.0,
+            "idle_cpu_ms": 375.0,
+            "idle_wall_ms": 2775.78
+          },
+          {
+            "private_bytes": 17346560.0,
+            "private_working_set": 15077376.0,
+            "idle_cpu_ms": 375.0,
+            "idle_wall_ms": 2809.21
+          }
+        ],
+        "private_mib": 16.54
+      },
+      "0.6.3": {
+        "warm_start_ms": [
+          52.5971,
+          54.2297,
+          54.7603,
+          59.5907,
+          54.5399,
+          52.4518,
+          54.9322,
+          53.9206,
+          54.2506,
+          53.5221
+        ],
+        "median_ms": 54.24,
+        "p95_ms": 59.59,
+        "windows": [
+          {
+            "private_bytes": 17117184.0,
+            "private_working_set": 14897152.0,
+            "idle_cpu_ms": 296.875,
+            "idle_wall_ms": 2819.73
+          },
+          {
+            "private_bytes": 17215488.0,
+            "private_working_set": 14897152.0,
+            "idle_cpu_ms": 296.875,
+            "idle_wall_ms": 2810.87
+          },
+          {
+            "private_bytes": 17137664.0,
+            "private_working_set": 14913536.0,
+            "idle_cpu_ms": 312.5,
+            "idle_wall_ms": 2800.29
+          }
+        ],
+        "private_mib": 16.34
+      }
+    },
+    "pdf": {
+      "0.6.2": {
+        "warm_start_ms": [
+          130.4826,
+          158.3002,
+          162.8379,
+          155.285,
+          152.1874,
+          152.1762,
+          149.3619,
+          150.6049,
+          148.9928,
+          168.0747
+        ],
+        "median_ms": 152.18,
+        "p95_ms": 168.07,
+        "windows": [
+          {
+            "private_bytes": 22462464.0,
+            "private_working_set": 20242432.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2794.71
+          },
+          {
+            "private_bytes": 22495232.0,
+            "private_working_set": 20279296.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2797.88
+          },
+          {
+            "private_bytes": 22417408.0,
+            "private_working_set": 20189184.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2794.07
+          }
+        ],
+        "private_mib": 21.42
+      },
+      "0.6.3": {
+        "warm_start_ms": [
+          130.2051,
+          147.9433,
+          170.296,
+          147.5625,
+          153.0753,
+          148.2094,
+          150.5037,
+          158.3443,
+          146.3757,
+          171.7368
+        ],
+        "median_ms": 149.36,
+        "p95_ms": 171.74,
+        "windows": [
+          {
+            "private_bytes": 22392832.0,
+            "private_working_set": 20172800.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2778.02
+          },
+          {
+            "private_bytes": 22413312.0,
+            "private_working_set": 20193280.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2799.47
+          },
+          {
+            "private_bytes": 22503424.0,
+            "private_working_set": 20275200.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2814.87
+          }
+        ],
+        "private_mib": 21.38
+      }
+    },
+    "epub": {
+      "0.6.2": {
+        "warm_start_ms": [
+          151.7363,
+          156.8734,
+          149.1033,
+          144.6834,
+          149.9172,
+          145.1749,
+          161.7123,
+          156.2131,
+          151.0456,
+          160.9997
+        ],
+        "median_ms": 151.39,
+        "p95_ms": 161.71,
+        "windows": [
+          {
+            "private_bytes": 19640320.0,
+            "private_working_set": 17289216.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2800.33
+          },
+          {
+            "private_bytes": 19820544.0,
+            "private_working_set": 17506304.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2788.05
+          },
+          {
+            "private_bytes": 19779584.0,
+            "private_working_set": 17461248.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2799.85
+          }
+        ],
+        "private_mib": 18.86
+      },
+      "0.6.3": {
+        "warm_start_ms": [
+          156.7646,
+          146.0853,
+          149.4956,
+          148.1517,
+          149.4087,
+          150.9684,
+          159.7655,
+          159.8848,
+          151.6506,
+          158.4169
+        ],
+        "median_ms": 151.31,
+        "p95_ms": 159.88,
+        "windows": [
+          {
+            "private_bytes": 19836928.0,
+            "private_working_set": 17514496.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2799.39
+          },
+          {
+            "private_bytes": 19656704.0,
+            "private_working_set": 17408000.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2787.68
+          },
+          {
+            "private_bytes": 19697664.0,
+            "private_working_set": 17346560.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2814.73
+          }
+        ],
+        "private_mib": 18.79
+      }
+    }
+  },
+  "foreground_home": {
+    "plasma": [
+      {
+        "active": {
+          "private_mib": 16.312,
+          "one_core_percent": 11.092,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 16.672,
+          "one_core_percent": 0.0,
+          "seconds": 2.504
+        }
+      },
+      {
+        "active": {
+          "private_mib": 16.418,
+          "one_core_percent": 11.437,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 16.773,
+          "one_core_percent": 0.0,
+          "seconds": 2.504
+        }
+      },
+      {
+        "active": {
+          "private_mib": 16.371,
+          "one_core_percent": 12.48,
+          "seconds": 4.507
+        },
+        "minimized": {
+          "private_mib": 16.469,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      }
+    ],
+    "blue": [
+      {
+        "active": {
+          "private_mib": 16.195,
+          "one_core_percent": 10.744,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 16.285,
+          "one_core_percent": 0.0,
+          "seconds": 2.503
+        }
+      },
+      {
+        "active": {
+          "private_mib": 16.191,
+          "one_core_percent": 11.433,
+          "seconds": 4.51
+        },
+        "minimized": {
+          "private_mib": 16.285,
+          "one_core_percent": 0.0,
+          "seconds": 2.504
+        }
+      },
+      {
+        "active": {
+          "private_mib": 16.254,
+          "one_core_percent": 12.134,
+          "seconds": 4.507
+        },
+        "minimized": {
+          "private_mib": 16.32,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      }
+    ]
+  },
+  "hovered_wheel": {
+    "0.6.2": [
+      {
+        "hidden": {
+          "private_mib": 21.375,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        },
+        "raised": {
+          "private_mib": 21.539,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 21.477,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        },
+        "raised": {
+          "private_mib": 21.598,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      }
+    ],
+    "0.6.3": [
+      {
+        "hidden": {
+          "private_mib": 21.34,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "raised": {
+          "private_mib": 21.488,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 21.367,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        },
+        "raised": {
+          "private_mib": 21.531,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      }
+    ]
+  },
+  "native_picker": {
+    "picker": {
+      "one_core_percent": 0.0,
+      "private_mib": 24.074
+    },
+    "resumed": {
+      "one_core_percent": 13.121,
+      "private_mib": 25.047
+    },
+    "reading_after_picker": {
+      "one_core_percent": 0.0,
+      "private_mib": 30.613
+    }
+  },
+  "toolbar_shadow_luminance_difference": {
+    "drum": {
+      "0": 49.67,
+      "1": 25.85,
+      "2": 19.14,
+      "3": 5.21,
+      "4": 1.0,
+      "5": 0.0,
+      "7": 0.0
+    },
+    "three-labels": {
+      "0": 49.67,
+      "1": 25.85,
+      "2": 19.14,
+      "3": 5.21,
+      "4": 1.0,
+      "5": 0.0,
+      "7": 0.0
+    },
+    "multi": {
+      "0": 49.67,
+      "1": 25.85,
+      "2": 19.14,
+      "3": 5.21,
+      "4": 1.0,
+      "5": 0.0,
+      "7": 0.0
+    },
+    "drum-dark": {
+      "0": -15.25,
+      "1": 7.0,
+      "2": 5.71,
+      "3": 2.0,
+      "4": 1.0,
+      "5": 0.0,
+      "7": 0.0
+    }
+  },
+  "native_view_scale": {
+    "scale": 1.5,
+    "circular_edge_error_px": [
+      4.02,
+      3.37,
+      2.93,
+      7.0,
+      2.25,
+      3.62,
+      4.02
+    ],
+    "zoom_face_physical_px": [
+      98,
+      98
+    ],
+    "ticks_on_visible_arc": [
+      {
+        "drum": 15,
+        "three-labels": 17,
+        "multi": 15,
+        "held-7": 15,
+        "held-16": 16,
+        "held-28": 17,
+        "held-42": 17,
+        "held-48": 17,
+        "drum-dark": 17
+      },
+      {
+        "drum": 9,
+        "double": 9,
+        "epub-end": 9,
+        "drum-dark": 9
+      }
+    ]
+  },
+  "checks": {
+    "rust_passed": 46,
+    "markdown_math_benchmark": "passed",
+    "native_windows_failures": {
+      "chrome": 0,
+      "contents": 0,
+      "detents": 0,
+      "dpi-1": 0,
+      "dpi-125": 0,
+      "dpi-2": 0,
+      "features": 0,
+      "home": 0,
+      "instruments": 0,
+      "multipage": 0,
+      "navigation": 0,
+      "stress": 0,
+      "visual": 0
+    },
+    "zoom_drags": 14,
+    "zoom_pointer_samples": 852,
+    "mode_drag_positions": [
+      0.06633314490318298,
+      0.15089069306850433,
+      0.28725433349609375,
+      0.4816160202026367,
+      0.5550334453582764
+    ]
+  }
+}

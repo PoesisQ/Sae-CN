@@ -1,34 +1,62 @@
 """Check the mode wheel silhouette and zoom disc in native Windows snapshots."""
 import argparse
 import json
+import math
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageChops
 
 
-def profile(image, center, span, seam, scale):
-    paper = (255, 255, 255)
-    heights = []
-    for fraction in (-1.05, -.75, -.5, -.25, 0, .25, .5, .75, 1.05):
-        x = round(center + fraction * span / 2)
-        y = seam
-        while y < seam + round(40 * scale) and image.getpixel((x, y)) != paper:
-            y += 1
-        heights.append(y - seam)
-    assert heights[0] <= 3 and heights[-1] <= 3, heights
-    assert 26 * scale <= heights[4] <= 31 * scale, heights
-    assert all(a < b for a, b in zip(heights[:4], heights[1:5])), heights
-    assert all(abs(a - b) <= 2 for a, b in zip(heights, reversed(heights))), heights
-    return heights
+def profile(image, center, radius, scale):
+    face = (225, 227, 217)
+    deviations = []
+    for fraction in (-.85, -.6, -.3, 0, .3, .6, .85):
+        x = round(center + fraction * radius)
+        edge = math.sqrt(radius**2 - (x - center)**2)
+        # The fixed index and teeth interrupt the last few pixels of the face.
+        last = max(y for y in range(round(radius + 1)) if image.getpixel((x, y)) == face)
+        deviations.append(round(edge - last, 2))
+    assert all(-1 <= value <= 13 * scale for value in deviations), deviations
+    return deviations
+
+
+def tick_span(folder):
+    data = json.loads((folder / "gestures.json").read_text(encoding="utf-8"))
+    count = 2 if "epub-end" in data["captures"] else 3
+    samples = {}
+    for name, pose in data["view_poses"].items():
+        with Image.open(folder / data["captures"][name]) as source:
+            image = source.convert("RGB")
+        scale = pose["dpi"]
+        radius = pose["depth"] + pose["header"]
+        center = pose["mode_x"]
+        face = image.getpixel((round(center * scale), round(radius * .25 * scale)))
+        found = []
+        for tooth in range(-16, 33):
+            degrees = tooth * 6 - pose["mode_position"] * 48
+            if abs(degrees) > 85:
+                continue
+            angle = math.radians(degrees)
+            x = round((center + (radius - 8) * math.sin(angle)) * scale)
+            y = round((radius - 8) * math.cos(angle) * scale)
+            delta = max(1, round(1.25 * scale))
+            crop = image.crop((x - delta, y - delta, x + delta + 1, y + delta + 1))
+            painted = any(max(f - lo, hi - f) > 25 for (lo, hi), f in zip(crop.getextrema(), face))
+            assert painted == (0 <= tooth <= (count - 1) * 8), (name, tooth, degrees, painted)
+            if painted:
+                found.append(tooth)
+        samples[name] = len(found)
+    assert "drum" in samples and "drum-dark" in samples, "Missing light or dark scale capture"
+    return samples
 
 
 def disc(image, cx, cy, scale):
-    radius = 43 * scale
+    radius = 34 * scale
     left, top = round(cx - radius - 2), round(cy - radius - 2)
     crop = image.crop((left, top, round(cx + radius + 3), round(cy + radius + 3)))
     face = (244, 242, 234)
-    mask = crop.convert("L")
-    mask.putdata([255 if color == face else 0 for color in crop.getdata()])
+    red, green, blue = ImageChops.difference(crop, Image.new("RGB", crop.size, face)).split()
+    mask = ImageChops.lighter(ImageChops.lighter(red, green), blue).point([255] + [0] * 255)
     x0, y0, x1, y1 = mask.getbbox()
     width, height = x1 - x0, y1 - y0
     assert abs(width - height) <= 1 and abs(width - 2 * radius) <= 4, (width, height)
@@ -41,6 +69,7 @@ def disc(image, cx, cy, scale):
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("report", type=Path, help="instruments/fixture-00.json")
+    parser.add_argument("--wheel-samples", type=Path, nargs="+", help="check-wheel-input.py output directories")
     args = parser.parse_args()
     report = json.loads(args.report.read_text(encoding="utf-8"))
     assert report["scenario"] == "instruments" and not report["errors"]
@@ -48,14 +77,16 @@ def main():
     images = args.report.with_name(args.report.stem + "-screenshots")
     with Image.open(images / "instrument-04.png") as source:
         image = source.convert("RGB")
-    wheel_center = image.width - (16 + 88 + 198 / 2) * scale
-    outline = profile(image, wheel_center, 198 * scale, round(52 * scale), scale)
+    span = min(max(158, image.width / scale * .27), 214)
+    wheel_center = image.width - (16 + 88 + span / 2) * scale
+    outline = profile(image, wheel_center, min(100, span / 2 - 4) * scale, scale)
     with Image.open(images / "instrument-19.png") as source:
         image = source.convert("RGB")
-    dock_right = (image.width + 528 * scale) / 2
-    dimensions = disc(image, dock_right - 60 * scale, image.height - 84 * scale, scale)
-    print(json.dumps({"scale": scale, "arc_below_toolbar_physical_px": outline,
-                      "zoom_face_physical_px": dimensions}))
+    dock_right = (image.width + 516 * scale) / 2
+    dimensions = disc(image, dock_right - 50 * scale, image.height - 60 * scale, scale)
+    counts = [tick_span(folder) for folder in args.wheel_samples or []]
+    print(json.dumps({"scale": scale, "circular_edge_error_px": outline,
+                      "zoom_face_physical_px": dimensions, "ticks_on_visible_arc": counts}))
 
 
 if __name__ == "__main__":

@@ -14,6 +14,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--exe", type=Path, required=True)
 parser.add_argument("--output", type=Path, required=True)
 parser.add_argument("--trace", type=Path, help="Optional 30 Hz recording coordinates relative to a 64.5 px radius")
+parser.add_argument("--epub", action="store_true", help="Check the two-stop reading wheel on the EPUB fixture")
 args = parser.parse_args()
 out = args.output.resolve()
 out.mkdir(parents=True, exist_ok=True)
@@ -33,12 +34,14 @@ windows = []
 events = []
 checks = {}
 captures = {}
+view_poses = {}
 original_cursor = wt.POINT()
 user.GetCursorPos(ct.byref(original_cursor))
 parked = None
 holding = False
 startup = subprocess.STARTUPINFO(dwFlags=subprocess.STARTF_USESHOWWINDOW, wShowWindow=4)
-proc = subprocess.Popen([str(args.exe.resolve()), str(root / "tests/fixtures/core.pdf")],
+fixture = "core-epub3.epub" if args.epub else "core.pdf"
+proc = subprocess.Popen([str(args.exe.resolve()), str(root / "tests/fixtures" / fixture)],
                         env=env, cwd=root, startupinfo=startup)
 
 
@@ -62,7 +65,10 @@ def probe(label=None):
             obj = json.loads(report.with_suffix(".sample").read_text(encoding="utf-8"))
             if obj["seq"] == label:
                 if label.startswith("capture-"):
-                    captures[label[8:]] = f"wheel-{obj['sample']}.png"
+                    name = label[8:]
+                    captures[name] = f"wheel-{obj['sample']}.png"
+                    if not name.startswith("dial"):
+                        view_poses[name] = {key: obj[key] for key in ("mode_x", "mode_position", "header", "depth", "dpi")}
                 return obj
         except (OSError, ValueError):
             pass
@@ -180,7 +186,33 @@ try:
     wheel(-1)
     assert probe()["mode"] == 1, "two wheel impulses did not engage the next notch"
     time.sleep(.20)
-    probe("capture-three-labels")
+    probe("capture-double" if args.epub else "capture-three-labels")
+    if args.epub:
+        wheel(-1)
+        wheel(-1)
+        time.sleep(.5)
+        end = probe("capture-epub-end")
+        assert end["mode"] == 1 and abs(end["mode_position"] - 1) < .005
+        wheel(1)
+        wheel(1)
+        time.sleep(.5)
+        assert probe()["mode"] == 0
+        probe("dark")
+        time.sleep(.23)
+        probe("capture-drum-dark")
+        report.with_suffix(".probe").write_text("finish", encoding="ascii")
+        assert proc.wait(8) == 0
+        assert not json.loads(report.read_text(encoding="utf-8"))["errors"]
+        print("Both EPUB end stops verified")
+        raise SystemExit(0)
+    wheel(-1)
+    wheel(-1)
+    time.sleep(.5)
+    last_stop = probe("capture-multi")
+    assert last_stop["mode"] == 2 and abs(last_stop["mode_position"] - 2) < .005
+    wheel(1)
+    wheel(1)
+    assert probe()["mode"] == 1, "could not return from the multi-page end stop"
     wheel(1)
     wheel(1)
     assert probe()["mode"] == 0, "reverse wheel input did not restore single page"
@@ -252,7 +284,8 @@ try:
     assert not json.loads(report.read_text(encoding="utf-8"))["errors"]
     print(f"{len(events)} native drags, {sum(e['samples'] for e in events)} pointer samples, all checks passed")
 finally:
-    (out / "gestures.json").write_text(json.dumps({"checks": checks, "captures": captures, "events": events}, indent=2), encoding="utf-8")
+    (out / "gestures.json").write_text(json.dumps({"checks": checks, "captures": captures,
+                                                   "view_poses": view_poses, "events": events}, indent=2), encoding="utf-8")
     if holding:
         mouse_input(0x04)
     if parked is not None:

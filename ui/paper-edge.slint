@@ -1,44 +1,22 @@
-// Each straight edge bounds a solid paper wing. Keep the software path rasterizer
-// on the diagonal alone; the large opaque spans go through its solid fill loop.
+// Lower-left paper triangle. Opaque spans use Slint's solid fill; only the
+// narrow diagonal within each strip needs antialiasing.
 export component PaperEdge inherits Rectangle {
-    in property <float> x1;
-    in property <float> y1;
-    in property <float> x2;
-    in property <float> y2;
-    in property <bool> right;
     in property <color> paper;
     pure function pixel(y: length) -> length { return round(y/1phx)*1phx; }
-    property <length> start-y: root.pixel(clamp(root.y1*1px,0px,root.height));
-    property <length> end-y: root.pixel(clamp(root.y2*1px,0px,root.height));
-    property <int> bands: ceil((root.end-y - root.start-y)/48px);
-    pure function extent(y: length) -> length {
-        let x = (root.x1 + (y/1px - root.y1)*(root.x2 - root.x1)/(root.y2 - root.y1))*1px;
-        return root.right ? root.width - x : x;
-    }
-    for i in root.bands: strip := Rectangle {
-        y: root.start-y + i*48px; width: root.width;
-        height: min(48px,root.end-y - self.y);
-        property <length> top-edge: root.extent(self.y);
-        property <length> foot: root.extent(self.y + self.height);
-        property <length> solid: floor(min(self.top-edge,self.foot)/1phx)*1phx;
-        // Overlap one physical pixel inside the opaque paper so fractional DPI
-        // never leaves a hairline where the triangle meets the solid fill.
-        property <length> inner: self.solid - 1phx;
-        property <length> outer: max(self.top-edge,self.foot);
-        Rectangle {
-            width: clamp(strip.solid,0px,root.width); height: strip.height;
-            x: root.right ? root.width - self.width : 0px; background: root.paper;
-        }
-        if strip.outer > 0px && strip.inner < root.width && strip.outer - strip.inner > 0.01px: wedge := Path {
-            x: root.right ? root.width - strip.outer : strip.inner;
-            width: strip.outer - strip.inner; height: strip.height;
+    for i in ceil(root.height/48px): strip := Rectangle {
+        y: root.pixel(i*48px); width: root.width;
+        height: min(root.height,root.pixel((i + 1)*48px)) - self.y;
+        property <length> top-edge: self.y/root.height*root.width;
+        property <length> foot: (self.y + self.height)/root.height*root.width;
+        property <length> solid: floor(self.top-edge/1phx)*1phx;
+        Rectangle { x: 0px; width: strip.solid; height: strip.height; background: root.paper; }
+        wedge := Path {
+            // One pixel inside the solid span prevents seams at fractional DPI.
+            x: strip.solid - 1phx; width: strip.foot - self.x; height: strip.height;
             viewbox-width: self.width/1px; viewbox-height: self.height/1px;
-            property <float> base: root.right ? self.viewbox-width : 0;
-            property <float> top-x: root.right ? (strip.outer - strip.top-edge)/1px : (strip.top-edge - strip.inner)/1px;
-            property <float> bottom-x: root.right ? (strip.outer - strip.foot)/1px : (strip.foot - strip.inner)/1px;
-            MoveTo { x: wedge.base; y: 0; } LineTo { x: wedge.top-x; y: 0; }
-            LineTo { x: wedge.bottom-x; y: wedge.viewbox-height; }
-            LineTo { x: wedge.base; y: wedge.viewbox-height; } Close {}
+            MoveTo { x: 0; y: 0; } LineTo { x: (strip.top-edge - wedge.x)/1px; y: 0; }
+            LineTo { x: wedge.viewbox-width; y: wedge.viewbox-height; }
+            LineTo { x: 0; y: wedge.viewbox-height; } Close {}
             fill: root.paper;
         }
     }

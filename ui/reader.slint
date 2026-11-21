@@ -34,7 +34,8 @@ component Frontispiece inherits Rectangle {
     in property <int> variant;
     in property <image> frame;
     callback open();
-    property <length> margin: clamp(root.width * 0.066,28px,108px);
+    property <length> inset: clamp(min(root.width,root.height)/16,24px,64px);
+    property <length> margin: root.variant == 0 ? clamp(root.width * 0.066,28px,108px) : root.inset;
     property <color> ink: #23302c;
     property <length> type-size: min(root.width * 0.179, root.height * 0.242);
     background: #f3efe4;
@@ -42,12 +43,13 @@ component Frontispiece inherits Rectangle {
     property <length> print-height: root.print-width/1.6;
     property <length> print-x: (root.width - root.print-width)*0.16;
     property <length> print-y: (root.height - root.print-height)*0.48;
-    pure function px(x:float)->float { return (root.print-x+root.print-width*x/1600)/1px; }
-    pure function py(y:float)->float { return (root.print-y+root.print-height*y/1000)/1px; }
-    property <length> logo-x: root.margin - 0.018*root.type-size;
-    property <length> logo-y: root.height*0.619;
-    property <length> logo-w: root.type-size*1.38;
+    // One diagonal clears the upper-right corner of the word. Its footprint
+    // follows the type and action, so wide screens give the additional space to the film.
+    property <length> logo-w: min(root.width*0.22,root.height*0.31,288px);
     property <length> logo-h: root.logo-w*753/1395;
+    property <length> logo-x: root.inset - root.logo-w*0.028;
+    property <length> logo-y: action.y - root.inset/2 - root.logo-h;
+    property <length> cut-height: root.height - root.logo-y + (root.logo-x + root.logo-w + root.inset/2)/1.5;
     if root.variant == 0: Image {
         x: root.print-x; y: root.print-y; width: root.print-width; height: root.print-height;
         image-fit: fill; image-rendering: smooth; source: @image-url("../assets/frontispiece.svg");
@@ -56,21 +58,10 @@ component Frontispiece inherits Rectangle {
         width: root.width; height: root.height;
         property <image> picture: root.frame.width > 0 ? root.frame : root.variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
         Image { width: parent.width; height: parent.height; image-fit: fill; source: film.picture; }
-        // Both boundaries are straight within each strip of the original print.
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
-            x1: root.px(-420); y1: root.py(-330); x2: root.px(780); y2: root.py(380); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
-            x1: root.px(780); y1: root.py(380); x2: root.px(560); y2: root.py(554); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: false;
-            x1: root.px(560); y1: root.py(554); x2: root.px(1060); y2: root.py(1240); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
-            x1: root.px(1081.9); y1: root.py(-349.76); x2: root.px(1551.31); y2: root.py(65.61); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
-            x1: root.px(1551.31); y1: root.py(65.61); x2: root.px(1494.32); y2: root.py(134.92); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
-            x1: root.px(1494.32); y1: root.py(134.92); x2: root.px(1808.44); y2: root.py(467.57); }
-        PaperEdge { width: film.width; height: film.height; paper: #f3efe4; right: true;
-            x1: root.px(1808.44); y1: root.py(467.57); x2: root.px(1060); y2: root.py(1240); }
+        PaperEdge {
+            x: 0px; height: round(root.cut-height/1phx)*1phx; y: film.height - self.height;
+            width: self.height*1.5; paper: #f3efe4;
+        }
         // Sample the identical full-window field through the word, with a physical
         // pixel of overlap between the paper and the outer glyph stencil.
         Rectangle {
@@ -84,7 +75,8 @@ component Frontispiece inherits Rectangle {
         }
     }
     Text {
-        x: root.margin; y: root.height * 0.558; text: "READER";
+        x: root.margin; y: root.variant == 0 ? root.height*0.558 : root.logo-y - self.preferred-height - root.inset/4;
+        text: "READER";
         font-family: "Segoe UI"; font-size: 12px; font-weight: 600; letter-spacing: 3px; color: root.ink;
     }
     if root.variant == 0: Text {
@@ -95,7 +87,8 @@ component Frontispiece inherits Rectangle {
         vertical-alignment: center; color: root.ink;
     }
     action := Rectangle {
-        x: root.margin; y: parent.height * 0.895 - self.height / 2; width: 126px; height: 44px;
+        x: root.margin; y: root.variant == 0 ? parent.height*0.895 - self.height/2 : parent.height - root.inset - self.height;
+        width: 126px; height: 44px;
         accessible-role: button; accessible-label: "打开书籍"; forward-focus: focus;
         accessible-action-default => { root.open(); }
         property <color> action-ink: touch.has-hover || focus.has-focus ? #a33620 : root.ink;
@@ -508,7 +501,7 @@ component ModeDrum inherits Rectangle {
         : root.settling ? root.snap-to + (root.snap-from - root.snap-to)*pow(1 - root.t,3)*(1 + root.t) : root.value;
     changed position => { root.indicated(root.position); }
     property <color> face: ReaderTheme.dark ? #333c38 : #e1e3d9;
-    property <color> rim: ReaderTheme.dark ? #829085 : #a3aa9c;
+    property <color> rim: ReaderTheme.dark ? #65736a : #a7afa3;
     property <color> printing: ReaderTheme.dark ? #edf0e5 : #25332d;
     property <color> secondary: ReaderTheme.dark ? #b6c0b5 : #526356;
     height: root.radius + 3px;
@@ -555,21 +548,25 @@ component ModeDrum inherits Rectangle {
         // layout selected elsewhere while the last wheel impulse was decaying.
         triggered => { self.running = false; root.snap(root.value); }
     }
-    // The two discs share a centre and remain circular at every reveal size.
-    Rectangle {
-        x: parent.width/2 - root.radius; y: 2px - root.radius;
-        width: 2*root.radius; height: self.width; border-radius: root.radius;
-        background: ReaderTheme.contact;
+    // Overlap four translucent rims under the opaque face. Only the outer few
+    // pixels contribute, with a smooth falloff and no offscreen blur surface.
+    for band in 4: Rectangle {
+        property <length> outer-radius: root.radius + (3 - band)*1px;
+        x: parent.width/2 - self.outer-radius; y: 2px - self.outer-radius;
+        width: self.outer-radius*2; height: self.width; border-radius: self.outer-radius;
+        border-width: 7px;
+        border-color: ReaderTheme.contact.with-alpha((band + 1)*(ReaderTheme.dark ? 0.032 : 0.022));
     }
     Rectangle {
         x: parent.width/2 - root.radius; y: -root.radius;
         width: 2*root.radius; height: self.width; border-radius: root.radius;
         background: root.face; border-width: 1px; border-color: root.rim;
     }
-    for tooth in 33: Rectangle {
-        property <angle> theta: (tooth - 16 - mod(root.position*8,1))*6deg;
-        property <bool> major: mod(tooth + floor(root.position*8),4) == 0;
+    for tooth in (root.count - 1)*8 + 1: Rectangle {
+        property <angle> theta: tooth*6deg - root.position*48deg;
+        property <bool> major: mod(tooth,4) == 0;
         property <length> track: root.radius - 8px;
+        visible: abs(self.theta) <= 90deg;
         width: self.major ? 1.5px : 1px; height: self.major ? 6px : 3px;
         x: parent.width/2 + self.track*sin(self.theta) - self.width/2;
         y: self.track*cos(self.theta) - self.height/2;

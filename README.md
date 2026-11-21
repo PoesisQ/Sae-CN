@@ -7,30 +7,30 @@
 <p align="center">Windows 原生电子书阅读器。</p>
 
 <p align="center">
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.2-preview.1/SaeReader-0.6.2-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.2-preview.1">更新说明与源码</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.3-preview.1/SaeReader-0.6.3-preview.1-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.3-preview.1">更新说明与源码</a> ·
   <a href="LICENSE">AGPL-3.0-or-later</a>
 </p>
 
 Sae Reader 支持暖纸、白纸与夜读主题。阅读时文档占满窗口，工具栏、目录和设置随用随开。
 可重排文档的排版独立可调，PDF 保留原页版式，并提供单页、双页和多页。
 
-当前为 **v0.6.2-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
+当前为 **v0.6.3-preview.1 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
 
-![两种独立启动首页，深蓝 Plasma 与蓝白松绿颗粒色场](docs/evidence/iteration-0.6.2/covers.png)
+![两张首页，左下的单斜边纸面衬出镂空字标](docs/evidence/iteration-0.6.3/covers.png)
 
-直接启动时，两种动画逐次轮换。纸面固定，「Sae」的字形透出同一片流动的颜色。在首页按左右方向键可当场比较，也可以切回朱红网格版画。双击文档直接进入阅读。
+直接启动时，两种动画逐次轮换。左下角的一小块纸面托住打开入口，「Sae」的字形透出同一片流动的颜色。在首页按左右方向键可当场比较，也可以切回朱红网格版画。双击文档直接进入阅读。
 
 ## 下载与使用
 
-1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.2-preview.1/SaeReader-0.6.2-preview.1-windows-x64.zip)。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.3-preview.1/SaeReader-0.6.3-preview.1-windows-x64.zip)。
 2. 完整解压，双击 `SaeReader.exe`，通过「打开」选择书籍。
 3. 靠近窗口上沿展开工具栏。拖动半滚轮到下一挡，或直接点两侧的视图名称。点击阅读区域左侧上一页、右侧下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.2-preview.1) 同时提供独立 EXE、
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.3-preview.1) 同时提供独立 EXE、
 完整依赖源码、许可证和 SHA256 校验文件。Windows 压缩包内附使用说明与许可。
 
 作为默认阅读器使用时，可用完整包里的 `Install.ps1` 更新固定目录中的程序。
@@ -43,7 +43,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **真实重排**：可重排文档的字体、字号、行距、段距、缩进、对齐、正文宽度及四边距可调。
 - **舒适主题**：暖纸、白纸和深色；PDF 可选原色、随主题着色或反色，使用 MuPDF 原生处理。
 - **阅读工具**：章节目录、内部链接与返回、文字选择与复制、跨章节全文查找及前后定位。
-- **PDF 多页**　顶栏上方的半圆轮可以直接拖动。按住时，挡位名称和刻线跟着鼠标经过固定指针。松手时吸附到挡位，短距离试拨会回弹。鼠标滚轮连续拨两格也能换挡。可在「阅读设置 → 多页布局」中选自动、3×1、4×1、2×2、3×2 或 4×2，方向键按整组翻页。
+- **PDF 多页**　顶栏的半圆拨轮可以直接拖动。刻度从单页延伸到多页，随挡位名称一起经过固定指针。松手时吸附到挡位，短距离试拨会回弹。鼠标滚轮连续拨两格也能换挡。可在「阅读设置 → 多页布局」中选自动、3×1、4×1、2×2、3×2 或 4×2，方向键按整组翻页。
 - **收起侧栏**：点击文档或页边空白即可关闭目录、排版或查找面板；这一次点击只收起面板。
 - **PDF 缩放**　靠近底部倍率，圆盘和底板一起展开。向右或向上直拖放大，反向缩小。沿盘缘顺时针放大、逆时针缩小。直拖到屏幕边缘按住可继续调节。松手后倍率留在盘心，可接着拖。下弧三道刻线从左到右为整页（100%）、适宽、铺满，点按跳转，从刻线上拖动也能调倍率。
 - **跳页**：拖细进度线能先看到目标页码，松手才跳转。点击页码或按 `Ctrl+G`，在原位置输入页数后回车。多页模式显示包含目标页的整组。
@@ -53,7 +53,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **记住位置**：正常关闭或切书时保存排版、阅读模式及每本书的阅读位置及手动文本编码。
 - **沉浸阅读**：点击系统最大化按钮、双击标题栏或按 `F11`，都会进入隐藏标题栏和任务栏的全屏。鼠标靠近边缘时显示工具栏；目录与设置覆盖在正文之上。
 
-[顶栏半滚轮](docs/evidence/iteration-0.6.2/view-wheel.png) · [PDF 缩放盘](docs/evidence/iteration-0.6.2/zoom.png) · [竖版 PDF 八页实图](docs/evidence/iteration-0.6.0/portrait.png)
+[顶栏拨轮的两个止点](docs/evidence/iteration-0.6.3/view-wheel.png) · [PDF 缩放盘](docs/evidence/iteration-0.6.2/zoom.png) · [竖版 PDF 八页实图](docs/evidence/iteration-0.6.0/portrait.png)
 
 ## 快捷键
 
@@ -94,7 +94,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - 带脚本的规范 EPUB 章节可阅读其中的静态正文、图片和目录。依赖 JavaScript 生成的内容、DRM 及多媒体播放暂未支持。
 
 详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
-和 [本版交互与 Windows 实测](docs/iteration-0.6.2.md)。
+和 [本版交互与 Windows 实测](docs/iteration-0.6.3.md)。
 
 ## 开发与许可
 
@@ -103,4 +103,4 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
 每个二进制 Release 同时提供对应源码及许可文件。
 
-图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.2-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.2-preview.1/SaeReader.ico)。
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.3-preview.1/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.3-preview.1/SaeReader.ico)。
