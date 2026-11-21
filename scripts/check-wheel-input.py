@@ -244,6 +244,10 @@ try:
     button(x, y, True)
     for dx in (-60, -120, -235, -150):
         move(x+dx, y)
+        held = probe()
+        assert held["mode_held"], ("hard-stop capture", dx, held)
+        if dx == -235:
+            assert held["mode_position"] > 1.99, ("hard stop", held)
     button(x-150, y, False)
     assert probe()["mode"] == 1, "reverse from a hard stop contained dead travel"
     checks["view_detents"] = "partial return, engage, hysteresis, hard-stop reversal, two wheel impulses"
