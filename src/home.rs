@@ -239,7 +239,9 @@ impl Cover {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
                 // Slint may already have queued this tick when a picker or document
                 // retires the cover in the same event-loop turn.
-                let Some(started) = home.started.get() else { return };
+                let Some(started) = home.started.get() else {
+                    return;
+                };
                 if home.last_input.get().elapsed() >= Duration::from_secs(60)
                     || !ui.window().is_visible()
                     || ui

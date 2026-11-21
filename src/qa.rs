@@ -101,7 +101,7 @@ fn cover_snapshot(ui: &ReaderWindow, path: &Path) -> anyhow::Result<()> {
         // Both captures happen in one event. This is the exact input to the
         // native compositor, even if the next animation frame is due.
         let file = fs::File::create(path.with_extension("field.png"))?;
-        let mut encoder = png::Encoder::new(BufWriter::new(file),field.width(),field.height());
+        let mut encoder = png::Encoder::new(BufWriter::new(file), field.width(), field.height());
         encoder.set_color(png::ColorType::Rgb);
         encoder.set_depth(png::BitDepth::Eight);
         encoder.write_header()?.write_image_data(field.as_bytes())?;

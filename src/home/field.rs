@@ -247,7 +247,11 @@ impl Field {
                 let columns: Vec<usize> = (0..w).map(|x| sample(x, w, GRAIN_W) % GRAIN_W).collect();
                 for y in 0..h {
                     let row = sample(y, h, GRAIN_H);
-                    let start = (if row < GRAIN_H { row } else { row - GRAIN_H / 2 }) * GRAIN_W;
+                    let start = (if row < GRAIN_H {
+                        row
+                    } else {
+                        row - GRAIN_H / 2
+                    }) * GRAIN_W;
                     grain.extend(
                         columns
                             .iter()

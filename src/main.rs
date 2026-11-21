@@ -576,6 +576,8 @@ fn run() -> anyhow::Result<()> {
         ui.on_zoom_begin(move |x, y, radius| {
             if let Some(ui) = weak.upgrade() {
                 timer.stop();
+                // Grip coordinates use the reader's logical scale, including any scale override.
+                let dpi = ui.window().scale_factor();
                 geometry.set(
                     ui.window()
                         .with_winit_window(|w| {
@@ -583,7 +585,6 @@ fn run() -> anyhow::Result<()> {
                             let client = w.inner_position().ok()?;
                             let offset = monitor.position();
                             let size = monitor.size();
-                            let dpi = w.scale_factor() as f32;
                             Some((
                                 (client.x - offset.x) as f32 / dpi,
                                 (client.y - offset.y) as f32 / dpi,
@@ -685,7 +686,13 @@ fn run() -> anyhow::Result<()> {
                     });
                 let Some(r) = s.request.as_mut() else { return };
                 let before = r.view.pan;
-                for ((axis, distance), extent) in r.view.pan.iter_mut().zip([dx, dy]).zip([overflow.0, overflow.1]) {
+                for ((axis, distance), extent) in r
+                    .view
+                    .pan
+                    .iter_mut()
+                    .zip([dx, dy])
+                    .zip([overflow.0, overflow.1])
+                {
                     if extent > 1.0 {
                         *axis = (*axis + distance / extent).clamp(0.0, 1.0);
                     }

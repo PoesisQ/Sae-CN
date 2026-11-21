@@ -29,8 +29,9 @@ jobs:
           $libclang = python -c "import clang.cindex as c; print(c.Config.library_path)"
           "LIBCLANG_PATH=$libclang" >> $env:GITHUB_ENV
           rustc -Vv
-      - name: Cache locked dependencies and native build
-        uses: actions/cache@v4
+      - name: Restore the native build cache
+        id: native-cache
+        uses: actions/cache/restore@v4
         with:
           path: |
             ~/.cargo/registry
@@ -42,6 +43,14 @@ jobs:
         run: cargo test --locked --release --features qa
       - name: Build the window probe
         run: cargo build --locked --release --features qa --bin sae-reader
+      - name: Cache the tested native build
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            ~/.cargo/registry
+            target
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
       - name: Verify the reading window and materials
         shell: pwsh
         run: |
@@ -82,3 +91,11 @@ jobs:
           path: artifacts/ci/**/*.json
           if-no-files-found: ignore
           retention-days: 7
+      - name: Preserve screenshots on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: windows-screen-diagnostics
+          path: artifacts/ci/**/*.png
+          if-no-files-found: ignore
+          retention-days: 3
