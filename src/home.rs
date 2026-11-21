@@ -25,6 +25,57 @@ fn allows_motion() -> bool {
     unsafe { SystemParametersInfoW(0x1042, 0, &mut enabled, 0) != 0 && enabled != 0 }
 }
 
+// Read small patches on the actual strokes. A trimmed mean rejects individual
+// grains and a bright counter in the "a" without scanning or copying a frame.
+fn cover_tone(frame: Image, x: f32, y: f32, w: f32, h: f32) -> i32 {
+    let size = frame.size();
+    if size.width == 0 || size.height == 0 {
+        return 128;
+    }
+    let sample = |bytes: &[u8], stride: usize| {
+        let positions = [
+            (0.12, 0.23),
+            (0.29, 0.19),
+            (0.15, 0.48),
+            (0.27, 0.62),
+            (0.12, 0.90),
+            (0.46, 0.44),
+            (0.60, 0.53),
+            (0.59, 0.76),
+            (0.47, 0.88),
+            (0.64, 0.91),
+            (0.74, 0.65),
+            (0.80, 0.55),
+            (0.87, 0.53),
+            (0.78, 0.82),
+            (0.87, 0.90),
+        ];
+        let mut tones = positions.map(|(u, v)| {
+            let mut sum = 0;
+            for (dx, dy) in [(-0.012, -0.012), (0.0, 0.013), (0.012, -0.006)] {
+                let px = (((x + w * (u + dx)) * size.width as f32) as usize)
+                    .min(size.width as usize - 1);
+                let py = (((y + h * (v + dy)) * size.height as f32) as usize)
+                    .min(size.height as usize - 1);
+                let offset = (py * size.width as usize + px) * stride;
+                sum += 54 * i32::from(bytes[offset])
+                    + 183 * i32::from(bytes[offset + 1])
+                    + 19 * i32::from(bytes[offset + 2]);
+            }
+            sum / (3 * 256)
+        });
+        tones.sort_unstable();
+        tones[3..12].iter().sum::<i32>() / 9
+    };
+    if let Some(pixels) = frame.to_rgb8() {
+        return sample(pixels.as_bytes(), 3);
+    }
+    // Only the small built-in stills use Slint's embedded RGBA representation.
+    frame
+        .to_rgba8()
+        .map_or(128, |pixels| sample(pixels.as_bytes(), 4))
+}
+
 fn alternate(config: &Path) -> i32 {
     let marker = config.with_file_name("next-cover-blue");
     if let Some(parent) = marker.parent() {
@@ -66,6 +117,7 @@ pub(crate) struct Cover {
 
 impl Cover {
     pub fn attach(ui: &ReaderWindow, config: &Path) -> Rc<Self> {
+        ui.on_cover_tone(cover_tone);
         let mut forced = None;
         let mut period = Some(Duration::from_millis(67));
         for arg in std::env::args_os().skip(1) {

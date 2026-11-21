@@ -94,6 +94,20 @@ fn snapshot(ui: &ReaderWindow, path: &Path) -> anyhow::Result<()> {
     Ok(())
 }
 
+fn cover_snapshot(ui: &ReaderWindow, path: &Path) -> anyhow::Result<()> {
+    snapshot(ui, path)?;
+    if let Some(field) = ui.get_home_frame().to_rgb8() {
+        // Both captures happen in one event. This is the exact input to the
+        // native compositor, even if the next animation frame is due.
+        let file = fs::File::create(path.with_extension("field.png"))?;
+        let mut encoder = png::Encoder::new(BufWriter::new(file),field.width(),field.height());
+        encoder.set_color(png::ColorType::Rgb);
+        encoder.set_depth(png::BitDepth::Eight);
+        encoder.write_header()?.write_image_data(field.as_bytes())?;
+    }
+    Ok(())
+}
+
 #[derive(Default)]
 struct Run {
     ready: Option<Instant>,
@@ -236,7 +250,7 @@ pub fn start(
                     ui.window().dispatch_event(WindowEvent::KeyReleased{text:Key::RightArrow.into()});
                 };
                 let capture = |name:&str| -> anyhow::Result<()> {
-                    if let Some(dir)=&screenshots { snapshot(&ui,&dir.join(name))?; }
+                    if let Some(dir)=&screenshots { cover_snapshot(&ui,&dir.join(name))?; }
                     Ok(())
                 };
                 let action = match step {
@@ -292,7 +306,7 @@ pub fn start(
             }
             if scenario == "frontispiece" {
                 if let Some(folder) = &screenshots {
-                    if let Err(e) = snapshot(&ui, &folder.join(format!("home-{}.png", run.step))) {
+                    if let Err(e) = cover_snapshot(&ui, &folder.join(format!("home-{}.png", run.step))) {
                         run.errors.push(e.to_string());
                     }
                 }
@@ -309,6 +323,40 @@ pub fn start(
                 run.step += 1;
                 run.operations += 1;
                 run.ready = Some(Instant::now() + Duration::from_millis(180));
+                return;
+            }
+            if scenario == "glass" {
+                let step = run.step;
+                let center = ui.get_mode_center_x();
+                let page = state.lock().unwrap().frame.as_ref().map(|f| f.page);
+                let (calls, micros) = crate::glass::PROFILE.with(|p| p.get());
+                run.snapshots.push(json!({"step":step,"page":page,"radius":ui.get_header_height_logical()+ui.get_mode_depth(),
+                    "center":center,"builds":calls,"total_us":micros,"visible":ui.get_top_visible()}));
+                let name = match step { 1 => "bare", 2 => "rest", 3 => "raised", 4 => "next",
+                    5 => "night", 6 => "settled", 7 => "night-bare", _ => "" };
+                if let Some(dir) = &screenshots && !name.is_empty() {
+                    if let Err(e) = snapshot(&ui,&dir.join(format!("{name}.png"))) { run.errors.push(e.to_string()); }
+                }
+                match step {
+                    0 => {
+                        ui.invoke_typography("fit-width".into(),0.);
+                        ui.set_show_toolbar(false);
+                        ui.invoke_edge_hover(260.,220.);
+                    }
+                    1 => ui.invoke_edge_hover(270.,14.),
+                    2 => ui.invoke_edge_hover(center,24.),
+                    3 => ui.invoke_next_page(1),
+                    4 => ui.invoke_theme_changed(2),
+                    5 => {}
+                    6 => ui.invoke_edge_hover(260.,220.),
+                    _ => {
+                        finish(&ui,&state,&report,&scenario,&run);
+                        if let Some(t)=stop.upgrade(){t.stop();}
+                        return;
+                    }
+                }
+                run.step+=1; run.operations+=1;
+                run.ready=Some(Instant::now()+Duration::from_millis(if step==5 {850} else {280}));
                 return;
             }
             if scenario == "instruments" {

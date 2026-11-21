@@ -187,6 +187,12 @@ try:
     assert probe()["mode"] == 1, "two wheel impulses did not engage the next notch"
     time.sleep(.20)
     probe("capture-double" if args.epub else "capture-three-labels")
+    move(x-145,16)
+    time.sleep(.21)
+    rest = probe("capture-rest-double")
+    assert rest["mode"] == 1 and rest["header"] + rest["depth"] >= 72
+    move(x,y)
+    time.sleep(.21)
     if args.epub:
         wheel(-1)
         wheel(-1)

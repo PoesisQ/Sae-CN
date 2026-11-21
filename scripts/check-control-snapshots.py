@@ -8,15 +8,20 @@ from PIL import Image, ImageChops
 
 
 def profile(image, center, radius, scale):
-    face = (225, 227, 217)
     deviations = []
-    for fraction in (-.85, -.6, -.3, 0, .3, .6, .85):
-        x = round(center + fraction * radius)
-        edge = math.sqrt(radius**2 - (x - center)**2)
-        # The fixed index and teeth interrupt the last few pixels of the face.
-        last = max(y for y in range(round(radius + 1)) if image.getpixel((x, y)) == face)
-        deviations.append(round(edge - last, 2))
-    assert all(-1 <= value <= 13 * scale for value in deviations), deviations
+    # Look for the meniscus against the neighbouring backdrop on a radial
+    # scan. Transmitted page colour varies across the lens and between pages.
+    for fraction in (-.85,-.6,-.3,.3,.6,.85):
+        ny = math.sqrt(1-fraction*fraction)
+        def pixel(r):
+            return image.getpixel((round(center+fraction*r),round(ny*r)))
+        def gradient(d):
+            a, b = pixel(radius+d-scale), pixel(radius+d+scale)
+            return max(abs(x-y) for x,y in zip(a,b))
+        candidates = range(-math.ceil(2.5*scale),math.ceil(2.5*scale)+1)
+        d = max(candidates,key=gradient)
+        assert gradient(d) >= 8, (fraction,d,gradient(d))
+        deviations.append(d)
     return deviations
 
 
@@ -30,7 +35,7 @@ def tick_span(folder):
         scale = pose["dpi"]
         radius = pose["depth"] + pose["header"]
         center = pose["mode_x"]
-        face = image.getpixel((round(center * scale), round(radius * .25 * scale)))
+        ink = (213,223,215) if "dark" in name else (61,80,77)
         found = []
         for tooth in range(-16, 33):
             degrees = tooth * 6 - pose["mode_position"] * 48
@@ -41,7 +46,7 @@ def tick_span(folder):
             y = round((radius - 8) * math.cos(angle) * scale)
             delta = max(1, round(1.25 * scale))
             crop = image.crop((x - delta, y - delta, x + delta + 1, y + delta + 1))
-            painted = any(max(f - lo, hi - f) > 25 for (lo, hi), f in zip(crop.getextrema(), face))
+            painted = any(max(abs(c-target) for c,target in zip(pixel,ink)) < 56 for pixel in crop.getdata())
             assert painted == (0 <= tooth <= (count - 1) * 8), (name, tooth, degrees, painted)
             if painted:
                 found.append(tooth)

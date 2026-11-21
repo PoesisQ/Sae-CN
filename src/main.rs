@@ -16,6 +16,7 @@ use std::{
     time::{Duration, Instant},
 };
 slint::include_modules!();
+mod glass;
 mod home;
 #[cfg(feature = "qa")]
 mod qa;
@@ -269,6 +270,7 @@ fn run() -> anyhow::Result<()> {
         .skip(1)
         .find(|arg| !arg.to_string_lossy().starts_with("--"));
     let ui = ReaderWindow::new()?;
+    ui.on_glass(glass::draw);
     ui.on_choice_index(|model, value| {
         model
             .iter()
