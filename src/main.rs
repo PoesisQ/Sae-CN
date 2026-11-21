@@ -274,6 +274,8 @@ fn run() -> anyhow::Result<()> {
     ui.on_glass(glass::draw);
     ui.on_backdrop(|scene, pages, _revision| glass::backdrop(scene, pages));
     ui.global::<Materials>().on_face(glass::panel);
+    ui.global::<Materials>().on_dock_edge(glass::dock_edge);
+    ui.global::<Materials>().on_zoom_lens(glass::zoom_lens);
     ui.on_choice_index(|model, value| {
         model
             .iter()
@@ -1245,7 +1247,14 @@ fn run() -> anyhow::Result<()> {
         let scripted_pointer = std::env::var_os("SAE_READER_QA_REPORT").is_some()
             && matches!(
                 std::env::var("SAE_READER_QA_SCENARIO").as_deref(),
-                Ok("chrome" | "detents" | "instruments" | "navigation" | "visual" | "page-input")
+                Ok("chrome"
+                    | "detents"
+                    | "instruments"
+                    | "navigation"
+                    | "visual"
+                    | "page-input"
+                    | "glass"
+                    | "surfaces")
             );
         ui.window().on_winit_window_event(move |window, event| {
             let Some(ui) = weak.upgrade() else {

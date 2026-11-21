@@ -56,7 +56,7 @@ def measure(folder):
     assert not report["errors"] and report["count"] == 2
     samples = report["samples"]
     assert samples[1]["visible"] is False and samples[2]["visible"] is True
-    assert abs(samples[2]["radius"] - 72) < .1 and abs(samples[3]["radius"] - 88) < .1
+    assert abs(samples[2]["radius"] - 64) < .1 and abs(samples[3]["radius"] - 78) < .1
     assert samples[3]["page"] == 0 and samples[4]["page"] == 1
     assert samples[5]["builds"] == samples[6]["builds"] == samples[7]["builds"]
     assert samples[4]["builds"] > samples[3]["builds"] and samples[5]["builds"] > samples[4]["builds"]
@@ -81,7 +81,8 @@ def measure(folder):
     centers = {"light": icon_centers(read("rest"),(70,86,79)),
                "dark": icon_centers(dark,(190,203,197))}
     cx, r = samples[3]["center"], samples[3]["radius"]
-    box = tuple(round(p*dpi) for p in (cx-r*.48, r*.65, cx-r*.25, r*.79))
+    # Sample the page below the rail, clear of the lettering and bevel.
+    box = tuple(round(p*dpi) for p in (cx-r*.46, r*.73, cx-r*.24, r*.82))
     colors = [ImageStat.Stat(im.crop(box)).median for im in (blue, red, dark)]
     assert colors[0][2] - colors[0][0] > 20 and colors[1][0] - colors[1][2] > 20, colors
     assert sum(colors[2]) < sum(colors[1]) - 95, colors
@@ -162,6 +163,84 @@ def measure_neutral_paper(folder):
     return result
 
 
+def measure_zoom_dial(folder):
+    report = json.loads((folder / "fixture-00.json").read_text(encoding="utf-8"))
+    scale = report["dpi"]
+    screens = folder / "fixture-00-screenshots"
+    poses = {s["dial"]["name"]: s["dial"] for s in report["samples"] if "dial" in s}
+    colors, contrasts, relief, bay_edges = {}, {}, {}, {}
+    # Retain only the small dial crops after reading each screenshot.
+    open_discs = {}
+    linear = [(v / 255 / 12.92 if v / 255 <= .04045 else ((v / 255 + .055) / 1.055) ** 2.4)
+              for v in range(256)]
+    for name, pose in poses.items():
+        resting = name.endswith("-rest")
+        assert pose["visible"] and abs(pose["radius"] - (12 if resting else 34)) < .1, (name, pose)
+        x, y = (v * scale for v in pose["center"])
+        r = pose["radius"] * scale
+        tx, ty = (v * scale for v in pose["readout"])
+        with Image.open(screens / (name + ".png")) as image:
+            def patch(dx, dy):
+                px, py = x + dx * r, y + dy * r
+                return image.crop((round(px-.07*r), round(py-.07*r),
+                                   round(px+.07*r)+1, round(py+.07*r)+1))
+            colors[name] = ImageStat.Stat(patch(-.26, -.42).convert("RGB")).median
+            if name.endswith("-open"):
+                # Both points have the same bare page colour. The directional
+                # reflection distinguishes a raised lens from a flat tinted disc.
+                lit, shaded = [ImageStat.Stat(patch(s*.43, s*.61).convert("L")).median[0] for s in (-1, 1)]
+                relief[name] = lit - shaded
+                # Just inside the dock's top lip, the native curve should keep
+                # the page colour even where the low-resolution overlay ends.
+                bay_edges[name] = image.getpixel((round(x), round(y - 45.5 * scale)))[:3]
+            text = image.crop((round(tx-18*scale), round(ty-7*scale),
+                               round(tx+18*scale), round(ty+7*scale))).convert("RGB")
+            if name in ("dial-night-open", "dial-settled", "dial-preview"):
+                open_discs[name] = image.crop((round(x-r), round(y-r), round(x+r), round(y+r))).convert("RGB")
+        luminances = []
+        for j in range(text.height):
+            for i in range(text.width):
+                red, green, blue = text.getpixel((i, j))
+                luminances.append(.2126 * linear[red] + .7152 * linear[green] + .0722 * linear[blue])
+        luminances.sort()
+        n = len(luminances)
+        contrast = (luminances[n*9//10]+.05)/(luminances[n//10]+.05)
+        assert contrast >= 4.5, ("Low contrast in zoom percentage", name, contrast)
+        contrasts[name] = round(contrast, 2)
+    for size in ("rest", "open"):
+        warm, cool, night = [colors[f"dial-{plate}-{size}"] for plate in ("warm", "cool", "night")]
+        assert warm[0] - warm[2] > 8 and cool[2] - cool[0] > 8, ("Page tint missing", size, warm, cool)
+        assert sum(cool) - sum(night) > 160 and night[2] - night[0] > 5, ("Night glass", size, cool, night)
+    assert min(relief.values()) >= 4, ("Flat zoom lens over a uniform colour plate", relief)
+    warm_edge, cool_edge = (bay_edges[name] for name in ("dial-warm-open", "dial-cool-open"))
+    assert warm_edge[0] - warm_edge[2] > 12 and cool_edge[2] - cool_edge[0] > 12, (
+        "Untinted fringe on the raised dock", bay_edges)
+    warm_open, cool_open = poses["dial-warm-open"], poses["dial-cool-open"]
+    assert cool_open["maps"] > warm_open["maps"] and cool_open["faces"] > warm_open["faces"]
+    night, settled, preview = [poses[name] for name in ("dial-night-open", "dial-settled", "dial-preview")]
+    assert all((p["maps"], p["faces"]) == (night["maps"], night["faces"]) for p in (settled, preview)), (
+        "Stationary glass or a needle-only update rebuilt a surface", night, settled, preview)
+    idle, before, after = [open_discs[name] for name in ("dial-night-open", "dial-settled", "dial-preview")]
+    assert not ImageChops.difference(idle, before).getbbox(), "The resting zoom dial is moving"
+    assert abs(preview["zoom"] - settled["zoom"]) > .1
+    diff = ImageChops.difference(before, after)
+    # Exclude the text band so the percentage alone cannot make this pass.
+    rx, ry = diff.width / 2, diff.height / 2
+    changed = 0
+    for j in range(diff.height):
+        dy = j + .5 - ry
+        if abs(dy) <= 9 * scale:
+            continue
+        for i in range(diff.width):
+            distance2 = ((i + .5 - rx) / rx)**2 + (dy / ry)**2
+            if .58**2 < distance2 < .92**2 and max(diff.getpixel((i, j))) > 24:
+                changed += 1
+    assert changed >= 3*scale**2, ("Percentage changed but index did not rotate", changed)
+    return {"face_rgb": colors, "shoulder_light_delta": relief, "dock_edge_rgb": bay_edges, "minimum_readout_contrast": min(contrasts.values()),
+            "changed_needle_pixels": changed, "idle_face_builds": settled["faces"] - night["faces"],
+            "preview_face_builds": preview["faces"] - settled["faces"]}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exe", type=Path, required=True)
@@ -177,6 +256,7 @@ if __name__ == "__main__":
         cmd += ["--scale", str(args.scale)]
     subprocess.run(cmd, check=True)
     data = measure(args.output)
+    data["zoom_dial"] = measure_zoom_dial(args.output)
     surfaces = args.output / "surfaces"
     cmd[cmd.index("glass")] = "surfaces"
     cmd[cmd.index("--output") + 1] = str(surfaces)

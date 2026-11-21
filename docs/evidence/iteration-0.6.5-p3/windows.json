@@ -1,0 +1,639 @@
+{
+  "builds": {
+    "0.6.5-preview.2": {
+      "bytes": 26169856,
+      "sha256": "4c66d32753a516418cc73bb82244ff052a776290fd93250ad5f62588a232118f"
+    },
+    "0.6.5-preview.3": {
+      "bytes": 26189824,
+      "sha256": "d06d498d80f4e13233b674e68208ba0ba79b313a06a2c08befa545aafa6a4f0e"
+    }
+  },
+  "fixtures": {
+    "epub": {
+      "0.6.5-preview.2": {
+        "warm_start_ms": [
+          169.5946,
+          153.557,
+          158.3905,
+          147.4498,
+          149.4036,
+          148.2895,
+          150.1719,
+          151.1424,
+          156.4403,
+          148.1539
+        ],
+        "median_ms": 150.66,
+        "p95_ms": 169.59,
+        "windows": [
+          {
+            "private_bytes": 22659072.0,
+            "private_working_set": 19648512.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.08
+          },
+          {
+            "private_bytes": 22827008.0,
+            "private_working_set": 19771392.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.84
+          },
+          {
+            "private_bytes": 17698816.0,
+            "private_working_set": 14581760.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2757.05
+          }
+        ],
+        "private_mib": 21.61
+      },
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          149.4807,
+          151.6123,
+          166.6765,
+          154.014,
+          150.3264,
+          162.4109,
+          155.7911,
+          161.1897,
+          156.9104,
+          160.5093
+        ],
+        "median_ms": 156.35,
+        "p95_ms": 166.68,
+        "windows": [
+          {
+            "private_bytes": 22851584.0,
+            "private_working_set": 19771392.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2757.35
+          },
+          {
+            "private_bytes": 22786048.0,
+            "private_working_set": 19730432.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.52
+          },
+          {
+            "private_bytes": 22794240.0,
+            "private_working_set": 19750912.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.88
+          }
+        ],
+        "private_mib": 21.74
+      }
+    },
+    "blank": {
+      "0.6.5-preview.2": {
+        "warm_start_ms": [
+          50.9279,
+          48.0082,
+          48.9392,
+          52.9519,
+          49.8908,
+          48.2136,
+          48.3954,
+          50.8656,
+          50.3084,
+          48.1287
+        ],
+        "median_ms": 49.41,
+        "p95_ms": 52.95,
+        "windows": [
+          {
+            "private_bytes": 18243584.0,
+            "private_working_set": 15257600.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2757.03
+          },
+          {
+            "private_bytes": 18415616.0,
+            "private_working_set": 15241216.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.61
+          },
+          {
+            "private_bytes": 18366464.0,
+            "private_working_set": 15208448.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.93
+          }
+        ],
+        "private_mib": 17.52
+      },
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          52.8218,
+          49.3334,
+          47.5306,
+          50.6983,
+          49.6308,
+          48.3952,
+          52.1757,
+          48.1721,
+          48.9289,
+          53.3031
+        ],
+        "median_ms": 49.48,
+        "p95_ms": 53.3,
+        "windows": [
+          {
+            "private_bytes": 18370560.0,
+            "private_working_set": 15192064.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.75
+          },
+          {
+            "private_bytes": 18419712.0,
+            "private_working_set": 15245312.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.92
+          },
+          {
+            "private_bytes": 18444288.0,
+            "private_working_set": 15257600.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.85
+          }
+        ],
+        "private_mib": 17.57
+      }
+    },
+    "pdf": {
+      "0.6.5-preview.2": {
+        "warm_start_ms": [
+          153.7574,
+          155.8143,
+          150.3517,
+          148.6463,
+          150.7436,
+          154.1272,
+          151.3938,
+          153.6612,
+          151.2511,
+          150.1536
+        ],
+        "median_ms": 151.32,
+        "p95_ms": 155.81,
+        "windows": [
+          {
+            "private_bytes": 25427968.0,
+            "private_working_set": 22446080.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2754.98
+          },
+          {
+            "private_bytes": 25505792.0,
+            "private_working_set": 22482944.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.33
+          },
+          {
+            "private_bytes": 25419776.0,
+            "private_working_set": 22441984.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.03
+          }
+        ],
+        "private_mib": 24.25
+      },
+      "0.6.5-preview.3": {
+        "warm_start_ms": [
+          159.5111,
+          146.746,
+          148.326,
+          148.1068,
+          161.0326,
+          154.3909,
+          146.277,
+          147.0856,
+          149.8546,
+          158.1869
+        ],
+        "median_ms": 149.09,
+        "p95_ms": 161.03,
+        "windows": [
+          {
+            "private_bytes": 25653248.0,
+            "private_working_set": 22609920.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2755.68
+          },
+          {
+            "private_bytes": 25481216.0,
+            "private_working_set": 22495232.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.62
+          },
+          {
+            "private_bytes": 25559040.0,
+            "private_working_set": 22532096.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.6
+          }
+        ],
+        "private_mib": 24.38
+      }
+    }
+  },
+  "environment": {
+    "os": "Windows 11 Home x64",
+    "processor": "Core i9-14900HX",
+    "windows_build": "10.0.26200",
+    "logical_processors": 32,
+    "method": "Interleaved warm startup, 10 native first captures per version and fixture. Three six-second production observations per fixture. Two three-second stationary observations per control pose and version on a private Win32 desktop. No process working-set manipulation.",
+    "graphics": "Slint software renderer"
+  },
+  "dock_stationary": {
+    "0.6.5-preview.2": [
+      {
+        "hidden": {
+          "private_mib": 28.695,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "compact": {
+          "private_mib": 29.211,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "open": {
+          "private_mib": 29.379,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 28.906,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "compact": {
+          "private_mib": 29.469,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "open": {
+          "private_mib": 29.746,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      }
+    ],
+    "0.6.5-preview.3": [
+      {
+        "hidden": {
+          "private_mib": 28.797,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "compact": {
+          "private_mib": 29.352,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        },
+        "open": {
+          "private_mib": 29.715,
+          "cpu_ms": 15.625,
+          "seconds": 3.0
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 28.926,
+          "cpu_ms": 0.0,
+          "seconds": 3.078
+        },
+        "compact": {
+          "private_mib": 29.387,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        },
+        "open": {
+          "private_mib": 29.66,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        }
+      }
+    ]
+  },
+  "glass": {
+    "rest_radius": 64.0,
+    "expanded_radius": 78.0,
+    "toolbar_icon_centers": {
+      "light": [
+        26.0,
+        26.33,
+        26.33
+      ],
+      "dark": [
+        26.0,
+        26.33,
+        26.33
+      ]
+    },
+    "region_median_rgb": [
+      [
+        159,
+        207,
+        214
+      ],
+      [
+        223,
+        188,
+        158
+      ],
+      [
+        97,
+        71,
+        50
+      ]
+    ],
+    "bare_edge_energy": 10.411,
+    "glass_edge_energy": 1.124,
+    "builds": 10,
+    "mean_build_us": 867.6,
+    "idle_builds": 0,
+    "zoom_dial": {
+      "face_rgb": {
+        "dial-warm-rest": [
+          222,
+          177,
+          165
+        ],
+        "dial-warm-open": [
+          222,
+          178,
+          166
+        ],
+        "dial-cool-open": [
+          158,
+          194,
+          209
+        ],
+        "dial-cool-rest": [
+          156,
+          193,
+          208
+        ],
+        "dial-night-rest": [
+          42,
+          72,
+          85
+        ],
+        "dial-night-open": [
+          43,
+          74,
+          86
+        ],
+        "dial-settled": [
+          43,
+          74,
+          86
+        ],
+        "dial-preview": [
+          43,
+          74,
+          86
+        ]
+      },
+      "shoulder_light_delta": {
+        "dial-warm-open": 10,
+        "dial-cool-open": 11,
+        "dial-night-open": 14
+      },
+      "dock_edge_rgb": {
+        "dial-warm-open": [
+          247,
+          219,
+          186
+        ],
+        "dial-cool-open": [
+          200,
+          236,
+          235
+        ],
+        "dial-night-open": [
+          47,
+          80,
+          81
+        ]
+      },
+      "minimum_readout_contrast": 6.67,
+      "changed_needle_pixels": 65,
+      "idle_face_builds": 0,
+      "preview_face_builds": 0
+    },
+    "surfaces": {
+      "backdrop_builds": 5,
+      "face_builds": 39,
+      "mean_backdrop_us": 2063.2,
+      "mean_face_us": 278.0,
+      "same_panel_invert_roundtrip_rgb": [
+        [
+          [
+            170,
+            201,
+            214
+          ],
+          [
+            242,
+            215,
+            194
+          ],
+          [
+            170,
+            201,
+            214
+          ]
+        ],
+        [
+          [
+            195,
+            216,
+            223
+          ],
+          [
+            244,
+            225,
+            209
+          ],
+          [
+            195,
+            216,
+            223
+          ]
+        ]
+      ],
+      "idle_builds": 0,
+      "rail_panel_paper_rgb": [
+        [
+          170,
+          201,
+          214
+        ],
+        [
+          195,
+          216,
+          223
+        ],
+        [
+          20,
+          107,
+          158
+        ]
+      ],
+      "panel_over_three_colors": [
+        [
+          195,
+          216,
+          223
+        ],
+        [
+          246,
+          247,
+          240
+        ],
+        [
+          213,
+          239,
+          237
+        ]
+      ],
+      "settings_light_dark_rgb": [
+        [
+          196,
+          216,
+          223
+        ],
+        [
+          32,
+          55,
+          61
+        ]
+      ]
+    },
+    "neutral_paper_roundtrip_rgb": {
+      "rail": [
+        [
+          247,
+          249,
+          244
+        ],
+        [
+          217,
+          219,
+          214
+        ],
+        [
+          247,
+          249,
+          244
+        ]
+      ],
+      "contents": [
+        [
+          245,
+          247,
+          242
+        ],
+        [
+          228,
+          230,
+          224
+        ],
+        [
+          245,
+          247,
+          242
+        ]
+      ]
+    }
+  },
+  "native_control_scales": {
+    "1": {
+      "scale": 1.0,
+      "circular_edge_error_px": [
+        2,
+        2,
+        3,
+        1,
+        2,
+        1
+      ],
+      "zoom_face_physical_px": [
+        69,
+        69
+      ],
+      "ticks_on_visible_arc": []
+    },
+    "1.25": {
+      "scale": 1.25,
+      "circular_edge_error_px": [
+        0,
+        0,
+        3,
+        2,
+        1,
+        0
+      ],
+      "zoom_face_physical_px": [
+        86,
+        86
+      ],
+      "ticks_on_visible_arc": []
+    },
+    "1.5": {
+      "scale": 1.5,
+      "circular_edge_error_px": [
+        0,
+        3,
+        3,
+        1,
+        1,
+        1
+      ],
+      "zoom_face_physical_px": [
+        103,
+        103
+      ],
+      "ticks_on_visible_arc": []
+    },
+    "2": {
+      "scale": 2.0,
+      "circular_edge_error_px": [
+        0,
+        4,
+        4,
+        1,
+        2,
+        2
+      ],
+      "zoom_face_physical_px": [
+        136,
+        138
+      ],
+      "ticks_on_visible_arc": []
+    }
+  },
+  "native_window_suites": {
+    "chrome": 0,
+    "contents": 0,
+    "detents": 0,
+    "dpi-1": 0,
+    "dpi-125": 0,
+    "dpi-2": 0,
+    "features": 0,
+    "home": 0,
+    "instruments": 0,
+    "multipage": 0,
+    "navigation": 0,
+    "stress": 0,
+    "visual": 0
+  },
+  "rust_tests": 46
+}

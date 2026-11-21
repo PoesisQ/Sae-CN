@@ -12,7 +12,11 @@ export struct GlassView { center: float, radius: float, rail: float, density: fl
 export enum FrostKind { rail, dock, panel, menu, notice }
 export struct FrostMap { picture: image, w: float, h: float, dark: bool }
 export struct FrostRect { x: float, y: float, w: float, h: float, corner: float, rise: float }
-export global Materials { pure callback face(FrostMap, FrostRect, FrostKind) -> image; }
+export global Materials {
+    pure callback face(FrostMap, FrostRect, FrostKind) -> image;
+    pure callback dock-edge(FrostMap, float, float) -> color;
+    pure callback zoom-lens(FrostMap, float, float, float, float) -> image;
+}
 export struct TocRow { title:string, uri:string, depth:int, latin:bool }
 
 export global ReaderTheme {
@@ -542,6 +546,7 @@ component ModeDrum inherits Rectangle {
     // spring. The layout index is integral only when a detent is committed.
     in property <float> value;
     in property <length> radius;
+    in property <length> label-radius;
     in property <float> lift;
     in property <image> lens;
     in property <bool> hit-enabled: true;
@@ -628,14 +633,13 @@ component ModeDrum inherits Rectangle {
     for name[i] in ["单页","双页","多页"]: Text {
         property <float> phase: i - root.position;
         property <angle> theta: self.phase*48deg;
-        property <length> track: root.radius*0.67;
-        visible: i < root.count && abs(self.phase) < 1.78;
+        visible: i < root.count && abs(self.theta) < 70deg;
         width: 38px; height: 20px;
-        x: parent.width/2 + self.track*sin(self.theta) - self.width/2;
-        y: self.track*cos(self.theta) - self.height/2;
-        opacity: clamp((1.78 - abs(self.phase))*2.4,0,1);
+        x: parent.width/2 + root.label-radius*sin(self.theta) - self.width/2;
+        y: root.label-radius*cos(self.theta) - self.height/2;
+        opacity: clamp((70deg - abs(self.theta))/16deg,0,1);
         transform-rotation: -self.theta*0.62;
-        text: name; font-size: (abs(self.phase) < 0.48 ? 14px : 12px) + 2px * root.lift;
+        text: name; font-size: 12px + 2px * root.lift + 2px * max(0,1 - abs(self.phase));
         font-weight: abs(self.phase) < 0.48 ? 600 : 400;
         color: abs(self.phase) < 0.48 ? root.printing : root.secondary;
         horizontal-alignment: center; vertical-alignment: center;
@@ -692,9 +696,12 @@ component ModeDrum inherits Rectangle {
 component DialFace inherits Rectangle {
     in property <angle> turn;
     in property <float> lift;
-    // A single plan view at every size. The index moves on a true circle.
-    border-radius: self.width/2; background: ReaderTheme.dark ? #303733 : #f4f2ea;
-    border-width: 1px; border-color: ReaderTheme.dark ? #78847b : #909b8d;
+    in property <image> lens;
+    Image {
+        x: -parent.width * 0.05; y: -parent.height * 0.05;
+        width: parent.width * 1.10; height: parent.height * 1.10;
+        source: root.lens; image-fit: fill; image-rendering: smooth;
+    }
     Path {
         width: parent.width; height: parent.height; viewbox-width: 100; viewbox-height: 100;
         commands: "M10.4 65.7A42.6 42.6 0 1 1 89.6 65.7";
@@ -998,14 +1005,15 @@ export component ReaderWindow inherits Window {
     property <length> window-inset: 16px;
     property <length> header-height: 52px;
     out property <length> header-height-logical: root.header-height;
-    out property <length> mode-span: root.reflowable ? clamp(root.width*0.25,154px,176px) : clamp(root.width*0.27,154px,188px);
+    property <length> rest-radius: 64px;
+    property <length> open-radius: 78px;
+    out property <length> mode-span: 2 * (root.open-radius + 6px);
     out property <length> mode-center-x: root.width - root.window-inset - 88px - root.mode-span/2;
     property <bool> mode-hot;
     property <bool> mode-hit-enabled: true;
     in-out property <float> mode-position;
-    property <length> open-radius: min(root.mode-span/2 - 4px,88px);
-    property <length> rest-radius: min(72px,root.open-radius - 9px);
     property <length> mode-radius: root.mode-hot || root.mode-dragging ? root.open-radius : root.rest-radius;
+    out property <length> mode-label-radius: root.mode-radius*0.63;
     out property <length> mode-depth: root.mode-radius - root.header-height;
     animate mode-radius { duration: 145ms; easing: cubic-bezier(0.2,0.7,0.2,1); }
     out property <length> panel-top: root.open-radius + ReaderTheme.pad;
@@ -1026,9 +1034,12 @@ export component ReaderWindow inherits Window {
     out property <bool> zoom-can-cover: root.pdf-fill-zoom > root.pdf-fit-width-zoom * 1.035;
     out property <length> knob-pop-left: root.dock-right - root.knob-pop-width;
     out property <length> knob-pop-top: root.dock-top - root.knob-pop-height;
-    out property <length> knob-center-x: root.dock-right - 73px + 23px * root.zoom-lift;
-    out property <length> knob-center-y: root.dock-top + 24px - 24px * root.zoom-lift;
-    out property <length> knob-radius: 12px + 22px * root.zoom-lift;
+    pure function dial-x(lift: float) -> length { return root.dock-right - 73px + 23px * lift; }
+    pure function dial-y(lift: float) -> length { return root.dock-top + 24px - 24px * lift; }
+    pure function dial-radius(lift: float) -> length { return 12px + 22px * lift; }
+    out property <length> knob-center-x: root.dial-x(root.zoom-lift);
+    out property <length> knob-center-y: root.dial-y(root.zoom-lift);
+    out property <length> knob-radius: root.dial-radius(root.zoom-lift);
     property <length> dock-rise: root.knob-pop-height * root.zoom-lift;
     out property <length> readout-x: root.dock-right - 30px - 20px * root.zoom-lift;
     out property <length> readout-y: root.knob-center-y;
@@ -1068,10 +1079,13 @@ export component ReaderWindow inherits Window {
         // Enter well inside the canvas, then give the pointer a wider exit band.
         let reveal = clamp(root.height * 0.08,44px,72px);
         let dx = (px - root.mode-center-x)/1px; let dy = py/1px;
-        let r = root.mode-radius/1px + 1;
-        let on-face = dx*dx + dy*dy <= r*r;
-        root.mode-hit-enabled = on-face;
-        root.mode-hot = on-face;
+        let distance2 = dx*dx + dy*dy;
+        // Reveal just before the pointer reaches the glass and keep the
+        // expanded rim steady while its painted radius is still catching up.
+        let reach = (root.mode-hot || root.mode-dragging ? root.open-radius + 4px : root.rest-radius + 8px)/1px;
+        root.mode-hot = distance2 <= reach*reach;
+        let rim = root.mode-radius/1px + 1;
+        root.mode-hit-enabled = distance2 <= rim*rim || (py <= root.header-height && root.mode-hot);
         root.top-hover = root.mode-hot || py <= (root.top-hover ? max(reveal + 12px,root.header-height + 12px) : reveal);
         let in-knob = px >= root.dock-right - 100px && px <= root.dock-right && py >= root.dock-top;
         let in-pop = root.show-zoom-pop && px >= root.knob-pop-left && px <= root.dock-right && py >= root.knob-pop-top && py < root.dock-top;
@@ -1226,7 +1240,8 @@ export component ReaderWindow inherits Window {
             lens: root.glass({center:root.mode-center-x/1px, radius:round(root.mode-radius/2px)*2,
                 rail:root.header-height/1px, density:1px/1phx, chrome:ReaderTheme.chrome, dark:root.dark, scene:root.page-scene},
                 [root.pages[0],root.pages[1],root.pages[2],root.pages[3]]);
-            radius: root.mode-radius; lift: (root.mode-radius - root.rest-radius)/(root.open-radius - root.rest-radius);
+            radius: root.mode-radius; label-radius: root.mode-label-radius;
+            lift: (root.mode-radius - root.rest-radius)/(root.open-radius - root.rest-radius);
             indicated(p) => { root.mode-position = p; } hit-enabled: root.mode-dragging || root.mode-hit-enabled;
             count: root.reflowable ? 2 : 3;
             gripping(v) => { root.mode-dragging = v; if !v { root.focus-reading(); } }
@@ -1408,6 +1423,10 @@ export component ReaderWindow inherits Window {
 
         if root.bottom-visible: Rectangle {
             x: root.dock-left; y: root.dock-top; width: root.dock-width; height: root.dock-height;
+            pure function edge-tone(fraction: float) -> color {
+                return Materials.dock-edge(root.material,(root.dock-left + fraction*root.dock-width)/1px,(root.dock-top + root.dock-height/2)/1px);
+            }
+            property <brush> edge-fill: @linear-gradient(90deg, self.edge-tone(0), self.edge-tone(0.5), self.edge-tone(1));
             DockOutline {
                 y: ReaderTheme.contact-depth - root.dock-rise; width: parent.width; height: parent.height + root.dock-rise;
                 rise: root.dock-rise; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.contact;
@@ -1418,7 +1437,7 @@ export component ReaderWindow inherits Window {
             }
             DockOutline {
                 x: 1px; y: 1px - root.dock-rise; width: parent.width - 2px; height: parent.height + root.dock-rise - 2px;
-                rise: root.dock-rise; bay: 99px; has-track: root.show-progress || root.page-entry-active; fill: ReaderTheme.surface;
+                rise: root.dock-rise; bay: 99px; has-track: root.show-progress || root.page-entry-active; fill: parent.edge-fill;
             }
             FrostFace {
                 y: -root.dock-rise; width: parent.width; height: parent.height + root.dock-rise; material: root.material;
@@ -1445,6 +1464,12 @@ export component ReaderWindow inherits Window {
             DialFace {
                 x: root.knob-center-x - root.knob-radius; y: root.knob-center-y - root.knob-radius;
                 width: root.knob-radius * 2; height: self.width; lift: root.zoom-lift;
+                // Sample the resting or raised footprint once. Slint moves and
+                // scales that one image through the lift, independently of the index.
+                property <float> material-pose: root.zoom-dragging ? root.captured-lift : root.show-zoom-pop ? 1 : 0;
+                lens: Materials.zoom-lens({picture:root.page-frost,w:root.viewport-width,h:root.viewport-height,dark:root.dark},
+                    root.dial-x(self.material-pose)/1px,root.dial-y(self.material-pose)/1px,
+                    root.dial-radius(self.material-pose)/1px,1px/1phx);
                 turn: 180deg * log(clamp(root.pdf-zoom,0.25,8),2);
             }
             Text {

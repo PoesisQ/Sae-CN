@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.6.5-preview.2')
+parser.add_argument('--name', default='SaeReader-0.6.5-preview.3')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))

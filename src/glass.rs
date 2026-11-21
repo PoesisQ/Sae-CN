@@ -5,7 +5,7 @@ use crate::{GlassView, PageScene, PageTile};
 use slint::{Color, Image, Model, ModelRc, Rgb8Pixel, Rgba8Pixel, SharedPixelBuffer};
 #[cfg(feature = "qa")]
 pub(crate) use surfaces::COST;
-pub(crate) use surfaces::{backdrop, panel};
+pub(crate) use surfaces::{backdrop, dock_edge, panel, zoom_lens};
 
 type Rgb = [f32; 3];
 const MARGIN: f32 = 6.0;

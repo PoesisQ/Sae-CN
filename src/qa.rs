@@ -431,13 +431,24 @@ pub fn start(
                 let center = ui.get_mode_center_x();
                 let page = state.lock().unwrap().frame.as_ref().map(|f| f.page);
                 let (calls, micros) = crate::glass::PROFILE.with(|p| p.get());
-                run.snapshots.push(json!({"step":step,"page":page,"radius":ui.get_header_height_logical()+ui.get_mode_depth(),
-                    "center":center,"builds":calls,"total_us":micros,"visible":ui.get_top_visible()}));
+                let mut sample = json!({"step":step,"page":page,"radius":ui.get_header_height_logical()+ui.get_mode_depth(),
+                    "center":center,"builds":calls,"total_us":micros,"visible":ui.get_top_visible()});
                 let name = match step { 1 => "bare", 2 => "rest", 3 => "raised", 4 => "next",
-                    5 => "night", 6 => "settled", 7 => "night-bare", _ => "" };
+                    5 => "night", 6 => "settled", 7 => "night-bare", 8 => "dial-warm-rest",
+                    9 => "dial-warm-open", 10 => "dial-cool-open", 11 => "dial-cool-rest",
+                    12 => "dial-night-rest", 13 => "dial-night-open", 14 => "dial-settled",
+                    15 => "dial-preview", _ => "" };
                 if let Some(dir) = &screenshots && !name.is_empty() {
                     if let Err(e) = snapshot(&ui,&dir.join(format!("{name}.png"))) { run.errors.push(e.to_string()); }
                 }
+                if step >= 8 {
+                    let (maps, faces, _, _) = crate::glass::COST.with(|counter| counter.get());
+                    sample["dial"] = json!({"name":name,"center":[ui.get_knob_center_x(),ui.get_knob_center_y()],
+                        "readout":[ui.get_readout_x(),ui.get_readout_y()],
+                        "radius":ui.get_knob_radius(),"visible":ui.get_bottom_visible(),"zoom":ui.get_pdf_zoom(),
+                        "maps":maps,"faces":faces});
+                }
+                run.snapshots.push(sample);
                 match step {
                     0 => {
                         ui.invoke_typography("fit-width".into(),0.);
@@ -450,6 +461,17 @@ pub fn start(
                     4 => ui.invoke_theme_changed(2),
                     5 => {}
                     6 => ui.invoke_edge_hover(260.,220.),
+                    7 => {
+                        ui.invoke_theme_changed(0);
+                        ui.invoke_edge_hover(300., ui.get_viewport_height() - 6.);
+                    }
+                    8 | 12 => ui.invoke_edge_hover(ui.get_readout_x(), ui.get_readout_y()),
+                    9 => ui.invoke_next_page(-1),
+                    10 => ui.invoke_edge_hover(300., ui.get_viewport_height() - 6.),
+                    11 => ui.invoke_theme_changed(2),
+                    13 => {}
+                    // Move only the needle and percentage, leaving document pixels fixed.
+                    14 => ui.set_pdf_zoom(ui.get_pdf_zoom() * 1.31),
                     _ => {
                         finish(&ui,&state,&report,&scenario,&run);
                         if let Some(t)=stop.upgrade(){t.stop();}
@@ -457,7 +479,7 @@ pub fn start(
                     }
                 }
                 run.step+=1; run.operations+=1;
-                run.ready=Some(Instant::now()+Duration::from_millis(if step==5 {850} else {280}));
+                run.ready=Some(Instant::now()+Duration::from_millis(if matches!(step,5|13) {850} else {280}));
                 return;
             }
             if scenario == "instruments" {
@@ -494,14 +516,20 @@ pub fn start(
                     if step==17 && (page!=24 || ui.get_pages().row_count()!=6) {run.errors.push("incomplete final eight-page spread".into());}
                     if step==20 && (ui.get_pdf_zoom()-0.25).abs()>0.001 {run.errors.push(format!("held monitor edge stopped at {}",ui.get_pdf_zoom()));}
                     if step==21 && !ui.get_zoom_pinned() {run.errors.push("releasing edge grip lost the axle".into());}
-                    run.snapshots.push(json!({"step":step,"slots":ui.get_pages().row_count(),"stride":count,"rows":ui.get_grid_rows(),"page":page,"generation":generation,"zoom":ui.get_pdf_zoom(),"radius":ui.get_knob_radius()}));
+                    run.snapshots.push(json!({"step":step,"slots":ui.get_pages().row_count(),"stride":count,"rows":ui.get_grid_rows(),"page":page,"generation":generation,"zoom":ui.get_pdf_zoom(),"radius":ui.get_knob_radius(),
+                        "mode_x":ui.get_mode_center_x(),"mode_radius":ui.get_header_height_logical()+ui.get_mode_depth()}));
                     if matches!(step,4|6|8|10|15|17|19|22) && let Some(folder)=&screenshots {
                         if let Err(e)=snapshot(&ui,&folder.join(format!("instrument-{step:02}.png"))) {run.errors.push(e.to_string());}
                     }
                 }
                 match step {
                     0=>{ui.invoke_fullscreen();ui.set_show_toolbar(true);},
-                    1=>{move_to(mode);press(pos(mode.x-49.0,mode.y));release(pos(mode.x-49.0,mode.y));},
+                    1=>{
+                        let track=ui.get_mode_label_radius();
+                        let theta=48f32.to_radians();
+                        let previous=pos(mode.x-track*theta.sin(),track*theta.cos());
+                        move_to(previous);press(previous);release(previous);
+                    },
                     2=>{run.panel_generation=Some(generation);scroll(120.0);},
                     3=>scroll(-120.0),
                     4=>{press(mode);move_to(pos(mode.x-76.0,mode.y));},
@@ -616,7 +644,7 @@ pub fn start(
                     ui.window().dispatch_event(WindowEvent::PointerReleased {position,button:PointerEventButton::Left});
                 };
                 let mode_center = ui.get_mode_center_x();
-                let track = (ui.get_header_height_logical() + ui.get_mode_depth()) * 0.67;
+                let track = ui.get_mode_label_radius();
                 let adjacent_mode = track * 48f32.to_radians().sin();
                 let adjacent_y = track * 48f32.to_radians().cos();
                 if run.step >= 108 {

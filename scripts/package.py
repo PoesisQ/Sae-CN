@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.2/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.6.5-preview.2')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.3/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.5-preview.3')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')

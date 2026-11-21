@@ -3,8 +3,9 @@ import argparse
 import json
 import math
 from pathlib import Path
+from statistics import median
 
-from PIL import Image, ImageChops
+from PIL import Image
 
 
 def profile(image, center, radius, scale):
@@ -57,18 +58,32 @@ def tick_span(folder):
 
 def disc(image, cx, cy, scale):
     radius = 34 * scale
-    left, top = round(cx - radius - 2), round(cy - radius - 2)
-    crop = image.crop((left, top, round(cx + radius + 3), round(cy + radius + 3)))
-    face = (244, 242, 234)
-    red, green, blue = ImageChops.difference(crop, Image.new("RGB", crop.size, face)).split()
-    mask = ImageChops.lighter(ImageChops.lighter(red, green), blue).point([255] + [0] * 255)
-    x0, y0, x1, y1 = mask.getbbox()
-    width, height = x1 - x0, y1 - y0
-    assert abs(width - height) <= 1 and abs(width - 2 * radius) <= 4, (width, height)
-    assert abs(left + (x0 + x1) / 2 - cx) < 2 and abs(top + (y0 + y1) / 2 - cy) < 2
-    # The unpainted corners and four radial extremes distinguish a disc from a square.
-    assert all(not mask.getpixel(p) for p in ((x0, y0), (x0, y1 - 1), (x1 - 1, y0), (x1 - 1, y1 - 1)))
-    return [width, height]
+    radii = []
+    # Sample the lip on all sides, including the diagonals where a square
+    # has no edge. Three neighbouring rays keep a tick or the index from
+    # dominating, and a narrow radial band excludes the soft contact shadow.
+    tolerance = math.ceil(2 * scale)
+    distances = range(-tolerance, tolerance + 1)
+    for ray in range(16):
+        angle = ray * math.tau / 16
+        rays = [(math.cos(angle + off), math.sin(angle + off)) for off in (-.055, 0, .055)]
+        def color(dx, dy, offset):
+            return image.getpixel((round(cx + dx * (radius + offset) - .5),
+                                   round(cy + dy * (radius + offset) - .5)))
+        strengths = []
+        for offset in distances:
+            gradients = []
+            for dx, dy in rays:
+                a, b = color(dx, dy, offset - .6 * scale), color(dx, dy, offset + .6 * scale)
+                gradients.append(max(abs(x - y) for x, y in zip(a, b)))
+            strengths.append(median(gradients))
+        peak = max(strengths)
+        assert peak >= 8, ("Missing circular rim", ray, peak)
+        edges = [(d, g) for d, g in zip(distances, strengths) if g >= .7 * peak]
+        radii.append(radius + sum(d*g for d, g in edges) / sum(g for _, g in edges))
+    width, height = radii[0] + radii[8], radii[4] + radii[12]
+    assert max(abs(width - height), abs(width - 2*radius), abs(height - 2*radius)) <= 2.5 * scale
+    return [round(width), round(height)]
 
 
 def main():
@@ -82,9 +97,9 @@ def main():
     images = args.report.with_name(args.report.stem + "-screenshots")
     with Image.open(images / "instrument-04.png") as source:
         image = source.convert("RGB")
-    span = min(max(154, image.width / scale * .27), 188)
-    wheel_center = image.width - (16 + 88 + span / 2) * scale
-    outline = profile(image, wheel_center, min(88, span / 2 - 4) * scale, scale)
+    pose = next(s for s in report["samples"] if s["step"] == 4)
+    assert abs(pose["mode_radius"] - 78) < .1
+    outline = profile(image, pose["mode_x"] * scale, pose["mode_radius"] * scale, scale)
     with Image.open(images / "instrument-19.png") as source:
         image = source.convert("RGB")
     dock_right = (image.width + 516 * scale) / 2

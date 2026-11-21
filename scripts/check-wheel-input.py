@@ -191,7 +191,7 @@ try:
     move(x, y)
     time.sleep(.25)
     a = probe("capture-drum")
-    assert a["depth"] >= 30 and a["mode"] == 0, a
+    assert abs(a["depth"] - 26) < .1 and a["mode"] == 0, a
     gen = a["generation"]
     wheel(-1)
     w = probe()
@@ -205,7 +205,14 @@ try:
     move(x-145,16)
     time.sleep(.21)
     rest = probe("capture-rest-double")
-    assert rest["mode"] == 1 and rest["header"] + rest["depth"] >= 72
+    assert rest["mode"] == 1 and abs(rest["depth"] - 12) < .1, rest
+    # Reach the compact wheel from the rail, then skim the expanded rim.
+    # Moving into the gap before the next button must put it back at rest.
+    for offset, height, depth in ((68,12,26), (78,22,26), (84,22,12)):
+        move(x + offset, height)
+        time.sleep(.21)
+        pose = probe()
+        assert abs(pose["depth"] - depth) < .1 and pose["mode"] == 1, pose
     move(x,y)
     time.sleep(.21)
     if args.epub:

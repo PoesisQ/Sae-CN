@@ -1,5 +1,5 @@
 param(
-    [string]$Name='SaeReader-0.6.5-preview.2',
+    [string]$Name='SaeReader-0.6.5-preview.3',
     [string]$ReuseRegistryFrom
 )
 $ErrorActionPreference='Stop'
