@@ -7,7 +7,7 @@ import argparse
 from pathlib import Path
 import struct
 import zlib
-from PIL import Image
+from PIL import Image, ImageChops
 
 WIDTH, HEIGHT, COUNT = 160, 90, 53
 
@@ -45,13 +45,30 @@ def unpack(blob):
     return atlas
 
 
+def blue_still(path):
+    """Poster frame for reduced motion, using the same first field and grain pitch."""
+    w, h = 760, 428
+    atlas = unpack(path.read_bytes())
+    colors = atlas.crop((0, 0, WIDTH, HEIGHT)).resize((w, h), Image.Resampling.BILINEAR)
+    grain = zlib.decompress(path.with_name("blue-grain.zlib").read_bytes())
+    columns = [((2*x+1)*640*3//(w*5)) % 640 for x in range(w)]
+    rows = [(((2*y+1)*360*3//(h*5)) % 360)*640 for y in range(h)]
+    noise = Image.frombytes("L", (w, h), bytes(grain[row+x] for row in rows for x in columns))
+    mixed = ImageChops.add(colors, noise.convert("RGB"), offset=-128)
+    return mixed.resize((304, 171), Image.Resampling.LANCZOS).quantize(colors=128)
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("input", type=Path)
     parser.add_argument("output", type=Path)
-    parser.add_argument("--unpack", action="store_true")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--unpack", action="store_true")
+    mode.add_argument("--blue-still", action="store_true")
     args = parser.parse_args()
-    if args.unpack:
+    if args.blue_still:
+        blue_still(args.input).save(args.output, optimize=True)
+    elif args.unpack:
         unpack(args.input.read_bytes()).save(args.output)
     else:
         args.output.write_bytes(pack(Image.open(args.input)))

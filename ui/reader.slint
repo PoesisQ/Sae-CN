@@ -39,94 +39,6 @@ export global ReaderTheme {
     out property <length> contact-depth: 2px;
 }
 
-component Frontispiece inherits Rectangle {
-    in property <string> message;
-    in property <int> variant;
-    in property <image> frame;
-    pure callback tone(image, float, float, float, float) -> int;
-    pure callback negative(image, CoverRect) -> image;
-    callback open();
-    property <length> inset: clamp(min(root.width,root.height)/16,24px,64px);
-    property <length> margin: root.variant == 0 ? clamp(root.width * 0.066,28px,108px) : root.inset;
-    property <color> ink: #23302c;
-    property <length> type-size: min(root.width * 0.179, root.height * 0.242);
-    background: #f3efe4;
-    property <length> print-width: max(root.width,root.height*1.6);
-    property <length> print-height: root.print-width/1.6;
-    property <length> print-x: (root.width - root.print-width)*0.16;
-    property <length> print-y: (root.height - root.print-height)*0.48;
-    property <length> logo-w: min(root.width*0.30,root.height*0.40,356px);
-    property <length> logo-h: root.logo-w*753/1395;
-    property <length> logo-x: root.inset - root.logo-w*0.032;
-    property <length> logo-y: action.y - root.inset*0.32 - root.logo-h;
-    property <bool> pale-type: true;
-    if root.variant == 0: Image {
-        x: root.print-x; y: root.print-y; width: root.print-width; height: root.print-height;
-        image-fit: fill; image-rendering: smooth; source: @image-url("../assets/frontispiece.svg");
-    }
-    if root.variant != 0: film := Rectangle {
-        width: root.width; height: root.height;
-        property <image> picture: root.frame.width > 0 ? root.frame : root.variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
-        Image { width: parent.width; height: parent.height; image-fit: fill; source: film.picture; }
-        property <int> exposure: root.tone(self.picture,root.logo-x/root.width,root.logo-y/root.height,root.logo-w/root.width,root.logo-h/root.height);
-        init => { root.pale-type = self.exposure < 136; }
-        changed exposure => {
-            if self.exposure < 116 { root.pale-type = true; }
-            else if self.exposure > 149 { root.pale-type = false; }
-        }
-        Image {
-            x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h; image-fit: fill;
-            source: root.negative(film.picture,{x:self.x/1phx, y:self.y/1phx, w:self.width/1phx,
-                h:self.height/1phx, window-w:root.width/1phx, window-h:root.height/1phx});
-        }
-        Wordmark {
-            x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h;
-            pale: root.pale-type;
-        }
-    }
-    if root.variant == 0: Text {
-        x: root.margin; y: root.height*0.558;
-        text: "READER";
-        font-family: "Segoe UI"; font-size: 12px; font-weight: 600; letter-spacing: 3px; color: root.ink;
-    }
-    if root.variant == 0: Text {
-        x: root.margin - self.font-size * 0.054; y: root.height * 0.574;
-        width: root.width * 0.47; height: self.font-size * 1.18;
-        text: "Sae"; font-family: "Georgia"; font-weight: 400;
-        font-size: root.type-size; letter-spacing: -0.065 * self.font-size;
-        vertical-alignment: center; color: root.ink;
-    }
-    action := Rectangle {
-        x: root.margin; y: root.variant == 0 ? parent.height*0.895 - self.height/2 : parent.height - root.inset - self.height;
-        width: root.variant == 0 ? 126px : 116px; height: root.variant == 0 ? 44px : 38px;
-        accessible-role: button; accessible-label: "打开书籍"; forward-focus: focus;
-        accessible-action-default => { root.open(); }
-        property <bool> film: root.variant != 0;
-        property <bool> pale: root.pale-type != (touch.has-hover || focus.has-focus);
-        property <color> action-ink: film ? (pale ? #172328 : #fffaf0) : touch.has-hover || focus.has-focus ? #a33620 : root.ink;
-        if action.film: Rectangle {
-            border-radius: self.height/2; border-width: 1px;
-            background: action.pale ? #f8f5ea : #172328;
-            border-color: action.pale ? #28343055 : #fffae982;
-        }
-        Text { x: action.film ? 15px : 0px; width: 72px; height: parent.height; horizontal-alignment: left; text: "打开书籍";
-            font-size: action.film ? 14px : 15px; font-weight: 600; color: action.action-ink; vertical-alignment: center; }
-        Path { x: action.film ? 86px : 80px; y: (parent.height - 16px)/2; width: 16px; height: 16px; viewbox-width: 16; viewbox-height: 16;
-            commands: "M3.5 12.5L12 4 M4.5 4H12V11.5"; stroke: action.action-ink; stroke-width: 1.5px; }
-        if focus.has-focus: Rectangle { x: action.film ? 15px : 0px; y: action.film ? parent.height - 7px : parent.height - 4px; width: action.film ? 56px : 94px; height: 1px; background: action.action-ink; }
-        focus := FocusScope { key-pressed(e) => { if e.text == Key.Return || e.text == " " { root.open(); return accept; } return reject; } }
-        touch := TouchArea { mouse-cursor: pointer; clicked => { root.open(); } }
-    }
-    if root.message != "": RaisedPanel {
-        kind: notice; corner: 10px;
-        material: {picture:root.frame.width>0 ? root.frame : root.variant==2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png"),
-                   w:root.width/1px,h:root.height/1px,dark:false};
-        x: root.margin; y: root.variant == 0 ? action.y - self.height - 8px : root.inset;
-        width: min(error.preferred-width + 24px,root.width - root.margin*2,460px); height: error.preferred-height + 14px;
-        error := Text { x: 12px; y: 7px; width: parent.width - 24px; text: root.message; wrap: word-wrap; color: root.ink; font-size: 13px; }
-    }
-}
-
 component QuietButton inherits Rectangle {
     in property <string> text;
     in property <image> icon;
@@ -189,7 +101,7 @@ component QuietButton inherits Rectangle {
 // above their sheet. The narrow rim carries focus without a full-window shadow.
 component FrostFace inherits Image {
     in property <FrostMap> material;
-    in property <FrostKind> kind: panel;
+    in property <FrostKind> kind: FrostKind.panel;
     in property <length> corner: ReaderTheme.shoulder;
     in property <length> rise: 0px;
     in property <length> sample-x: root.absolute-position.x;
@@ -202,7 +114,7 @@ component FrostFace inherits Image {
 component RaisedPanel inherits Rectangle {
     in property <length> corner: ReaderTheme.shoulder;
     in property <FrostMap> material;
-    in property <FrostKind> kind: panel;
+    in property <FrostKind> kind: FrostKind.panel;
     in property <length> sample-x: root.absolute-position.x;
     in property <length> sample-y: root.absolute-position.y;
     SmoothSurface { x: -1px; y: 3px; width: parent.width + 2px; height: parent.height + 1px; corner: root.corner + 1px; tone: ReaderTheme.penumbra; }
@@ -216,10 +128,100 @@ component RaisedPanel inherits Rectangle {
         width: parent.width; height: parent.height; material: root.material; kind: root.kind; corner: root.corner;
         sample-x:root.sample-x; sample-y:root.sample-y;
     }
-    Rectangle { x: root.corner; y: 1px; width: max(0px,parent.width-2*self.x); height: 1px;
+    Rectangle { x: root.corner; y: 1px; width: max(0px,parent.width - 2*self.x); height: 1px;
         background: @linear-gradient(90deg, transparent, ReaderTheme.bevel 28%, transparent); }
     TouchArea {}
     @children
+}
+
+component Frontispiece inherits Rectangle {
+    in property <string> message;
+    in property <int> variant;
+    in property <image> frame;
+    pure callback tone(image, float, float, float, float) -> int;
+    pure callback negative(image, CoverRect) -> image;
+    callback open();
+    property <length> inset: clamp(min(root.width,root.height)/16,24px,64px);
+    property <length> margin: root.variant == 0 ? clamp(root.width * 0.066,28px,108px) : root.inset;
+    property <color> ink: #23302c;
+    property <length> type-size: min(root.width * 0.179, root.height * 0.242);
+    background: #f3efe4;
+    property <length> print-width: max(root.width,root.height*1.6);
+    property <length> print-height: root.print-width/1.6;
+    property <length> print-x: (root.width - root.print-width)*0.16;
+    property <length> print-y: (root.height - root.print-height)*0.48;
+    // The mark reads physical texels from the film. Snap all four dimensions so
+    // fractional DPI never stretches a row of grain a second time inside the type.
+    property <length> logo-w: round(min(root.width*0.30,root.height*0.40,356px)/1phx)*1phx;
+    property <length> logo-h: round(root.logo-w*753/1395/1phx)*1phx;
+    property <length> logo-x: round((root.inset - root.logo-w*0.032)/1phx)*1phx;
+    property <length> logo-y: round((action.y - root.inset*0.32 - root.logo-h)/1phx)*1phx;
+    property <bool> pale-type: true;
+    if root.variant == 0: Image {
+        x: root.print-x; y: root.print-y; width: root.print-width; height: root.print-height;
+        image-fit: fill; image-rendering: smooth; source: @image-url("../assets/frontispiece.svg");
+    }
+    if root.variant != 0: film := Rectangle {
+        width: root.width; height: root.height;
+        property <image> picture: root.frame.width > 0 ? root.frame : root.variant == 2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png");
+        Image { width: parent.width; height: parent.height; image-fit: fill; source: film.picture; }
+        property <int> exposure: root.tone(self.picture,root.logo-x/root.width,root.logo-y/root.height,root.logo-w/root.width,root.logo-h/root.height);
+        init => { root.pale-type = self.exposure < 136; }
+        changed exposure => {
+            if self.exposure < 116 { root.pale-type = true; }
+            else if self.exposure > 149 { root.pale-type = false; }
+        }
+        Image {
+            x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h; image-fit: fill;
+            source: root.negative(film.picture,{x:self.x/1phx, y:self.y/1phx, w:self.width/1phx,
+                h:self.height/1phx, window-w:root.width/1phx, window-h:root.height/1phx});
+        }
+        Wordmark {
+            x: root.logo-x; y: root.logo-y; width: root.logo-w; height: root.logo-h;
+            pale: root.pale-type;
+        }
+    }
+    if root.variant == 0: Text {
+        x: root.margin; y: root.height*0.558;
+        text: "READER";
+        font-family: "Segoe UI"; font-size: 12px; font-weight: 600; letter-spacing: 3px; color: root.ink;
+    }
+    if root.variant == 0: Text {
+        x: root.margin - self.font-size * 0.054; y: root.height * 0.574;
+        width: root.width * 0.47; height: self.font-size * 1.18;
+        text: "Sae"; font-family: "Georgia"; font-weight: 400;
+        font-size: root.type-size; letter-spacing: -0.065 * self.font-size;
+        vertical-alignment: center; color: root.ink;
+    }
+    action := Rectangle {
+        x: root.margin; y: root.variant == 0 ? parent.height*0.895 - self.height/2 : parent.height - root.inset - self.height;
+        width: root.variant == 0 ? 126px : 116px; height: root.variant == 0 ? 44px : 38px;
+        accessible-role: button; accessible-label: "打开书籍"; forward-focus: focus;
+        accessible-action-default => { root.open(); }
+        property <bool> film: root.variant != 0;
+        property <bool> pale: root.pale-type != (touch.has-hover || focus.has-focus);
+        property <color> action-ink: film ? (pale ? #172328 : #fffaf0) : touch.has-hover || focus.has-focus ? #a33620 : root.ink;
+        if action.film: Rectangle {
+            border-radius: self.height/2; border-width: 1px;
+            background: action.pale ? #f8f5ea : #172328;
+            border-color: action.pale ? #28343055 : #fffae982;
+        }
+        Text { x: action.film ? 15px : 0px; width: 72px; height: parent.height; horizontal-alignment: left; text: "打开书籍";
+            font-size: action.film ? 14px : 15px; font-weight: 600; color: action.action-ink; vertical-alignment: center; }
+        Path { x: action.film ? 86px : 80px; y: (parent.height - 16px)/2; width: 16px; height: 16px; viewbox-width: 16; viewbox-height: 16;
+            commands: "M3.5 12.5L12 4 M4.5 4H12V11.5"; stroke: action.action-ink; stroke-width: 1.5px; }
+        if focus.has-focus: Rectangle { x: action.film ? 15px : 0px; y: action.film ? parent.height - 7px : parent.height - 4px; width: action.film ? 56px : 94px; height: 1px; background: action.action-ink; }
+        focus := FocusScope { key-pressed(e) => { if e.text == Key.Return || e.text == " " { root.open(); return accept; } return reject; } }
+        touch := TouchArea { mouse-cursor: pointer; clicked => { root.open(); } }
+    }
+    if root.message != "": RaisedPanel {
+        kind: FrostKind.notice; corner: 10px;
+        material: {picture:root.frame.width>0 ? root.frame : root.variant==2 ? @image-url("../assets/home/blue-still.png") : @image-url("../assets/home/plasma-still.png"),
+                   w:root.width/1px,h:root.height/1px,dark:false};
+        x: root.margin; y: root.variant == 0 ? action.y - self.height - 8px : root.inset;
+        width: min(error.preferred-width + 24px,root.width - root.margin*2,460px); height: error.preferred-height + 14px;
+        error := Text { x: 12px; y: 7px; width: parent.width - 24px; text: root.message; wrap: word-wrap; color: root.ink; font-size: 13px; }
+    }
 }
 
 component PanelHeading inherits Rectangle {
@@ -319,7 +321,7 @@ component ChoiceField inherits Rectangle {
                 return reject;
             }
             RaisedPanel {
-                material: root.material; kind: menu; corner: 12px;
+                material: root.material; kind: FrostKind.menu; corner: 12px;
                 sample-x: root.absolute-position.x; sample-y: root.absolute-position.y + menu.y;
                 list := ListView {
                     x: 8px; y: 8px; width: parent.width - 16px; height: parent.height - 16px;
@@ -917,8 +919,10 @@ export component ReaderWindow inherits Window {
     property <image> empty-image;
     property <bool> needs-glass: root.has-document && (root.top-visible || root.bottom-visible || root.show-search
         || root.show-contents || root.show-settings || root.status != "");
-    property <FrostMap> material: {picture: root.needs-glass ? root.backdrop(root.page-scene,
-        [root.pages[0],root.pages[1],root.pages[2],root.pages[3],root.pages[4],root.pages[5],root.pages[6],root.pages[7]]) : root.empty-image,
+    // Page pixels change only when Rust publishes a fresh model. Keep the field
+    // independent of hover and animation so all panels reuse the same sample.
+    out property <image> page-frost: root.has-document ? root.backdrop(root.page-scene,root.pages) : root.empty-image;
+    property <FrostMap> material: {picture: root.needs-glass ? root.page-frost : root.empty-image,
         w:canvas.width/1px, h:canvas.height/1px, dark:root.dark};
     pure callback negative-mark(image, CoverRect) -> image;
     pure callback cover-tone(image, float, float, float, float) -> int;
@@ -1183,7 +1187,7 @@ export component ReaderWindow inherits Window {
         if root.has-document && root.top-visible: Rectangle {
             x: 0px; y: 0px; width: parent.width; height: root.header-height;
             background: ReaderTheme.chrome;
-            FrostFace { width: parent.width; height: parent.height; material:root.material; kind:rail; corner:0px; }
+            FrostFace { width: parent.width; height: parent.height; material:root.material; kind:FrostKind.rail; corner:0px; }
             Rectangle { y: parent.height; width: parent.width; height: 2px; background: @linear-gradient(180deg, ReaderTheme.contact, transparent); }
             Rectangle { x: root.window-inset; y: 1px; width: parent.width - 2 * self.x; height: 1px; background: ReaderTheme.edge; }
             Rectangle { y: parent.height - 1px; width: parent.width; height: 1px; background: ReaderTheme.line; }
@@ -1402,7 +1406,7 @@ export component ReaderWindow inherits Window {
             }
             FrostFace {
                 y: -root.dock-rise; width: parent.width; height: parent.height + root.dock-rise; material: root.material;
-                kind: dock; corner: 17px; rise: root.show-progress || root.page-entry-active ? root.dock-rise : 0px;
+                kind: FrostKind.dock; corner: 17px; rise: root.show-progress || root.page-entry-active ? root.dock-rise : 0px;
             }
             TouchArea {}
             Rectangle {
@@ -1468,7 +1472,7 @@ export component ReaderWindow inherits Window {
             }
         }
         if root.has-document && root.status != "": RaisedPanel {
-            material: root.material; kind: notice;
+            material: root.material; kind: FrostKind.notice;
             x: (parent.width - self.width) / 2; y: root.panel-top;
             width: min(parent.width - 2 * root.window-inset,520px); height: message.preferred-height + 24px;
             message := Text {

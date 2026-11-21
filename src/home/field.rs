@@ -18,6 +18,7 @@ const FRAME_BYTES: usize = BLUE_W * BLUE_H * 3;
 const DIRECTORY: usize = 54 * 4;
 const GRAIN_W: usize = 640;
 const GRAIN_H: usize = 360;
+pub(super) const BLUE_ONE_WAY_SECONDS: f32 = 16.25;
 
 fn inflate(source: &[u8], output: &mut [u8]) -> bool {
     decompress_slice_iter_to_slice(output, std::iter::once(source), true, false) == Ok(output.len())
@@ -62,8 +63,9 @@ struct Blue {
 }
 impl Blue {
     fn sample(&mut self, t: f32, field: &mut [Color]) -> bool {
-        let phase = t.rem_euclid(52.);
-        let frame = phase.min(52. - phase) * 2.;
+        let cycle = 2. * BLUE_ONE_WAY_SECONDS;
+        let phase = t.rem_euclid(cycle);
+        let frame = phase.min(cycle - phase) * (52. / BLUE_ONE_WAY_SECONDS);
         let a = frame.floor() as usize;
         let b = (a + 1).min(52);
         if self.second.index == a || self.first.index == b {
@@ -239,14 +241,17 @@ impl Field {
                 if !inflate(GRAIN, &mut original) {
                     return None;
                 }
+                // The stationary noise has no colour or directional edges. Tile it at
+                // 6/5 density, independently of the atlas and the output resolution.
+                let grain_index = |i, size, count| ((2 * i + 1) * count * 3 / (size * 5)) % count;
+                let columns: Vec<usize> = (0..w).map(|x| grain_index(x, w, GRAIN_W)).collect();
                 for y in 0..h {
-                    let gy = (2 * y + 1) * GRAIN_H / (2 * h);
-                    for x in 0..w {
-                        grain.push(
-                            (i16::from(original[gy * GRAIN_W + (2 * x + 1) * GRAIN_W / (2 * w)])
-                                - 128) as i8,
-                        );
-                    }
+                    let start = grain_index(y, h, GRAIN_H) * GRAIN_W;
+                    grain.extend(
+                        columns
+                            .iter()
+                            .map(|&x| (i16::from(original[start + x]) - 128) as i8),
+                    );
                 }
                 Source::Blue(Blue {
                     first: Keyframe::empty(),

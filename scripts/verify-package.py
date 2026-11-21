@@ -45,6 +45,9 @@ for kind in ('source', 'windows-x64'):
         checked[kind] = {'entries': len(names), 'crc': 'all passed'}
         if kind == 'source':
             required = ['Cargo.toml', 'Cargo.lock', 'build.rs', 'README.md', 'CHANGELOG.md', 'src/main.rs', 'ui/reader.slint',
+                        'src/home/wordmark.rs', 'src/glass/surfaces.rs', 'scripts/pack-wordmark.py', 'assets/home/wordmark.spans',
+                        'docs/iteration-0.6.5.md', 'docs/evidence/iteration-0.6.5/windows.json',
+                        'docs/evidence/iteration-0.6.5/covers.png', 'docs/evidence/iteration-0.6.5/glass.png',
                         'src/home.rs', 'src/home/field.rs', 'src/glass.rs', 'assets/home/blue.field',
                         'assets/home/blue-grain.zlib', 'assets/home/blue-still.png', 'assets/home/plasma-still.png',
                         'ui/wordmark.slint', 'scripts/pack-home-field.py', 'scripts/check-cover-composition.py',

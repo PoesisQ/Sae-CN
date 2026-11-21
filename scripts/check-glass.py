@@ -21,6 +21,8 @@ def plates(path):
 1 1 1 rg BT /F1 44 Tf 45 711 Td (Plate 0{i+1}) Tj ET
 0.09 0.13 0.15 rg BT /F1 56 Tf 48 512 Td ({name}) Tj ET
 BT /F1 16 Tf 49 476 Td (Colour and line / Sae Reader) Tj ET
+{light} rg 0 0 1024 240 re f
+{field} rg 530 0 m 805 320 l 1024 320 l 1024 0 l h f
 """
         sheet += "".join(f"0.8 w 0.15 0.27 0.31 RG {x} 615 m {x+119} 800 l S\n"
                          for x in range(582, 1015, 13))
@@ -29,6 +31,12 @@ BT /F1 16 Tf 49 476 Td (Colour and line / Sae Reader) Tj ET
         payload = sheet.encode("ascii")
         objects.extend([f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 1024 800] /Resources << /Font << /F1 3 0 R >> >> /Contents {page+1} 0 R >>".encode(),
                         f"<< /Length {len(payload)} >>\nstream\n".encode() + payload + b"endstream"])
+    outline = len(objects)
+    objects[1] = f"<< /Type /Catalog /Pages 2 0 R /Outlines {outline} 0 R >>".encode()
+    objects.append(f"<< /Type /Outlines /First {outline+1} 0 R /Last {outline+2} 0 R /Count 2 >>".encode())
+    for i, name in enumerate(("Cyan", "Vermilion")):
+        neighbor = f"/Next {outline+2} 0 R" if i == 0 else f"/Prev {outline+1} 0 R"
+        objects.append(f"<< /Title ({name}) /Parent {outline} 0 R {neighbor} /Dest [{pages[i]} 0 R /Fit] >>".encode())
     objects[2] = ("<< /Type /Pages /Count 2 /Kids [" + " ".join(f"{n} 0 R" for n in pages) + "] >>").encode()
     output = bytearray(b"%PDF-1.7\n")
     offsets = [0]
@@ -79,6 +87,43 @@ def measure(folder):
             "idle_builds": samples[6]["builds"] - samples[5]["builds"]}
 
 
+def measure_surfaces(folder):
+    report = json.loads((folder / "fixture-00.json").read_text(encoding="utf-8"))
+    assert not report["errors"] and report["count"] == 2
+    steps = report["samples"]
+    assert len(steps) == 12 and steps[0]["maps"] == steps[1]["maps"] == 0
+    assert steps[2]["maps"] > 0 and steps[2]["faces"] >= 2
+    assert steps[2]["maps"] == steps[5]["maps"] and steps[6]["maps"] == steps[7]["maps"], steps
+    for before, after in ((8, 9), (10, 11)):
+        assert (steps[before]["maps"], steps[before]["faces"]) == (steps[after]["maps"], steps[after]["faces"])
+
+    screens = folder / "fixture-00-screenshots"
+    def patch(file, x, y):
+        with Image.open(screens / (file + ".png")) as frame:
+            cx, cy = round(x*frame.width), round(y*frame.height)
+            return ImageStat.Stat(frame.crop((cx-5, cy-5, cx+6, cy+6)).convert("RGB")).median
+    def blue(rgb):
+        return rgb[2] - rgb[0]
+    bare = patch("bare", .20, .19)
+    rail = patch("rail", .25, .025)
+    upper, middle, lower = [patch("contents", .20, y) for y in (.19, .50, .84)]
+    light, dark = [patch(name, .90, .19) for name in ("settings", "night")]
+    left, right = [patch("dock-open", x, .96) for x in (.40, .65)]
+    assert blue(bare) > blue(rail) > blue(upper) > blue(middle) + 12
+    assert lower[1] - lower[0] > middle[1] - middle[0] + 12
+    assert sum(light) > sum(dark) + 160 and blue(dark) > 5
+    assert right[0] < left[0] - 10 and right[1] < left[1] - 10
+    for a, b in (("night", "settled"), ("hidden", "rested")):
+        with Image.open(screens / (a + ".png")) as first, Image.open(screens / (b + ".png")) as second:
+            assert ImageChops.difference(first.convert("RGB"), second.convert("RGB")).getbbox() is None
+    last = steps[-1]
+    return {"backdrop_builds": last["maps"], "face_builds": last["faces"],
+            "mean_backdrop_us": round(last["map_us"] / last["maps"], 1),
+            "mean_face_us": round(last["face_us"] / last["faces"], 1),
+            "idle_builds": 0, "rail_panel_paper_rgb": [rail, upper, bare],
+            "panel_over_three_colors": [upper, middle, lower], "settings_light_dark_rgb": [light, dark]}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--exe", type=Path, required=True)
@@ -94,5 +139,10 @@ if __name__ == "__main__":
         cmd += ["--scale", str(args.scale)]
     subprocess.run(cmd, check=True)
     data = measure(args.output)
+    surfaces = args.output / "surfaces"
+    cmd[cmd.index("glass")] = "surfaces"
+    cmd[cmd.index("--output") + 1] = str(surfaces)
+    subprocess.run(cmd, check=True)
+    data["surfaces"] = measure_surfaces(surfaces)
     (args.output / "optics.json").write_bytes((json.dumps(data,indent=2) + "\n").encode())
     print(json.dumps(data))

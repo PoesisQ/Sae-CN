@@ -262,7 +262,7 @@ pub fn start(
                         if count==0 || ui.get_home_variant()!=1 { run.errors.push("first cover did not animate".into()); }
                         capture("plasma.png")
                     }
-                    2 => { next(); Ok(()) }
+                    2 => { let image=capture("plasma-later.png"); next(); image }
                     3 => {
                         if count<=run.home_before || ui.get_home_variant()!=2 { run.errors.push("second cover did not animate".into()); }
                         let image=capture("blue.png");
@@ -275,7 +275,7 @@ pub fn start(
                     }
                     5 => {
                         if count<=run.home_before { run.errors.push("cancelled picker did not resume".into()); }
-                        ui.window().set_minimized(true); Ok(())
+                        let image=capture("blue-later.png"); ui.window().set_minimized(true); image
                     }
                     6 => { Ok(()) }
                     7 => {

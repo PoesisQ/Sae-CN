@@ -3,7 +3,7 @@ import argparse
 import json
 from pathlib import Path
 
-from PIL import Image
+from PIL import Image, ImageFilter
 import numpy as np
 
 
@@ -39,26 +39,38 @@ def measure(path, kind, dpi):
              int(bx/w*small[0]):int((bx+bw)/w*small[0])+1] = False
     err = abs(actual-expected).max(axis=2)[free]
     assert np.quantile(err,.99) < 6.5 and err.max() < 15, (path, err.max(), np.quantile(err,.99))
-    rect = (int(x),int(y),int(x+logo_w),int(y+logo_h))
-    glyphs = np.asarray(shot.crop(rect))
-    inks = [(255,250,240),(17,30,37)]
-    masks = [np.all(glyphs==ink,axis=2) for ink in inks]
-    sel = int(masks[1].sum() > masks[0].sum())
-    mask = masks[sel]
-    assert .10 < mask.mean() < .43, (path, "missing wordmark", mask.mean())
-    sample = np.asarray(underlying.crop(rect))[mask]
+    # Read the canonical glyph crossings independently of the Rust rasterizer.
+    # Erode the test region so antialiasing and the display outline are excluded.
+    words = np.fromfile(Path(__file__).resolve().parents[1] / "assets/home/wordmark.spans", dtype="<u2")
+    offsets, edges = words[:1025], words[1025:]
+    lw, lh = round(logo_w), round(logo_h)
+    gx, gy = round(x), round(y)
+    mask = np.zeros((lh, lw), dtype=np.uint8)
+    for row in range(lh):
+        band = min(1023, (2*row+1)*1024//(2*lh))
+        for left, right in edges[offsets[band]:offsets[band+1]].reshape(-1, 2):
+            a, b = (round(int(v)*lw/65535) for v in (left, right))
+            mask[row, a:b] = 255
+    interior = np.asarray(Image.fromarray(mask).filter(ImageFilter.MinFilter(7))) == 255
+    assert interior.sum() > 180, (path, "missing glyph samples", interior.sum())
+    shown = np.asarray(shot, dtype=np.int16)[gy:gy+lh,gx:gx+lw][interior]
+    base = np.asarray(underlying, dtype=np.int16)[gy:gy+lh,gx:gx+lw][interior]
+    shift = 255 - base.max(axis=1) - base.min(axis=1)
+    negative = base + shift[:, None]
+    delta = np.abs(shown-negative).max(axis=1)
     def luminance(values):
-        rgb = np.asarray(values)/255
+        rgb = values / 255.
         return np.where(rgb <= .04045, rgb/12.92, ((rgb+.055)/1.055)**2.4) @ [.2126,.7152,.0722]
-    fg, bg = luminance(inks[sel]), luminance(sample)
+    fg, bg = luminance(shown), luminance(base)
     ratios = (np.maximum(fg,bg)+.05)/(np.minimum(fg,bg)+.05)
-    assert np.median(ratios) >= 3.0, (path,"wordmark contrast",np.median(ratios))
     cream = np.all(np.asarray(shot) == (243,239,228),axis=2).mean()*100
     assert cream < .1, (path,cream)
-    return {"pixels":[w,h],"old_paper_percent":round(float(cream),4),
+    match = float(np.mean(delta <= 2))
+    assert match > .96, (path, "inverse pixel agreement", match, np.quantile(delta,[.5,.90,.99]))
+    return {"capture":path.stem,"pixels":[w,h],"old_paper_percent":round(float(cream),4),
             "field_99pct_error_rgb_levels":round(float(np.quantile(err,.99)),2),
-            "wordmark_ink":["ivory","ink"][sel],"median_stroke_contrast":round(float(np.median(ratios)),2),
-            "stroke_fraction_above_3":round(float(np.mean(ratios>=3)),3)}
+            "compared_stroke_pixels":int(interior.sum()),"inverse_match_within_2_levels":round(match,5),
+            "median_stroke_contrast":round(float(np.median(ratios)),2)}
 
 
 if __name__ == "__main__":

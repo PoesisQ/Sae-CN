@@ -151,16 +151,18 @@ pub(super) fn render(cache: &mut Option<Stamp>, frame: Image, rect: CoverRect) -
     if rect.w < 1. || rect.h < 1. || rect.window_w < 1. || rect.window_h < 1. {
         return Image::default();
     }
-    let scale = (640. / rect.w).min(1.);
+    // Covers through 250% Windows scaling retain a physical sample on every
+    // pixel. The allocation stays bounded on very large custom displays.
+    let scale = (896. / rect.w).min(1.);
     let size = (
         (rect.w * scale).round().max(1.) as usize,
-        (rect.h * scale).round().clamp(1., 346.) as usize,
+        (rect.h * scale).round().clamp(1., 484.) as usize,
     );
     if cache.as_ref().is_none_or(|stamp| stamp.size != size) {
         *cache = Some(Stamp::new(size.0, size.1));
     }
     let stamp = cache.as_mut().unwrap();
-    if let Some(rgb) = frame.to_rgb8() {
+    if let Some(rgb) = frame.to_rgb8().filter(|p| p.width() > 0 && p.height() > 0) {
         return stamp.paint(
             rgb.as_bytes(),
             3,

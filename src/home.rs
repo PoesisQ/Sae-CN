@@ -341,7 +341,12 @@ mod tests {
             let b = pixels(&mut f, 12.0);
             assert_ne!(a.as_bytes(), b.as_bytes());
             if kind == Kind::Blue {
-                assert_eq!(b.as_bytes(), pixels(&mut f, 40.0).as_bytes());
+                let mirrored = 2. * field::BLUE_ONE_WAY_SECONDS - 12.;
+                assert_eq!(b.as_bytes(), pixels(&mut f, mirrored).as_bytes());
+                assert_eq!(
+                    a.as_bytes(),
+                    pixels(&mut f, 2. * field::BLUE_ONE_WAY_SECONDS).as_bytes()
+                );
             }
         }
     }
