@@ -68,7 +68,7 @@ def probe(label=None):
                     name = label[8:]
                     captures[name] = f"wheel-{obj['sample']}.png"
                     if not name.startswith("dial"):
-                        view_poses[name] = {key: obj[key] for key in ("mode_x", "mode_position", "header", "depth", "dpi")}
+                        view_poses[name] = {key: obj[key] for key in ("mode_x", "mode_y", "mode_radius", "pitch", "mode_position", "header", "depth", "dpi")}
                 return obj
         except (OSError, ValueError):
             pass
@@ -191,7 +191,8 @@ try:
     move(x, y)
     time.sleep(.25)
     a = probe("capture-drum")
-    assert abs(a["depth"] - 26) < .1 and a["mode"] == 0, a
+    expanded = a["mode_radius"]
+    assert 95.9 <= expanded <= 104.1 and abs(a["depth"] + a["header"] - expanded*.72) < .1 and a["mode"] == 0, a
     gen = a["generation"]
     wheel(-1)
     w = probe()
@@ -205,14 +206,15 @@ try:
     move(x-145,16)
     time.sleep(.21)
     rest = probe("capture-rest-double")
-    assert rest["mode"] == 1 and abs(rest["depth"] - 12) < .1, rest
+    assert rest["mode"] == 1 and abs(rest["mode_radius"] - 88) < .1, rest
     # Reach the compact wheel from the rail, then skim the expanded rim.
     # Moving into the gap before the next button must put it back at rest.
-    for offset, height, depth in ((68,12,26), (78,22,26), (84,22,12)):
+    for pose, height, padding, expected in ((rest,12,4,expanded), (a,22,2,expanded), (a,22,7,88)):
+        offset = math.sqrt((pose["mode_radius"]+padding)**2 - (height-pose["mode_y"])**2)
         move(x + offset, height)
         time.sleep(.21)
         pose = probe()
-        assert abs(pose["depth"] - depth) < .1 and pose["mode"] == 1, pose
+        assert abs(pose["mode_radius"] - expected) < .1 and pose["mode"] == 1, pose
     move(x,y)
     time.sleep(.21)
     if args.epub:
@@ -247,7 +249,9 @@ try:
     before = probe()
     button(x, y, True)
     history = []
-    for delta in (7,16,28,42,48):
+    travel = expanded * math.radians(a["pitch"])
+    for fraction in (.08,.18,.32,.47,.55):
+        delta = round(travel * fraction)
         move(x-delta, y)
         partial = probe(f"capture-held-{delta}")
         assert partial["mode_held"] and partial["mode"] == 0 and partial["generation"] == before["generation"]
@@ -256,21 +260,23 @@ try:
     checks["held_positions"] = history
     partial = probe()
     assert partial["mode"] == 0 and partial["generation"] == before["generation"], "partial drag submitted a layout"
-    button(x-48, y, False)
+    button(x-delta, y, False)
     assert probe()["mode"] == 0, "partial pull did not return"
     button(x, y, True)
-    for dx in (-28, -70, -88, -51):
+    for fraction in (-.32, -.82, -1, -.58):
+        dx = round(travel * fraction)
         move(x+dx, y)
-    button(x-51, y, False)
+    button(x+dx, y, False)
     assert probe()["mode"] == 1, "hysteresis at the saddle failed"
     button(x, y, True)
-    for dx in (-60, -120, -235, -150):
+    for fraction in (-.68, -1.36, -2.65, -1.69):
+        dx = round(travel * fraction)
         move(x+dx, y)
         held = probe()
         assert held["mode_held"], ("hard-stop capture", dx, held)
-        if dx == -235:
+        if fraction == -2.65:
             assert held["mode_position"] > 1.99, ("hard stop", held)
-    button(x-150, y, False)
+    button(x+dx, y, False)
     assert probe()["mode"] == 1, "reverse from a hard stop contained dead travel"
     checks["view_detents"] = "partial return, engage, hysteresis, hard-stop reversal, two wheel impulses"
 

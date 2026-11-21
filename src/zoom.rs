@@ -106,7 +106,7 @@ impl Grip {
         self.previous = (x, y);
         self.travel = (self.travel + delta).clamp(
             (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
-            (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
+            (dial.presets.limit().ln() - dial.origin) / LOG_PER_PIXEL,
         );
         Some(self.travel)
     }
@@ -122,7 +122,7 @@ impl Grip {
     pub fn advance(&mut self, distance: f32, dial: Drag) -> Option<Position> {
         let next = (self.travel + distance).clamp(
             (MIN.ln() - dial.origin) / LOG_PER_PIXEL,
-            (MAX.ln() - dial.origin) / LOG_PER_PIXEL,
+            (dial.presets.limit().ln() - dial.origin) / LOG_PER_PIXEL,
         );
         if next == self.travel {
             return None;
@@ -146,14 +146,40 @@ pub struct Position {
     pub stop: Stop,
 }
 
-pub fn width_stop(page: (f32, f32), column: f32, height: f32) -> f32 {
-    let wide = column / page.0.max(1.0);
-    (wide / wide.min(height / page.1.max(1.0)).max(0.0001)).max(1.0)
+impl Stop {
+    pub fn from_fit(width: bool, fill: bool) -> Self {
+        if fill {
+            Self::Fill
+        } else if width {
+            Self::Width
+        } else {
+            Self::Page
+        }
+    }
 }
 
-pub fn fill_stop(page: (f32, f32), column: f32, height: f32) -> f32 {
-    let (wide, tall) = (column / page.0.max(1.0), height / page.1.max(1.0));
-    (wide.max(tall) / wide.min(tall).max(0.0001)).max(1.0)
+/// Device pixels per PDF point, before the renderer applies its scale limits.
+pub struct CellFit {
+    wide: f32,
+    tall: f32,
+}
+
+impl CellFit {
+    pub fn new(page: (f32, f32), cell: (f32, f32), dpi: f32) -> Self {
+        Self {
+            wide: cell.0 / page.0.max(1.0) * dpi,
+            tall: cell.1 / page.1.max(1.0) * dpi,
+        }
+    }
+
+    pub fn scale(&self, stop: Stop, zoom: f32) -> f32 {
+        let fit = match stop {
+            Stop::Width => self.wide,
+            Stop::Fill => self.wide.max(self.tall),
+            _ => self.wide.min(self.tall),
+        };
+        (fit * zoom).clamp(0.02, 16.0)
+    }
 }
 
 pub fn position(value: f32) -> Position {
@@ -163,29 +189,97 @@ pub fn position(value: f32) -> Position {
     }
 }
 
-// On a fixed page, either Fit Width equals Fit Page or it equals Fill.
-// Use one physical detent for each distinct scale.
-fn detents(fill: f32) -> impl DoubleEndedIterator<Item = Position> {
-    [
-        position(1.0),
-        Position {
-            value: fill,
-            stop: Stop::Fill,
-        },
-    ]
-    .into_iter()
-    .filter(|p| p.stop == Stop::Page || (1.035..=MAX).contains(&p.value))
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Presets {
+    pub width: f32,
+    pub fill: f32,
 }
 
-pub fn step(current: f32, fill: f32, factor: f32) -> Position {
+impl Presets {
+    pub const PAGE: Self = Self {
+        width: 1.0,
+        fill: 1.0,
+    };
+
+    pub fn for_pages(pages: impl Iterator<Item = (f32, f32)>, cell: (f32, f32), dpi: f32) -> Self {
+        let (mut width_gain, mut fill_gain, mut count) = (0.0, 0.0, 0);
+        for page in pages {
+            let fit = CellFit::new(page, cell, dpi);
+            let base = fit.scale(Stop::Page, 1.0);
+            let wide = fit.scale(Stop::Width, 1.0);
+            let cover = fit.scale(Stop::Fill, 1.0);
+            let longest = page.0.max(page.1);
+            // A different fit must move at least half a device pixel on one
+            // visible page. Identical results stay exactly equal after averaging.
+            if (wide - base) * longest >= 0.5 {
+                width_gain += (wide - base) / base;
+            }
+            if (cover - wide) * longest >= 0.5 {
+                fill_gain += (cover - wide) / base;
+            }
+            count += 1;
+        }
+        let n = count.max(1) as f32;
+        let width = 1.0 + width_gain / n;
+        Self {
+            width,
+            fill: width + fill_gain / n,
+        }
+    }
+
+    pub fn at(self, stop: Stop) -> Position {
+        Position {
+            value: match stop {
+                Stop::Width => self.width,
+                Stop::Fill => self.fill,
+                _ => 1.0,
+            },
+            stop,
+        }
+    }
+
+    pub fn canonical(self, stop: Stop) -> Stop {
+        match stop {
+            Stop::Fill if self.fill == self.width => self.canonical(Stop::Width),
+            Stop::Width if self.width == 1.0 => Stop::Page,
+            _ => stop,
+        }
+    }
+
+    pub fn stops(self) -> impl DoubleEndedIterator<Item = Position> {
+        [Stop::Page, Stop::Width, Stop::Fill]
+            .into_iter()
+            .filter(move |&s| self.canonical(s) == s)
+            .map(move |s| self.at(s))
+    }
+
+    pub fn clicked(self, kind: i32, active: Stop) -> Option<Position> {
+        let mark = self.stops().find(|p| p.stop as i32 == kind)?;
+        // Re-centering through a merged mark keeps a sticky fit for the next
+        // resize. An explicit fit-page command always resets that intent.
+        Some(if self.canonical(active) == mark.stop {
+            self.at(active)
+        } else {
+            mark
+        })
+    }
+
+    fn limit(self) -> f32 {
+        // Very narrow pages can genuinely need more than 800% to fill the
+        // cell. A grip must be able to enter and leave their named fit.
+        MAX.max(self.fill)
+    }
+}
+
+pub fn step(current: f32, presets: Presets, factor: f32) -> Position {
     if !factor.is_finite() || factor <= 0.0 || factor == 1.0 {
         return position(current);
     }
-    let next = (current * factor).clamp(MIN, MAX);
+    let next = (current * factor).clamp(MIN, presets.limit());
     // Take a normal notch at a stop, then move freely on the next notch.
     // A large wheel gesture retains its full distance.
     if (0.84..=1.20).contains(&factor) {
-        let mut stops = detents(fill);
+        let mut stops = presets.stops();
         let stop = if factor > 1.0 {
             stops.find(|p| next >= p.value && current < p.value)
         } else {
@@ -201,22 +295,23 @@ pub fn step(current: f32, fill: f32, factor: f32) -> Position {
 #[derive(Clone, Copy)]
 pub struct Drag {
     origin: f32,
-    fill: f32,
+    presets: Presets,
     radius: f32,
 }
 
 impl Drag {
-    pub fn start(current: f32, fill: f32) -> Self {
-        let log = current.clamp(MIN, MAX).ln();
-        let radius = if (1.035..=MAX).contains(&fill) {
-            0.06_f32.min(fill.ln() * 0.49)
-        } else {
-            0.06
-        };
+    pub fn start(current: f32, presets: Presets) -> Self {
+        let log = current.clamp(MIN, presets.limit()).ln();
+        let mut radius = 0.06_f32;
+        let mut previous = 1.0;
+        for p in presets.stops().skip(1) {
+            radius = radius.min((p.value / previous).ln() * 0.49);
+            previous = p.value;
+        }
         // Invert the response at the press point so picking up the knob
         // close to a detent does not alter the current scale.
         let mut origin = log;
-        for p in detents(fill) {
+        for p in presets.stops() {
             let target = p.value.ln();
             let offset = log - target;
             if offset != 0.0 && offset.abs() < radius {
@@ -226,14 +321,14 @@ impl Drag {
         }
         Self {
             origin,
-            fill,
+            presets,
             radius,
         }
     }
 
     pub fn at(self, travel: f32) -> Position {
         let raw = self.origin + travel * LOG_PER_PIXEL;
-        for p in detents(self.fill) {
+        for p in self.presets.stops() {
             let target = p.value.ln();
             let offset = raw - target;
             if offset.abs() < self.radius {
@@ -244,12 +339,12 @@ impl Drag {
                     position(
                         (target + excess.copysign(offset) / 0.8)
                             .exp()
-                            .clamp(MIN, MAX),
+                            .clamp(MIN, self.presets.limit()),
                     )
                 };
             }
         }
-        position(raw.exp().clamp(MIN, MAX))
+        position(raw.exp().clamp(MIN, self.presets.limit()))
     }
 }
 
@@ -257,9 +352,104 @@ impl Drag {
 mod tests {
     use super::*;
 
+    fn cover(fill: f32) -> Presets {
+        Presets { width: 1., fill }
+    }
+
+    #[test]
+    fn marks_follow_real_visible_pages_and_dpi() {
+        let (portrait, landscape, square) = ((500., 1000.), (1000., 500.), (600., 600.));
+        let for_view =
+            |pages: &[(f32, f32)], cell, dpi| Presets::for_pages(pages.iter().copied(), cell, dpi);
+        let cell = (600., 600.);
+        let one = for_view(&[square], cell, 1.5);
+        let wide = for_view(&[portrait; 2], cell, 1.5);
+        let fill = for_view(&[landscape; 6], cell, 1.5);
+        let mixed = for_view(&[portrait, landscape], cell, 1.5);
+        assert_eq!(
+            one.stops().map(|p| p.stop).collect::<Vec<_>>(),
+            [Stop::Page]
+        );
+        assert_eq!(
+            wide.stops().map(|p| p.stop).collect::<Vec<_>>(),
+            [Stop::Page, Stop::Width]
+        );
+        assert_eq!(
+            fill.stops().map(|p| p.stop).collect::<Vec<_>>(),
+            [Stop::Page, Stop::Fill]
+        );
+        assert_eq!(
+            mixed.stops().map(|p| p.value).collect::<Vec<_>>(),
+            [1., 1.5, 2.]
+        );
+        assert_eq!(for_view(&[landscape, portrait], cell, 1.5), mixed);
+        assert_eq!(
+            for_view(&[portrait, landscape], (300., 600.), 1.),
+            cover(2.5)
+        );
+        assert_eq!(for_view(&[(500., 500.25)], (500., 500.), 1.), Presets::PAGE);
+        assert!(for_view(&[(500., 500.25)], (500., 500.), 3.).width > 1.);
+        // Both proposed fits are beyond the renderer's native scale cap.
+        assert_eq!(for_view(&[(1., 2.)], cell, 1.), Presets::PAGE);
+        assert_eq!(for_view(&[(50_000., 80_000.)], cell, 1.), Presets::PAGE);
+    }
+
+    #[test]
+    fn merged_clicks_preserve_an_explicit_fit_and_ignore_missing_marks() {
+        let together = cover(1.8);
+        assert_eq!(
+            together
+                .clicked(Stop::Page as i32, Stop::Width)
+                .unwrap()
+                .stop,
+            Stop::Width
+        );
+        assert!(together.clicked(Stop::Width as i32, Stop::Free).is_none());
+        let resized = Presets {
+            width: 1.6,
+            fill: 1.6,
+        };
+        assert_eq!(resized.at(Stop::Width).value, 1.6);
+        assert_eq!(
+            resized
+                .clicked(Stop::Width as i32, Stop::Fill)
+                .unwrap()
+                .stop,
+            Stop::Fill
+        );
+        assert!(resized.clicked(Stop::Fill as i32, Stop::Free).is_none());
+        assert_eq!(
+            resized
+                .clicked(Stop::Page as i32, Stop::Width)
+                .unwrap()
+                .stop,
+            Stop::Page
+        );
+    }
+
+    #[test]
+    fn mixed_spread_hits_each_detent_and_extreme_presets_can_be_left() {
+        let p = Presets {
+            width: 1.5,
+            fill: 2.0,
+        };
+        let dial = Drag::start(1., p);
+        for mark in p.stops() {
+            assert_eq!(dial.at(mark.value.ln() / LOG_PER_PIXEL).stop, mark.stop);
+            assert_eq!(step(mark.value * 0.98, p, 1.05).stop, mark.stop);
+            assert_eq!(step(mark.value * 1.02, p, 0.95).stop, mark.stop);
+        }
+        let long = Presets::for_pages([(1000., 50.)].into_iter(), (600., 600.), 1.);
+        assert!((long.fill - 20.).abs() < 0.00001);
+        let dial = Drag::start(long.fill, long);
+        assert_eq!(dial.at(0.).value, long.fill);
+        assert_eq!(dial.at(40.).value, long.fill);
+        assert!((long.fill / dial.at(-144.).value - 2.).abs() < 0.001);
+    }
+
     #[test]
     fn circular_wheel_keeps_straight_drag_distance_and_full_turn_gain() {
-        let dial = Drag::start(1.0, 1.8);
+        let dial = Drag::start(1.0, cover(1.8));
         let radius = 43.0;
         let mut face = Grip::new(0.0, 0.0, radius);
         let travel = face.sample(1.0, -144.0, dial).unwrap();
@@ -277,7 +467,7 @@ mod tests {
     }
     #[test]
     fn face_extends_at_screen_edge_and_reverses_immediately_at_the_limit() {
-        let dial = Drag::start(1.0, 1.7);
+        let dial = Drag::start(1.0, cover(1.7));
         for (dx, dy, x, y, sign) in [
             (9., 0., 999., 400., 1),
             (-9., 0., 1., 400., -1),
@@ -302,7 +492,7 @@ mod tests {
     }
     #[test]
     fn circular_turn_wraps_reverses_and_releases_at_the_limits() {
-        let dial = Drag::start(1.0, 1.7);
+        let dial = Drag::start(1.0, cover(1.7));
         let mut rim = Grip::new(0.0, -34.0, 40.0);
         let mut turn = |degrees: i32| {
             let angle = (degrees as f32).to_radians();
@@ -330,7 +520,7 @@ mod tests {
 
     #[test]
     fn face_stays_linear_and_crossing_the_hub_has_no_angle() {
-        let dial = Drag::start(1.0, 1.7);
+        let dial = Drag::start(1.0, cover(1.7));
         let mut grip = Grip::new(0.0, 0.0, 40.0);
         assert_eq!(grip.sample(1.0, -1.0, dial), None);
         assert_eq!(grip.sample(1.0, -11.0, dial), Some(11.0));
@@ -344,7 +534,7 @@ mod tests {
 
     #[test]
     fn pulls_from_a_tangent_and_from_a_preset_keep_one_axis() {
-        let dial = Drag::start(1.0, 1.7);
+        let dial = Drag::start(1.0, cover(1.7));
         let mut chord = Grip::new(-26., -30., 43.);
         assert_eq!(chord.sample(26., -30., dial), Some(52.));
         for (start, dir) in [
@@ -369,7 +559,7 @@ mod tests {
 
     #[test]
     fn a_wandering_turn_keeps_its_sense_from_each_quadrant() {
-        let dial = Drag::start(1.0, 1.73);
+        let dial = Drag::start(1.0, cover(1.73));
         for r in [25., 38., 48.] {
             for start in [15_f32, 105., 195., 285.] {
                 for sign in [-1_f32, 1.] {
@@ -396,7 +586,7 @@ mod tests {
 
     #[test]
     fn drag_is_monotonic_reversible_and_crosses_both_stops() {
-        let dial = Drag::start(0.91, 1.72);
+        let dial = Drag::start(0.91, cover(1.72));
         let mut previous = dial.at(0.0).value;
         let mut page = false;
         let mut fill = false;
@@ -418,22 +608,19 @@ mod tests {
     #[test]
     fn picking_up_the_dial_close_to_a_stop_keeps_its_position() {
         for value in [0.95, 0.99, 1.0, 1.014, 1.70, 1.72, 1.74] {
-            assert!((Drag::start(value, 1.72).at(0.0).value - value).abs() < 1e-6);
+            assert!((Drag::start(value, cover(1.72)).at(0.0).value - value).abs() < 1e-6);
         }
     }
 
     #[test]
     fn wheel_passes_stops_in_both_directions_and_keeps_fast_input() {
-        assert_eq!(step(0.96, 1.8, 1.12).stop, Stop::Page);
-        assert!((step(1.0, 1.8, 1.12).value - 1.12).abs() < 1e-6);
-        assert_eq!(step(1.7, 1.8, 1.12).stop, Stop::Fill);
-        assert_eq!(step(1.9, 1.8, 1.0 / 1.12).stop, Stop::Fill);
-        assert!(step(1.8, 1.8, 1.0 / 1.12).value < 1.8);
-        assert_eq!(step(0.9, 1.8, 3.0).value, 0.9 * 3.0);
-        assert_eq!(step(7.9, 1.8, 2.0).value, MAX);
-        assert_eq!(step(0.26, 1.8, 0.5).value, MIN);
-        assert!((width_stop((612.0, 792.0), 520.0, 720.0) - 1.0).abs() < 0.001);
-        assert!(width_stop((612.0, 792.0), 1100.0, 720.0) > 1.9);
-        assert!(fill_stop((612.0, 792.0), 520.0, 720.0) > 1.06);
+        assert_eq!(step(0.96, cover(1.8), 1.12).stop, Stop::Page);
+        assert!((step(1.0, cover(1.8), 1.12).value - 1.12).abs() < 1e-6);
+        assert_eq!(step(1.7, cover(1.8), 1.12).stop, Stop::Fill);
+        assert_eq!(step(1.9, cover(1.8), 1.0 / 1.12).stop, Stop::Fill);
+        assert!(step(1.8, cover(1.8), 1.0 / 1.12).value < 1.8);
+        assert_eq!(step(0.9, cover(1.8), 3.0).value, 0.9 * 3.0);
+        assert_eq!(step(7.9, cover(1.8), 2.0).value, MAX);
+        assert_eq!(step(0.26, cover(1.8), 0.5).value, MIN);
     }
 }

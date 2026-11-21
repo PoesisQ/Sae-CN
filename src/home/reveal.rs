@@ -7,34 +7,6 @@ const STEPS: u8 = 9;
 pub(super) const FRAME_INTERVAL: Duration = Duration::from_millis(30);
 pub(super) const DURATION: Duration = FRAME_INTERVAL.saturating_mul(STEPS as u32);
 
-/// Freeze the displayed vector once while choosing a book. Otherwise each
-/// Windows repaint behind the file dialog rasterizes the SVG at desktop DPI.
-pub(super) fn freeze_print(cover: &Image, viewport: slint::PhysicalSize) -> Option<Image> {
-    use slint::private_unstable_api::re_exports::{ImageInner, SharedImageBuffer};
-    let size = cover.size();
-    if size.width == 0 || size.height == 0 || viewport.width == 0 || viewport.height == 0 {
-        return None;
-    }
-    let (w, h) = (size.width as f32, size.height as f32);
-    let scale = (viewport.width as f32 / w)
-        .max(viewport.height as f32 / h)
-        .min(1152. / w)
-        .min(720. / h)
-        .min(1.);
-    let target = [
-        (w * scale).round().max(1.) as u32,
-        (h * scale).round().max(1.) as u32,
-    ];
-    // Keep the renderer's existing alpha representation. Asking for straight
-    // RGBA would allocate a second print just to convert fully opaque pixels.
-    let vector: &ImageInner = cover.into();
-    Some(match vector.render_to_buffer(Some(target.into()))? {
-        SharedImageBuffer::RGB8(p) => Image::from_rgb8(p),
-        SharedImageBuffer::RGBA8(p) => Image::from_rgba8(p),
-        SharedImageBuffer::RGBA8Premultiplied(p) => Image::from_rgba8_premultiplied(p),
-    })
-}
-
 pub(super) struct Dissolve {
     current: Image,
     step: u8,
@@ -114,8 +86,7 @@ impl Grains {
         if let Some(p) = cover.to_rgb8() {
             return Some(Self::sample(p.as_bytes(), p.width(), p.height(), 3, seed));
         }
-        // The print and the embedded stills are opaque. A frozen print already
-        // owns this premultiplied buffer; reading it does not allocate another.
+        // Before the first animation tick the opaque preview can be RGBA.
         let p = cover.to_rgba8_premultiplied()?;
         Some(Self::sample(p.as_bytes(), p.width(), p.height(), 4, seed))
     }
@@ -190,26 +161,6 @@ impl Grains {
 mod tests {
     use super::*;
     use slint::Rgb8Pixel;
-
-    #[test]
-    fn the_vermilion_print_retains_its_aspect_and_inks_at_the_bound() {
-        let print =
-            Image::load_from_svg_data(include_bytes!("../../assets/frontispiece.svg")).unwrap();
-        let held = freeze_print(&print, slint::PhysicalSize::new(1769, 1259)).unwrap();
-        assert_eq!((held.size().width, held.size().height), (1152, 720));
-        assert!(held.to_rgba8_premultiplied().is_some());
-        let mut reveal = Dissolve::new(&held).unwrap();
-        assert_eq!(reveal.frame(Duration::ZERO), Some(held));
-        let image = reveal.frame(FRAME_INTERVAL).unwrap();
-        assert_eq!((image.size().width, image.size().height), (576, 360));
-        let p = image.to_rgba8_premultiplied().unwrap();
-        let red = p
-            .as_slice()
-            .iter()
-            .filter(|p| p.a > 240 && p.r > 150 && p.g < 110)
-            .count();
-        assert!(red > p.as_slice().len() / 20);
-    }
 
     #[test]
     fn cover_grains_reveal_the_page_monotonically_and_release_their_buffers() {

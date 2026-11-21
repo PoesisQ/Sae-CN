@@ -7,6 +7,55 @@ from PIL import Image, ImageFilter
 import numpy as np
 
 
+def ink_ranges(field, backdrop, tx, ty, gx, gy, kind):
+    """Each possible local exposure is within six encoded levels of the sampled field."""
+    h, w, _ = backdrop.shape
+    x = np.arange(w)
+    y = np.arange(h)
+    x_sample = tx[gx + np.minimum(np.arange((w-1)//16 + 2)*16, w-1)]
+    y_sample = ty[gy + np.minimum(np.arange((h-1)//16 + 2)*16, h-1)]
+    field = np.asarray(field, dtype=np.int32)
+
+    def luma(rgb):
+        return (rgb.astype(np.int32) @ [54,183,19] + 128) // 256
+
+    total = np.zeros((len(y_sample),len(x_sample)), dtype=np.int32)
+    for dy in (-5,-2,2,5):
+        for dx in (-5,-2,2,5):
+            total += luma(field[np.clip(y_sample+dy,0,field.shape[0]-1)[:,None],
+                                np.clip(x_sample+dx,0,field.shape[1]-1)[None,:]])
+    sampled = (total+8)//16
+    surround = np.pad(sampled,1,mode="edge")
+    rows, cols = sampled.shape
+    weights = (1,2,1)
+    sampled = (sum(wy*wx*surround[j:j+rows,i:i+cols] for j,wy in enumerate(weights)
+                   for i,wx in enumerate(weights)) + 8)//16
+    rows = ((16-y%16)[:,None]*sampled[y//16] + (y%16)[:,None]*sampled[y//16+1])
+    guide = (rows[:,x//16]*(16-x%16) + rows[:,x//16+1]*(x%16) + 128)//256
+    base = luma(backdrop)
+    ranges = []
+    for pale in (False,True):
+        lo = np.full_like(backdrop, 255)
+        hi = np.zeros_like(backdrop)
+        possible = np.zeros_like(base,dtype=bool)
+        for d in range(-6,7):
+            g = np.clip(guide+d,0,255)
+            use = (g < 117) == pale
+            possible |= use
+            grain = np.trunc((g-base)*3/8).astype(int)
+            if pale:
+                v = np.clip(252 - g//12 + grain,195,255)
+                tint = -((backdrop.max(axis=2)[:,:,None] - backdrop)//3)
+            else:
+                v = np.clip(5 + (255-g)//11 + grain,0,58)
+                tint = (backdrop-backdrop.min(axis=2)[:,:,None])//3
+            rgb = v[:,:,None] + (0 if kind == "blue" else tint)
+            lo = np.where(use[:,:,None], np.minimum(lo,rgb), lo)
+            hi = np.where(use[:,:,None], np.maximum(hi,rgb), hi)
+        ranges.append((possible,lo,hi))
+    return ranges
+
+
 def measure(path, kind, dpi):
     with Image.open(path) as source:
         shot = source.convert("RGB")
@@ -27,11 +76,11 @@ def measure(path, kind, dpi):
     # Each cell is much larger than a grain, so different subpixel filters in
     # Pillow and Slint average out. Exclude only cells touched by type or the CTA.
     inset = min(max(min(w,h)/16,24*dpi),64*dpi)
-    logo_w = min(.30*w,.40*h,356*dpi)
-    logo_h = logo_w*753/1395
-    x = inset - logo_w*.032
+    logo_w = int(min(.30*w,.40*h,356*dpi)+.5)
+    logo_h = int(logo_w*753/1395+.5)
+    x = int(inset - logo_w*.032+.5)
     action_y = h-inset-38*dpi
-    y = action_y-inset*.32-logo_h
+    y = int(action_y-inset*.32-logo_h+.5)
     boxes = [(x,y,logo_w,logo_h),(inset,action_y,116*dpi,38*dpi)]
     free = np.ones((small[1],small[0]), dtype=bool)
     for bx,by,bw,bh in boxes:
@@ -59,32 +108,54 @@ def measure(path, kind, dpi):
     def luminance(values):
         rgb = values / 255.
         return np.where(rgb <= .04045, rgb/12.92, ((rgb+.055)/1.055)**2.4) @ [.2126,.7152,.0722]
-    if kind == "blue":
-        light = 1. - luminance(backdrop)
-        gray = np.rint(255 * np.where(light <= .0031308, 12.92*light, 1.055*light**(1/2.4)-.055))
-        ink = gray[:, :, None]
-    else:
-        shift = 255 - backdrop.max(axis=2) - backdrop.min(axis=2)
-        ink = backdrop + shift[:, :, None]
-    negative = ink[interior]
-    # Antialiasing can only blend this frame's background and its own ink.
+    possibilities = ink_ranges(field, backdrop, tx, ty, gx, gy, kind)
+    # A complete stroke selects one of two possible inks. Its antialiased
+    # contour may only mix that same ink with the actual texel behind it.
     edge = (np.asarray(Image.fromarray(mask).filter(ImageFilter.MaxFilter(5))) > 0) & ~interior
-    low, high = np.minimum(ink[edge],backdrop[edge]), np.maximum(ink[edge],backdrop[edge])
-    error = np.maximum(low-actual_mark[edge],actual_mark[edge]-high).max(axis=1)
-    edge_match = round(float(np.mean(error <= 3)),5)
+    def error(lo,hi):
+        return np.maximum(lo-actual_mark,actual_mark-hi).max(axis=2)
+    solid_error = np.full(interior.shape, 255)
+    edge_error = solid_error.copy()
+    for possible,lo,hi in possibilities:
+        solid_error = np.minimum(solid_error,np.where(possible,error(lo,hi),255))
+        edge_error = np.minimum(edge_error,np.where(possible,error(np.minimum(lo,backdrop),np.maximum(hi,backdrop)),255))
+    edge_match = round(float(np.mean(edge_error[edge] <= 3)),5)
     assert edge_match > .97, (path, "unexpected ink on the contour", edge_match)
-    delta = np.abs(shown-negative).max(axis=1)
     fg, bg = luminance(shown), luminance(base)
     ratios = (np.maximum(fg,bg)+.05)/(np.minimum(fg,bg)+.05)
     cream = np.all(np.asarray(shot) == (243,239,228),axis=2).mean()*100
     assert cream < .1, (path,cream)
-    match = float(np.mean(delta <= 2))
-    assert match > .96, (path, "inverse pixel agreement", match, np.quantile(delta,[.5,.90,.99]))
+    match = float(np.mean(solid_error[interior] <= 2))
+    assert match > .96, (path, "same-frame ink agreement", match, np.quantile(solid_error[interior],[.5,.90,.99]))
+    if kind == "blue":
+        assert np.mean(shown.max(axis=1)-shown.min(axis=1) <= 2) > .98, (path,"Blue ink is not neutral")
+    else:
+        chroma = base.max(axis=1)-base.min(axis=1)
+        vivid = chroma > 36
+        if vivid.sum() > 200:
+            assert np.mean((shown.max(axis=1)-shown.min(axis=1))[vivid] > 8) > .95, (path,"Plasma chroma lost")
+    # Flat and textured grey are common in both covers. A disappearing stroke
+    # can be missed by a high median contrast over only the bright/dark extremes.
+    grey = (bg >= .085) & (bg <= .63)
+    strong = float(np.mean(ratios[grey] >= 3)) if grey.any() else None
+    if grey.sum() >= 100:
+        assert strong > .78 and np.median(ratios[grey]) >= 3.6, (path,"weak middle-grey lettering",strong)
+    pale = actual_mark.max(axis=2) > 161
+    boundaries = pairs = 0
+    for axis in (0,1):
+        neighbors = np.diff(interior.astype(int),axis=axis) == 0
+        common = neighbors & np.take(interior,np.arange(interior.shape[axis]-1),axis=axis)
+        boundaries += np.sum((np.diff(pale.astype(int),axis=axis) != 0) & common)
+        pairs += common.sum()
+    fraction = float(boundaries)/max(1,int(pairs))
+    assert fraction < .065, (path,"individual grain switched polarity",fraction)
     return {"capture":path.stem,"pixels":[w,h],"old_paper_percent":round(float(cream),4),
             "field_99pct_error_rgb_levels":round(float(np.quantile(err,.99)),2),
-            "compared_stroke_pixels":int(interior.sum()),"inverse_match_within_2_levels":round(match,5),
+            "compared_stroke_pixels":int(interior.sum()),"same_frame_ink_match":round(match,5),
             "median_stroke_contrast":round(float(np.median(ratios)),2),
-            "contour_blend_agreement":edge_match}
+            "midgray_pixels":int(grey.sum()),"midgray_contrast_p50":round(float(np.median(ratios[grey])),2) if grey.any() else None,
+            "midgray_at_least_3":round(strong,4) if strong is not None else None,
+            "adjacent_polarity_boundaries":round(fraction,5),"contour_blend_agreement":edge_match}, pale, interior
 
 
 if __name__ == "__main__":
@@ -92,5 +163,14 @@ if __name__ == "__main__":
     parser.add_argument("captures", type=Path, nargs="+")
     parser.add_argument("--kind",choices=["blue","plasma"],default="plasma",help="Cover ink and static frame")
     parser.add_argument("--dpi",type=float,default=1.5,help="Physical pixels per logical pixel")
+    parser.add_argument("--sequence",action="store_true",help="Require three successive wordmark samples with stable grain polarity")
     args=parser.parse_args()
-    print(json.dumps([measure(path,args.kind,args.dpi) for path in args.captures]))
+    values = [measure(path,args.kind,args.dpi) for path in args.captures]
+    if args.sequence:
+        assert len(values) == 3 and all(v[0]["midgray_pixels"] >= 100 for v in values)
+        first, middle, last = values
+        mask = first[2] & middle[2] & last[2]
+        flicker = np.mean(((first[1] == last[1]) & (middle[1] != first[1]))[mask])
+        assert flicker < .002, ("three-frame polarity reversals",flicker)
+        middle[0]["three_frame_reversal_fraction"] = round(float(flicker),6)
+    print(json.dumps([v[0] for v in values]))

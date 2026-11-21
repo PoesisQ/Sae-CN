@@ -3,6 +3,7 @@ use crate::{
     document::{Book, ContentsItem},
     rendering::{Bounds, Cache, Frame, RenderView},
     settings::Typography,
+    zoom::{CellFit, Presets, Stop},
 };
 use anyhow::Result;
 use std::{
@@ -88,8 +89,7 @@ pub struct Update {
     pub search_hit: Option<(i32, usize)>,
     pub encoding: Option<String>,
     pub pan: [f32; 2],
-    pub pdf_fit_width_zoom: f32,
-    pub pdf_fill_zoom: f32,
+    pub pdf_presets: Presets,
     pub input_pan: [f32; 2],
 }
 struct Pending {
@@ -468,15 +468,15 @@ impl Worker {
                         } else {
                             None
                         };
-                        let pdf_fit_width_zoom = if b.reflowable {
-                            1.0
+                        let pdf_presets = if b.reflowable {
+                            Presets::PAGE
                         } else {
-                            crate::zoom::width_stop(frame.page_size, column, cell_request.height)
-                        };
-                        let pdf_fill_zoom = if b.reflowable {
-                            1.0
-                        } else {
-                            crate::zoom::fill_stop(frame.page_size, column, cell_request.height)
+                            let pages = std::iter::once(&frame).chain(right.iter()).chain(&extra);
+                            Presets::for_pages(
+                                pages.map(|f| f.page_size),
+                                (column, cell_request.height),
+                                request.dpi,
+                            )
                         };
                         Ok(Update {
                             frame,
@@ -504,8 +504,7 @@ impl Worker {
                             search_hit,
                             encoding: b.encoding.clone(),
                             pan,
-                            pdf_fit_width_zoom,
-                            pdf_fill_zoom,
+                            pdf_presets,
                             input_pan: request.view.pan,
                         })
                     })();
@@ -611,15 +610,15 @@ fn column_width(width: f32, reflowable: bool, spread: bool) -> f32 {
 }
 
 fn pdf_scale(bounds: mupdf::Rect, column: f32, height: f32, request: &Request) -> f32 {
-    let width = column / (bounds.x1 - bounds.x0).max(1.0);
-    let fit = if request.view.fit_cover {
-        width.max(height / (bounds.y1 - bounds.y0).max(1.0))
-    } else if request.view.fit_width {
-        width
-    } else {
-        width.min(height / (bounds.y1 - bounds.y0).max(1.0))
-    };
-    (fit * request.dpi * request.pdf_zoom).clamp(0.02, 16.0)
+    let fit = CellFit::new(
+        (bounds.x1 - bounds.x0, bounds.y1 - bounds.y0),
+        (column, height),
+        request.dpi,
+    );
+    fit.scale(
+        Stop::from_fit(request.view.fit_width, request.view.fit_cover),
+        request.pdf_zoom,
+    )
 }
 fn render_page(
     cache: &mut Cache,

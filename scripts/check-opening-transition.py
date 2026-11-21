@@ -113,15 +113,16 @@ def main():
     results = {}
     reference = None
     resumed_reference = None
-    for case in ("direct", "picker", "drop", "static", "reduced", "print", "replace"):
+    for case in ("direct", "picker", "drop", "static", "reduced", "replace", "retry"):
         dest = args.output / case
         cmd = [sys.executable, str(ROOT / "scripts/qa-windows.py"), "--scenario", "opening",
                "--exe", str(args.exe.resolve()), "--output", str(dest), "--scale", str(args.scale)]
-        if case == "direct":
-            cmd += ["--fixture", str(ROOT / "tests/fixtures/core.pdf")]
+        if case in ("direct", "retry"):
+            path = ROOT / "tests/fixtures/core.pdf" if case == "direct" else dest / "missing.pdf"
+            cmd += ["--fixture", str(path)]
             alias = "fixture-00"
         else:
-            cmd += ["--blank", "--cover", {"drop": "blue", "static": "blue", "print": "print"}.get(case, "plasma")]
+            cmd += ["--blank", "--cover", "blue" if case in ("drop", "static") else "plasma"]
             alias = "blank-00"
         if case == "static":
             cmd.append("--static")
@@ -134,8 +135,9 @@ def main():
         assert report["exit_code"] == 0 and not report["errors"] and report["document"], (case, report["errors"])
         source = dest / (alias + "-screenshots")
         book = read_rgb(source / "book.png")
-        if case == "direct":
+        if case in ("direct", "retry"):
             assert marker.exists() == alternation_before, "File launch advanced the standalone cover sequence"
+        if case == "direct":
             reference = book
             resumed_reference = read_rgb(source / "resumed-page.png")
             assert distance(book, resumed_reference).getbbox(), "Reference navigation did not change the page"
@@ -147,7 +149,7 @@ def main():
                 "Final frame differs from the same book opened directly", case)
         samples = report["samples"]
         result = next(s for s in samples if "resources" in s)
-        if case in ("picker", "drop", "print"):
+        if case in ("picker", "drop"):
             result["exposed_page"] = measure_mix(source, samples)
             result["distribution"] = measure_distribution(source, samples)
         if case == "drop":

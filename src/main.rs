@@ -5,7 +5,7 @@ use sae_reader::{
     rendering::{Bounds, Frame},
     settings::Typography,
     storage::{self, BookState, Preferences},
-    zoom::{self, Drag, Grip, Position, Stop},
+    zoom::{self, Drag, Grip, Position, Presets, Stop},
 };
 use slint::winit_030::{EventResult, WinitWindowAccessor, winit};
 use slint::{ComponentHandle, Model, ModelRc, VecModel};
@@ -163,25 +163,48 @@ fn submit_zoom(state: &Arc<Mutex<State>>, mailbox: &Arc<Mailbox>, ui: &ReaderWin
         }
     }
 }
+impl From<Presets> for PdfPresets {
+    fn from(p: Presets) -> Self {
+        let mut stops = p.stops().skip(1);
+        let second = stops.next().map_or(0, |p| p.stop as i32);
+        Self {
+            width: p.width,
+            fill: p.fill,
+            count: 1 + i32::from(second != 0) + stops.count() as i32,
+            second,
+        }
+    }
+}
+
+fn zoom_presets(ui: &ReaderWindow) -> Presets {
+    let p = ui.get_pdf_presets();
+    Presets {
+        width: p.width,
+        fill: p.fill,
+    }
+}
+
 fn edit_zoom(state: &Arc<Mutex<State>>, ui: &ReaderWindow, name: &str, value: f32) -> bool {
     if ui.get_reflowable() || !ui.get_has_document() {
         return false;
     }
     let mut s = state.lock().unwrap();
-    let width = ui.get_pdf_fit_width_zoom();
-    let fill = ui.get_pdf_fill_zoom();
+    let presets = zoom_presets(ui);
     let position = match name {
-        "fit-width" => Position {
-            value: width,
-            stop: Stop::Width,
-        },
-        "fit-cover" => Position {
-            value: fill,
-            stop: Stop::Fill,
-        },
+        "fit-mark" => {
+            let active = s.request.as_ref().map_or(Stop::Free, |r| {
+                Stop::from_fit(r.view.fit_width, r.view.fit_cover)
+            });
+            let Some(mark) = presets.clicked(value as i32, active) else {
+                return false;
+            };
+            mark
+        }
+        "fit-width" => presets.at(Stop::Width),
+        "fit-cover" => presets.at(Stop::Fill),
         "fit-page" | "size" => zoom::position(1.0),
-        "zoom" => zoom::step(ui.get_pdf_zoom(), fill, value),
-        _ => zoom::step(ui.get_pdf_zoom(), fill, 1.12f32.powf(value)),
+        "zoom" => zoom::step(ui.get_pdf_zoom(), presets, value),
+        _ => zoom::step(ui.get_pdf_zoom(), presets, 1.12f32.powf(value)),
     };
     apply_zoom(
         &mut s,
@@ -216,7 +239,7 @@ fn apply_zoom(s: &mut State, ui: &ReaderWindow, position: Position, reset_pan: b
         request.view.pan = [0.5, 0.0];
     }
     ui.set_pdf_zoom(position.value);
-    ui.set_pdf_zoom_stop(position.stop as i32);
+    ui.set_pdf_zoom_stop(zoom_presets(ui).canonical(position.stop) as i32);
     s.zoom_pending |= changed || panned;
     changed || panned
 }
@@ -420,24 +443,16 @@ fn run() -> anyhow::Result<()> {
                     ui.set_opening_document(false);
                     ui.set_book_title(update.title.into());
                     ui.set_reflowable(update.reflowable);
-                    ui.set_pdf_fit_width_zoom(update.pdf_fit_width_zoom);
-                    ui.set_pdf_fill_zoom(update.pdf_fill_zoom);
+                    ui.set_pdf_presets(update.pdf_presets.into());
                     if !update.reflowable {
                         if let Some(request) = &s.request {
-                            let actual = request.pdf_zoom
-                                * if request.view.fit_cover {
-                                    update.pdf_fill_zoom
-                                } else if request.view.fit_width {
-                                    update.pdf_fit_width_zoom
-                                } else {
-                                    1.0
-                                };
-                            let stop = if request.view.fit_cover {
-                                Stop::Fill
-                            } else if request.view.fit_width {
-                                Stop::Width
-                            } else {
+                            let fit =
+                                Stop::from_fit(request.view.fit_width, request.view.fit_cover);
+                            let actual = request.pdf_zoom * update.pdf_presets.at(fit).value;
+                            let stop = if fit == Stop::Page {
                                 zoom::position(actual).stop
+                            } else {
+                                update.pdf_presets.canonical(fit)
                             };
                             ui.set_pdf_zoom(actual);
                             ui.set_pdf_zoom_stop(stop as i32);
@@ -613,7 +628,7 @@ fn run() -> anyhow::Result<()> {
                         .flatten(),
                 );
                 state.lock().unwrap().zoom_drag = Some((
-                    Drag::start(ui.get_pdf_zoom(), ui.get_pdf_fill_zoom()),
+                    Drag::start(ui.get_pdf_zoom(), zoom_presets(&ui)),
                     Grip::new(x, y, radius),
                 ));
             }
@@ -1465,7 +1480,7 @@ fn run() -> anyhow::Result<()> {
         });
     }
     #[cfg(feature = "qa")]
-    let _qa = qa::start(&ui, state.clone(), mailbox.clone());
+    let _qa = qa::start(&ui, state.clone(), mailbox.clone(), cover.clone());
     let _ = boot;
     slint::run_event_loop()?;
     resize_timer.stop();
@@ -1535,8 +1550,7 @@ fn open(path: PathBuf, ui: &ReaderWindow, state: &Arc<Mutex<State>>, mailbox: &A
             .is_some_and(|e| e.eq_ignore_ascii_case("txt") || e.eq_ignore_ascii_case("md")),
     );
     ui.set_pdf_zoom(1.0);
-    ui.set_pdf_fit_width_zoom(1.0);
-    ui.set_pdf_fill_zoom(1.0);
+    ui.set_pdf_presets(Presets::PAGE.into());
     ui.set_pdf_zoom_stop(1);
     ui.set_zoom_pinned(false);
     ui.set_pdf_pannable(false);

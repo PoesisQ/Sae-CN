@@ -2,47 +2,125 @@
 //! The outline is sampled at physical display resolution, independently of the grain.
 use crate::CoverRect;
 use slint::{Image, Rgba8Pixel, SharedPixelBuffer};
-use std::sync::OnceLock;
 
 const OUTLINE: &[u8] = include_bytes!("../../assets/home/wordmark.spans");
 const BANDS: usize = 1024;
 const SAMPLES: usize = 4;
 
-struct SilverInk {
-    linear: [u16; 256],
-    negative: [u8; 4096],
+const PITCH: usize = 16;
+const CROSSOVER: u8 = 117;
+const DEADBAND: u8 = 6;
+
+fn luma(r: u8, g: u8, b: u8) -> u8 {
+    ((54 * u16::from(r) + 183 * u16::from(g) + 19 * u16::from(b) + 128) >> 8) as u8
 }
 
-impl SilverInk {
-    fn get() -> &'static Self {
-        static TABLES: OnceLock<SilverInk> = OnceLock::new();
-        TABLES.get_or_init(|| Self {
-            linear: std::array::from_fn(|i| {
-                let v = i as f64 / 255.;
-                let light = if v <= 0.04045 {
-                    v / 12.92
-                } else {
-                    ((v + 0.055) / 1.055).powf(2.4)
-                };
-                (light * 4095.).round() as u16
-            }),
-            negative: std::array::from_fn(|i| {
-                let light = 1. - i as f64 / 4095.;
-                let v = if light <= 0.0031308 {
-                    12.92 * light
-                } else {
-                    1.055 * light.powf(1. / 2.4) - 0.055
-                };
-                (v * 255.).round() as u8
-            }),
-        })
+// The broad light field chooses the ink; the original texel supplies its grain
+// and colour. Thus a grey band cannot erase a stroke or turn its specks on/off.
+fn ink(color: [u8; 3], field: u8, monochrome: bool) -> [u8; 3] {
+    let [r, g, b] = color;
+    let grain = (i16::from(field) - i16::from(luma(r, g, b))) * 3 / 8;
+    let pale = field < CROSSOVER;
+    let value = if pale {
+        (252 - i16::from(field) / 12 + grain).clamp(195, 255) as u8
+    } else {
+        (5 + i16::from(255 - field) / 11 + grain).clamp(0, 58) as u8
+    };
+    if monochrome {
+        return [value; 3];
+    }
+    if pale {
+        let high = r.max(g).max(b);
+        color.map(|c| value - (high - c) / 3)
+    } else {
+        let low = r.min(g).min(b);
+        color.map(|c| value + (c - low) / 3)
+    }
+}
+
+struct Exposure {
+    columns: usize,
+    values: Vec<u8>,
+    samples: Vec<u8>,
+}
+
+impl Exposure {
+    fn new(w: usize, h: usize) -> Self {
+        let columns = (w - 1) / PITCH + 2;
+        let rows = (h - 1) / PITCH + 2;
+        Self {
+            columns,
+            values: vec![0; columns * rows],
+            samples: vec![0; columns * rows],
+        }
     }
 
-    fn gray(&self, r: u8, g: u8, b: u8) -> u8 {
-        // Rec. 709 luminance in linear light, then back to a neutral sRGB ink.
-        let linear = |i: u8| u32::from(self.linear[usize::from(i)]);
-        let y = (13933 * linear(r) + 46871 * linear(g) + 4732 * linear(b) + 32768) >> 16;
-        self.negative[y as usize]
+    fn update(
+        &mut self,
+        bytes: &[u8],
+        stride: usize,
+        (sw, sh): (usize, usize),
+        xs: &[usize],
+        ys: &[usize],
+        continuous: bool,
+    ) {
+        let probes = [-5, -2, 2, 5];
+        for (j, row) in self.samples.chunks_exact_mut(self.columns).enumerate() {
+            let y = ys[(j * PITCH).min(ys.len() - 1)] / (sw * stride);
+            let rows = probes.map(|d| y.saturating_add_signed(d).min(sh - 1) * sw * stride);
+            for (i, sample) in row.iter_mut().enumerate() {
+                let x = xs[(i * PITCH).min(xs.len() - 1)] / stride;
+                let cols = probes.map(|d| x.saturating_add_signed(d).min(sw - 1) * stride);
+                let mut sum = 0u16;
+                for row in rows {
+                    for col in cols {
+                        let p = row + col;
+                        sum += u16::from(luma(bytes[p], bytes[p + 1], bytes[p + 2]));
+                    }
+                }
+                *sample = ((sum + 8) / 16) as u8;
+            }
+        }
+        // A single cluster of coarse samples must not punch white holes through
+        // a dark stroke. Filter only the small guide, never the moving grain.
+        let last_row = self.samples.len() / self.columns - 1;
+        for (j, row) in self.values.chunks_exact_mut(self.columns).enumerate() {
+            for (i, previous) in row.iter_mut().enumerate() {
+                let left = i.saturating_sub(1);
+                let right = (i + 1).min(self.columns - 1);
+                let across = |y: usize| {
+                    let line = &self.samples[y * self.columns..];
+                    u16::from(line[left]) + 2 * u16::from(line[i]) + u16::from(line[right])
+                };
+                let tone = ((across(j.saturating_sub(1))
+                    + 2 * across(j)
+                    + across((j + 1).min(last_row))
+                    + 8)
+                    / 16) as u8;
+                *previous = if continuous {
+                    (*previous).clamp(tone.saturating_sub(DEADBAND), tone.saturating_add(DEADBAND))
+                } else {
+                    tone
+                };
+            }
+        }
+    }
+
+    // Interpolate a continuous contour across cells; a tile never changes ink
+    // as a block. Resolve the vertical component just once per occupied row.
+    fn row(&self, y: usize, result: &mut [u16]) {
+        let start = (y / PITCH) * self.columns;
+        let dy = (y % PITCH) as u16;
+        for (i, out) in result.iter_mut().enumerate() {
+            *out = (PITCH as u16 - dy) * u16::from(self.values[start + i])
+                + dy * u16::from(self.values[start + self.columns + i]);
+        }
+    }
+
+    fn at(row: &[u16], x: usize) -> u8 {
+        let i = x / PITCH;
+        let dx = (x % PITCH) as u16;
+        (((PITCH as u16 - dx) * row[i] + dx * row[i + 1] + 128) >> 8) as u8
     }
 }
 
@@ -78,9 +156,11 @@ struct Run {
 pub(super) struct Stamp {
     size: (usize, usize),
     runs: Vec<Run>,
-    geometry: [usize; 9],
+    geometry: [usize; 10],
     xs: Vec<usize>,
     ys: Vec<usize>,
+    exposure: Exposure,
+    exposure_row: Vec<u16>,
     buffers: [SharedPixelBuffer<Rgba8Pixel>; 2],
     next: usize,
 }
@@ -117,9 +197,11 @@ impl Stamp {
         Self {
             size: (w, h),
             runs,
-            geometry: [0; 9],
+            geometry: [0; 10],
             xs: Vec::with_capacity(w),
             ys: Vec::with_capacity(h),
+            exposure: Exposure::new(w, h),
+            exposure_row: vec![0; (w - 1) / PITCH + 2],
             buffers: [base.clone(), base],
             next: 0,
         }
@@ -131,7 +213,7 @@ impl Stamp {
         stride: usize,
         source: (usize, usize),
         rect: &CoverRect,
-        silver: Option<&SilverInk>,
+        monochrome: bool,
     ) -> Image {
         let (w, h) = self.size;
         let buffer = &mut self.buffers[self.next];
@@ -154,8 +236,10 @@ impl Stamp {
             source.0,
             source.1,
             stride,
+            usize::from(monochrome),
         ];
-        if geometry != self.geometry {
+        let continuous = geometry == self.geometry;
+        if !continuous {
             self.xs.clear();
             self.ys.clear();
             self.xs
@@ -165,17 +249,23 @@ impl Stamp {
             );
             self.geometry = geometry;
         }
+        self.exposure
+            .update(bytes, stride, source, &self.xs, &self.ys, continuous);
+        let mut row = usize::MAX;
         for run in &self.runs {
+            if row != run.row {
+                row = run.row;
+                self.exposure.row(row, &mut self.exposure_row);
+            }
             let src = &bytes[self.ys[run.row]..];
             let line = &mut output[run.row * w + run.start..run.row * w + run.end];
-            for (px, &x) in line.iter_mut().zip(&self.xs[run.start..run.end]) {
-                let (r, g, b) = (src[x], src[x + 1], src[x + 2]);
-                let ink = if let Some(table) = silver {
-                    [table.gray(r, g, b); 3]
-                } else {
-                    let shift = 255 - i16::from(r.max(g).max(b)) - i16::from(r.min(g).min(b));
-                    [r, g, b].map(|c| (i16::from(c) + shift) as u8)
-                };
+            for (x, px) in (run.start..run.end).zip(line) {
+                let p = self.xs[x];
+                let ink = ink(
+                    [src[p], src[p + 1], src[p + 2]],
+                    Exposure::at(&self.exposure_row, x),
+                    monochrome,
+                );
                 let alpha = u16::from(px.a);
                 [px.r, px.g, px.b] = if alpha == 255 {
                     ink
@@ -209,14 +299,13 @@ pub(super) fn render(
         *cache = Some(Stamp::new(size.0, size.1));
     }
     let stamp = cache.as_mut().unwrap();
-    let silver = monochrome.then(SilverInk::get);
     if let Some(rgb) = frame.to_rgb8().filter(|p| p.width() > 0 && p.height() > 0) {
         return stamp.paint(
             rgb.as_bytes(),
             3,
             (rgb.width() as usize, rgb.height() as usize),
             &rect,
-            silver,
+            monochrome,
         );
     }
     frame
@@ -228,7 +317,92 @@ pub(super) fn render(
                 4,
                 (rgba.width() as usize, rgba.height() as usize),
                 &rect,
-                silver,
+                monochrome,
             )
         })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn luminance(gray: u8) -> f32 {
+        let s = f32::from(gray) / 255.;
+        if s <= 0.04045 {
+            s / 12.92
+        } else {
+            ((s + 0.055) / 1.055).powf(2.4)
+        }
+    }
+
+    #[test]
+    fn every_uniform_gray_keeps_a_readable_solid_stroke_from_either_direction() {
+        for gray in 0u8..=255 {
+            for field in gray.saturating_sub(DEADBAND)..=gray.saturating_add(DEADBAND) {
+                for mono in [false, true] {
+                    let rgb = ink([gray; 3], field, mono);
+                    assert_eq!([rgb[0]; 3], rgb);
+                    let (fg, bg) = (luminance(rgb[0]), luminance(gray));
+                    assert!(
+                        (fg.max(bg) + 0.05) / (fg.min(bg) + 0.05) >= 3.5,
+                        "field {field}, grey {gray}, ink {rgb:?}"
+                    );
+                }
+            }
+        }
+    }
+
+    #[test]
+    fn a_sparse_grain_cluster_does_not_punch_a_white_hole_in_a_dark_stroke() {
+        let side = 80;
+        let mut pixels = vec![124; side * side * 3];
+        for y in [27, 30, 34, 37] {
+            for x in [27, 30, 34, 37] {
+                let p = 3 * (y * side + x);
+                pixels[p..p + 3].fill(100);
+            }
+        }
+        let xs: Vec<_> = (0..side).map(|i| i * 3).collect();
+        let ys: Vec<_> = xs.iter().map(|i| i * side).collect();
+        let mut guide = Exposure::new(side, side);
+        guide.update(&pixels, 3, (side, side), &xs, &ys, false);
+        assert!(guide.values.iter().all(|&field| field >= CROSSOVER));
+    }
+
+    #[test]
+    fn fine_grain_stays_in_register_while_the_field_passes_middle_gray() {
+        let side = 96;
+        let xs: Vec<_> = (0..side).map(|i| i * 3).collect();
+        let ys: Vec<_> = xs.iter().map(|i| i * side).collect();
+        let mut pixels = vec![0; 3 * side * side];
+        let mut guide = Exposure::new(side, side);
+        let mut row = vec![0; guide.columns];
+        let mut seen = Vec::new();
+        let mut prior = None;
+        // Reverse the phase of 48-level grain on successive frames. A return
+        // trip through the switching band should produce just two changes.
+        let excursion = [111, 115, 117, 121, 116, 120, 127, 122, 117, 114, 120, 107];
+        for (i, base) in excursion.into_iter().enumerate() {
+            for (n, p) in pixels.chunks_exact_mut(3).enumerate() {
+                let bright = (n % side + n / side + i) % 2 == 0;
+                p.fill(if bright { base + 24 } else { base - 24 });
+            }
+            guide.update(&pixels, 3, (side, side), &xs, &ys, i > 0);
+            for y in 32..64 {
+                guide.row(y, &mut row);
+                let field = Exposure::at(&row, 32);
+                for x in 32..64 {
+                    assert_eq!(Exposure::at(&row, x), field);
+                }
+                let low = ink([base - 24; 3], field, true);
+                let high = ink([base + 24; 3], field, true);
+                assert!(low[0] >= high[0] + 10);
+                if y == 32 && prior != Some(field < CROSSOVER) {
+                    seen.push(i);
+                    prior = Some(field < CROSSOVER);
+                }
+            }
+        }
+        assert_eq!(seen, vec![0, 6, 11]);
+    }
 }

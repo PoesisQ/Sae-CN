@@ -134,12 +134,18 @@ struct Frost {
 }
 
 impl Frost {
-    fn new(view: &GlassView, pages: &ModelRc<PageTile>) -> Self {
+    fn new(
+        view: &GlassView,
+        pages: &ModelRc<PageTile>,
+        half_width: f32,
+        height: f32,
+        axle_y: f32,
+    ) -> Self {
         let samples = PageSamples::new(&view.scene, pages, true);
         let chrome = rgb(view.chrome);
-        let left = -view.radius - MARGIN;
+        let left = -half_width;
         let cols = ((-left * 2.0) / PITCH).ceil() as usize + 2;
-        let rows = ((view.radius + MARGIN) / PITCH).ceil() as usize + 2;
+        let rows = (height / PITCH).ceil() as usize + 2;
         let mut data = Vec::with_capacity(cols * rows);
         for row in 0..rows {
             let y = row as f32 * PITCH;
@@ -193,10 +199,10 @@ impl Frost {
             let x = left + (i % cols) as f32 * PITCH;
             let y = (i / cols) as f32 * PITCH;
             let nx = x / view.radius;
-            let ny = y / view.radius;
+            let ny = (y - axle_y) / view.radius;
             let radial = (nx * nx + ny * ny).min(1.);
             let bend = 0.966 - 0.16 * radial.powi(3);
-            let src = field.sample(x * bend, y * bend);
+            let src = field.sample(x * bend, axle_y + (y - axle_y) * bend);
             let l = (src[0] * 0.2126 + src[1] * 0.7152 + src[2] * 0.0722) / 255.;
             let tint = if view.dark {
                 0.40 + 0.33 * l
@@ -232,13 +238,20 @@ impl Frost {
 pub(crate) fn draw(view: GlassView, pages: ModelRc<PageTile>) -> Image {
     #[cfg(feature = "qa")]
     let started = std::time::Instant::now();
-    let r = view.radius.clamp(1., 100.);
-    let frost = Frost::new(&view, &pages);
-    // The core is low frequency. Cap raster density at 1.5× and antialias
-    // the analytic rim; larger desktop scales interpolate this small surface.
-    let half = ((r + MARGIN) * view.density.clamp(1., 1.5)).ceil() as u32;
-    let step = (r + MARGIN) / half as f32;
-    let mut buffer = SharedPixelBuffer::<Rgba8Pixel>::new(2 * half, half);
+    let r = view.radius.clamp(1., 104.);
+    let axle_y = r * view.axle_fraction;
+    let half_width = (r * r - axle_y * axle_y).sqrt() + MARGIN;
+    let height = r + axle_y + MARGIN;
+    let frost = Frost::new(&view, &pages, half_width, height, axle_y);
+    // Rasterize only the exposed cap. Keep the previous 31,752-pixel ceiling
+    // at high DPI; the analytic edge retains subpixel coverage.
+    let area = 2. * half_width * height;
+    let density = view.density.clamp(1., 1.5).min((31_752. / area).sqrt());
+    let width = (2. * half_width * density).floor().max(1.) as u32;
+    let rows = (height * density).floor().max(1.) as u32;
+    let step_x = 2. * half_width / width as f32;
+    let step_y = height / rows as f32;
+    let mut buffer = SharedPixelBuffer::<Rgba8Pixel>::new(width, rows);
     let mut scanline = vec![[0.; 3]; frost.cols];
     let rim = if view.dark {
         [108., 150., 151.]
@@ -248,11 +261,12 @@ pub(crate) fn draw(view: GlassView, pages: ModelRc<PageTile>) -> Image {
     let white = [248., 254., 253.];
     for (row, line) in buffer
         .make_mut_bytes()
-        .chunks_exact_mut(half as usize * 8)
+        .chunks_exact_mut(width as usize * 4)
         .enumerate()
     {
-        let y = (row as f32 + 0.5) * step;
-        let v = y / PITCH;
+        let screen_y = (row as f32 + 0.5) * step_y;
+        let y = screen_y - axle_y;
+        let v = screen_y / PITCH;
         let top = v as usize * frost.cols;
         for (i, p) in scanline.iter_mut().enumerate() {
             *p = mix(
@@ -262,8 +276,8 @@ pub(crate) fn draw(view: GlassView, pages: ModelRc<PageTile>) -> Image {
             );
         }
         for (i, px) in line.chunks_exact_mut(4).enumerate() {
-            let offset = (i as f32 + 0.5) * step;
-            let x = offset - (r + MARGIN);
+            let offset = (i as f32 + 0.5) * step_x;
+            let x = offset - half_width;
             let squared = x * x + y * y;
             if squared > (r + MARGIN).powi(2) {
                 continue;
@@ -279,7 +293,7 @@ pub(crate) fn draw(view: GlassView, pages: ModelRc<PageTile>) -> Image {
             }
             let dist = squared.sqrt();
             let edge = r - dist;
-            let cover = (edge / step + 0.5).clamp(0., 1.);
+            let cover = (edge / step_y + 0.5).clamp(0., 1.);
             let shade = if cover >= 1.0 {
                 0.0
             } else {

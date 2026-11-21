@@ -3,7 +3,7 @@
 use miniz_oxide::inflate::decompress_slice_iter_to_slice;
 use slint::{Image, Rgb8Pixel, SharedPixelBuffer};
 
-#[derive(Clone, Copy, PartialEq, Eq)]
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(super) enum Kind {
     Plasma,
     Blue,

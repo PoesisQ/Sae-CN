@@ -7,30 +7,30 @@
 <p align="center">Windows 原生电子书阅读器。</p>
 
 <p align="center">
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-0.6.5-preview.4-windows-x64.zip">下载 Windows x64 版</a> ·
-  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.4">更新说明与源码</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.5/SaeReader-0.6.5-preview.5-windows-x64.zip">下载 Windows x64 版</a> ·
+  <a href="https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.5">更新说明与源码</a> ·
   <a href="LICENSE">AGPL-3.0-or-later</a>
 </p>
 
 Sae Reader 支持暖纸、白纸与夜读主题。阅读时文档占满窗口，工具栏、目录和设置随用随开。
 可重排文档的排版独立可调，PDF 保留原页版式，并提供单页、双页和多页。
 
-当前为 **v0.6.5-preview.4 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
+当前为 **v0.6.5-preview.5 预览版**，支持 **EPUB / PDF / TXT / Markdown / AZW3 / MOBI / FB2**，不含 DRM。
 
-![蓝白色带上的黑白反色字标，与 Plasma 上的彩色反色字标](docs/evidence/iteration-0.6.5-p2/covers.png)
+![蓝白色带与 Plasma 封面上的 Sae 字标](docs/evidence/iteration-0.6.5-p5/covers.webp)
 
-直接启动时，两张动画封面逐次轮换。把书拖进窗口，或点击左下角的「选择书籍」。等书页排好，四角、边缘和中央的颗粒同时开始随机散去，露出上次读到的位置。双击文件直接进入正文。在首页按左右方向键可以切换蓝白色带、Plasma 与朱红网格版画。
+直接启动时，蓝白色带和 Plasma 两款动画封面轮流出现。左右方向键可以在两款之间切换。灰色颗粒穿过「Sae」时，笔画仍与周围的明暗拉开距离，纹理跟随画面运动。把书拖进窗口，或点击左下角的「选择书籍」。等书页排好，整幅封面的颗粒随机散去，露出上次读到的位置。双击文件直接进入正文。
 
 ## 下载与使用
 
-1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-0.6.5-preview.4-windows-x64.zip)。
+1. 下载 [Windows x64 压缩包](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.5/SaeReader-0.6.5-preview.5-windows-x64.zip)。
 2. 完整解压，双击 `SaeReader.exe`。从资源管理器拖一本书进来，也可以点击「选择书籍」。
-3. 靠近窗口上沿展开工具栏。拖动半滚轮到下一挡，或直接点两侧的视图名称。点击阅读区域左侧上一页、右侧下一页。
+3. 靠近窗口上沿展开工具栏。拨动顶栏的圆弧切换视图，也可以直接点挡位名称。点击阅读区域左侧上一页、右侧下一页。
 
 适用于 Windows 10 / 11 x64，无需安装开发工具。若系统提示缺少 `VCRUNTIME140.dll`
 或 `VCRUNTIME140_1.dll`，请安装 [Microsoft 官方 Visual C++ v14 x64 运行库](https://aka.ms/vc14/vc_redist.x64.exe)。
 
-[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.4) 同时提供独立 EXE、
+[Release 页面](https://github.com/PoesisQ/Sae-CN/releases/tag/v0.6.5-preview.5) 同时提供独立 EXE、
 完整依赖源码、许可证和 SHA256 校验文件。Windows 压缩包内附使用说明与许可。
 
 作为默认阅读器使用时，可用完整包里的 `Install.ps1` 更新固定目录中的程序。
@@ -47,9 +47,9 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **真实重排**：可重排文档的字体、字号、行距、段距、缩进、对齐、正文宽度及四边距可调。
 - **舒适主题**：暖纸、白纸和深色；PDF 可选原色、随主题着色或反色，使用 MuPDF 原生处理。
 - **阅读工具**：目录和书内链接支持跳转。跳转后顶栏会出现「回到跳转前」，点它可回到刚才读到的地方。也可选字复制、跨章节查找和定位。
-- **PDF 多页**　顶栏的磨砂玻璃拨轮透出书页上的图文，悬停时挡位字随轮面一起放大。刻度从单页延伸到多页，随挡位名称一起经过固定指针。松手时吸附到挡位，短距离试拨会回弹。鼠标滚轮连续拨两格也能换挡。可在「阅读设置 → 多页布局」中选自动、3×1、4×1、2×2、3×2 或 4×2，方向键按整组翻页。
+- **PDF 多页**　顶栏露出磨砂玻璃拨轮的下段圆弧。挡位之间的刻度都指向圆心，拨动时经过固定指针。悬停时挡位字随轮面一起放大。松手时吸附到挡位，短距离试拨会回弹。鼠标滚轮连续拨两格也能换挡。可在「阅读设置 → 多页布局」中选自动、3×1、4×1、2×2、3×2 或 4×2，方向键按整组翻页。
 - **收起侧栏**：点击文档或页边空白即可关闭目录、排版或查找面板；这一次点击只收起面板。
-- **PDF 缩放**　靠近底部倍率，圆盘和底板一起展开。向右或向上直拖放大，反向缩小。沿盘缘顺时针放大、逆时针缩小。直拖到屏幕边缘并按住，可一直调到最低或最高倍率，使用自定义显示缩放时也适用。松手后倍率留在盘心，可接着拖。下弧三道刻线从左到右为整页（100%）、适宽、铺满，点按跳转，从刻线上拖动也能调倍率。
+- **PDF 缩放**　靠近底部倍率，圆盘和底板一起展开。向右或向上直拖放大，反向缩小。沿盘缘顺时针放大、逆时针缩小。直拖到屏幕边缘并按住，可一直调到最低或最高倍率。松手后倍率留在盘心，可接着拖。下弧的刻线可以点按，分别对应整页（100%）、适宽、铺满。当前页面上会产生相同缩放结果的挡位共用一条刻线。
 - **跳页**：拖细进度线能先看到目标页码，松手才跳转。点击页码或按 `Ctrl+G`，在原位置输入页数后回车。多页模式显示包含目标页的整组。
 - **Kindle 与 FB2**：无 DRM 的 AZW3/KF8、MOBI 以及 FictionBook；保留文字、目录、图片、样式与链接，按需解析，共用原生渲染与搜索。
 - **文本与 Markdown**：自动识别编码，可手动切换；保留 TXT 空行与缩进，Markdown 支持标题、列表、引用、代码、表格、本地图片与链接。图片未载入等情况可在阅读设置的「文档信息」查看。
@@ -57,7 +57,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - **记住位置**：正常关闭或切书时保存排版、阅读模式及每本书的阅读位置及手动文本编码。
 - **沉浸阅读**：点击系统最大化按钮、双击标题栏或按 `F11`，都会进入隐藏标题栏和任务栏的全屏。鼠标靠近边缘时显示工具栏；目录与设置覆盖在正文之上。
 
-[上下拨轮的原生窗口实拍](docs/evidence/iteration-0.6.5-p3/wheels.png) · [顶栏和侧栏的磨砂层次](docs/evidence/iteration-0.6.5/glass.png) · [竖版 PDF 八页实图](docs/evidence/iteration-0.6.0/portrait.png)
+[上下拨轮的原生窗口实拍](docs/evidence/iteration-0.6.5-p5/wheels.webp) · [顶栏和侧栏的磨砂层次](docs/evidence/iteration-0.6.5/glass.png) · [竖版 PDF 八页实图](docs/evidence/iteration-0.6.0/portrait.png)
 
 ## 快捷键
 
@@ -86,7 +86,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 .\SaeReader.exe --portable
 ```
 
-可用 `--cover=plasma`、`--cover=blue` 或 `--cover=print` 指定本次封面。打开选书窗口时封面暂停，取消后可以继续选择。Windows 关闭「动画效果」或使用 `--motion=static` 时，书页就绪即显示。阅读中也可以拖入另一本书直接切换。一次拖入多个文件时，会打开其中第一本支持的书。
+可用 `--cover=plasma` 或 `--cover=blue` 指定本次封面。打开选书窗口时封面暂停，取消后可以继续选择。Windows 关闭「动画效果」或使用 `--motion=static` 时，封面显示所选动画的一帧，书页就绪即显示。阅读中也可以拖入另一本书直接切换。一次拖入多个文件时，会打开其中第一本支持的书。
 
 便携模式下数据写入程序旁的 `data/` 文件夹。卸载时关闭程序并删除程序文件夹；
 个人阅读记录可按需另行删除。
@@ -99,7 +99,7 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 - 带脚本的规范 EPUB 章节可阅读其中的静态正文、图片和目录。依赖 JavaScript 生成的内容、DRM 及多媒体播放暂未支持。
 
 详情见 [已知限制](docs/known-limitations.md)、[EPUB 兼容性](docs/epub-compatibility-matrix.md)
-和 [本版开书过渡与 Windows 实测](docs/iteration-0.6.5-p4.md)。
+和[本版封面、拨轮与 Windows 实测](docs/iteration-0.6.5-p5.md)。
 
 ## 开发与许可
 
@@ -108,4 +108,4 @@ Windows 会记住程序路径；每次换到不同的版本目录可能仍会启
 应用代码采用 [AGPL-3.0-or-later](LICENSE)，依赖保留各自许可。
 每个二进制 Release 同时提供对应源码及许可文件。
 
-图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.4/SaeReader.ico)。
+图标：[PNG 原稿](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.5/SaeReader-icon.png) · [Windows ICO](https://github.com/PoesisQ/Sae-CN/releases/download/v0.6.5-preview.5/SaeReader.ico)。

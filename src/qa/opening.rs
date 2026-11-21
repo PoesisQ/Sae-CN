@@ -33,11 +33,7 @@ fn click_picker(ui: &ReaderWindow, result: Option<PathBuf>) -> Result<()> {
     use slint::platform::{PointerEventButton, WindowEvent};
     let (w, h) = (ui.get_viewport_width(), ui.get_viewport_height());
     let inset = (w.min(h) / 16.).clamp(24., 64.);
-    let position = if ui.get_home_variant() == 0 {
-        slint::LogicalPosition::new((w * 0.066).clamp(28., 108.) + 35., h * 0.895)
-    } else {
-        slint::LogicalPosition::new(inset + 35., h - inset - 19.)
-    };
+    let position = slint::LogicalPosition::new(inset + 35., h - inset - 19.);
     PICKER_RESULT.with(|slot| slot.replace(Some(result)));
     ui.window()
         .dispatch_event(WindowEvent::PointerMoved { position });
@@ -115,7 +111,8 @@ impl Probe {
         let active = ui.get_home_transition();
         let progress = ui.get_home_reveal_progress();
         let resources = ui.invoke_home_resources();
-        if self.case == "direct" {
+        let file_launch = matches!(self.case.as_str(), "direct" | "retry");
+        if file_launch {
             ensure!(
                 !ui.get_home_session() && !active && frames == (0, 0) && resources == 0,
                 "File launch acquired the home or transition"
@@ -134,13 +131,15 @@ impl Probe {
             Stage::Start => {
                 fs::create_dir_all(screens)?;
                 ui.window().set_size(slint::LogicalSize::new(640., 480.));
-                if self.case == "direct" {
+                if self.case == "retry" {
+                    self.enter(Stage::Failed);
+                } else if self.case == "direct" {
                     self.enter(Stage::Opening);
                 } else {
                     ensure!(
                         matches!(
                             self.case.as_str(),
-                            "picker" | "drop" | "static" | "reduced" | "print" | "replace"
+                            "picker" | "drop" | "static" | "reduced" | "replace"
                         ),
                         "Unknown opening case"
                     );
@@ -214,20 +213,29 @@ impl Probe {
                 }
             }
             Stage::Failed => {
-                if ui.get_opening_document() {
+                if ui.get_opening_document() || !ui.get_status().starts_with("无法读取") {
                     return Ok(false);
                 }
                 ensure!(
-                    ui.get_home_session()
+                    ui.get_home_session() != file_launch
                         && !ui.get_has_document()
                         && !active
-                        && frames.1 == 0
-                        && ui.get_status().starts_with("无法读取"),
-                    "Failed opening consumed the cover or played a transition"
+                        && frames.1 == 0,
+                    "Failed opening changed the cover session or played a transition"
                 );
                 run.snapshots.push(json!({"failed_open_recovered":true}));
-                click_picker(ui, Some(BOOK.into()))?;
-                snapshot(ui, &screens.join("frozen.png"))?;
+                if file_launch {
+                    ensure!(
+                        ui.get_home_picture().size().width == 0,
+                        "A bad file loaded cover art"
+                    );
+                    snapshot(ui, &screens.join("recovery.png"))?;
+                    PICKER_RESULT.with(|slot| slot.replace(Some(Some(BOOK.into()))));
+                    ui.invoke_open_file();
+                } else {
+                    click_picker(ui, Some(BOOK.into()))?;
+                    snapshot(ui, &screens.join("frozen.png"))?;
+                }
                 self.enter(Stage::Opening);
             }
             Stage::Opening => {
@@ -248,7 +256,7 @@ impl Probe {
                         ensure!(ready(OTHER), "A superseded result started the effect");
                         self.replaced = true;
                         self.drop_batch(ui, state, mailbox, &[BOOK]);
-                    } else if matches!(self.case.as_str(), "picker" | "drop" | "print") {
+                    } else if matches!(self.case.as_str(), "picker" | "drop") {
                         // Winit may wake a fraction before a 30 ms boundary.
                         // Only the first completed exposure can contain grains.
                         let threshold = [1. / 9., 0.29, 0.68];
@@ -278,7 +286,7 @@ impl Probe {
                     return Ok(false);
                 }
                 match self.case.as_str() {
-                    "picker" | "drop" | "print" => {
+                    "picker" | "drop" => {
                         ensure!(
                             self.mix_frames.len() >= 2,
                             "Missed visible stages of the opening"

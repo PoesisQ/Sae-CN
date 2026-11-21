@@ -16,6 +16,12 @@ use std::{
     time::{Duration, Instant},
 };
 
+#[cfg(feature = "qa")]
+pub(crate) fn sampled_cover(blue: bool, viewport: slint::PhysicalSize, time: f32) -> Option<Image> {
+    let size = Field::dimensions(viewport.width, viewport.height);
+    Field::new(if blue { Kind::Blue } else { Kind::Plasma }, size)?.render(time)
+}
+
 #[link(name = "user32")]
 unsafe extern "system" {
     fn SystemParametersInfoW(action: u32, param: u32, output: *mut i32, flags: u32) -> i32;
@@ -82,7 +88,7 @@ fn cover_tone(frame: Image, x: f32, y: f32, w: f32, h: f32) -> i32 {
         .map_or(128, |pixels| sample(pixels.as_bytes(), 4))
 }
 
-fn alternate(config: &Path) -> i32 {
+fn alternate(config: &Path) -> Kind {
     let marker = config.with_file_name("next-cover-blue");
     if let Some(parent) = marker.parent() {
         let _ = fs::create_dir_all(parent);
@@ -95,16 +101,16 @@ fn alternate(config: &Path) -> i32 {
             .create_new(true)
             .open(&marker)
         {
-            Ok(_) => return 1,
+            Ok(_) => return Kind::Plasma,
             Err(e) if e.kind() == ErrorKind::AlreadyExists => match fs::remove_file(&marker) {
-                Ok(()) => return 2,
+                Ok(()) => return Kind::Blue,
                 Err(e) if e.kind() == ErrorKind::NotFound => continue,
                 Err(_) => break,
             },
             Err(_) => break,
         }
     }
-    1
+    Kind::Plasma
 }
 
 pub(crate) struct Cover {
@@ -112,7 +118,6 @@ pub(crate) struct Cover {
     field: RefCell<Option<Field>>,
     stamp: RefCell<Option<wordmark::Stamp>>,
     reveal: RefCell<Option<reveal::Dissolve>>,
-    kind: Cell<i32>,
     period: Option<Duration>,
     started: Cell<Option<Instant>>,
     played: Cell<Duration>,
@@ -130,9 +135,8 @@ impl Cover {
         let mut period = Some(Duration::from_millis(67));
         for arg in std::env::args_os().skip(1) {
             match arg.to_str() {
-                Some("--cover=plasma") => forced = Some(1),
-                Some("--cover=blue") => forced = Some(2),
-                Some("--cover=print") => forced = Some(0),
+                Some("--cover=plasma") => forced = Some(Kind::Plasma),
+                Some("--cover=blue") => forced = Some(Kind::Blue),
                 Some("--motion=static") => period = None,
                 Some("--motion=30") => period = Some(Duration::from_micros(33_333)),
                 _ => {}
@@ -144,7 +148,6 @@ impl Cover {
             field: RefCell::default(),
             stamp: RefCell::default(),
             reveal: RefCell::default(),
-            kind: Cell::new(kind),
             period,
             started: Cell::new(None),
             played: Cell::new(Duration::ZERO),
@@ -164,10 +167,10 @@ impl Cover {
                 })
         });
         ui.set_home_session(true);
-        ui.set_home_variant(kind);
+        ui.set_blue_cover(kind == Kind::Blue);
         let weak = Rc::downgrade(&cover);
         let window = ui.as_weak();
-        ui.on_cycle_home(move |direction| {
+        ui.on_cycle_home(move || {
             if let (Some(home), Some(ui)) = (weak.upgrade(), window.upgrade()) {
                 if home.retired.get()
                     || home.picker.get()
@@ -178,15 +181,10 @@ impl Cover {
                 }
                 home.pause();
                 home.field.replace(None);
-                let kind = (home.kind.get() + direction).rem_euclid(3);
-                if kind == 0 {
-                    home.stamp.replace(None);
-                }
-                home.kind.set(kind);
                 home.played.set(Duration::ZERO);
                 home.last_input.set(Instant::now());
                 ui.set_home_frame(Image::default());
-                ui.set_home_variant(kind);
+                ui.set_blue_cover(!ui.get_blue_cover());
                 home.resume(&ui);
             }
         });
@@ -200,25 +198,12 @@ impl Cover {
                 home.picker.set(open);
                 if open {
                     home.pause();
-                    // The native dialog may repaint its owner before it returns.
-                    // Freeze the print before either the dialog or a dropped book
-                    // can overlap a desktop-size SVG render with a new page.
-                    if home.kind.get() == 0
-                        && ui.get_home_frame().size().width == 0
-                        && let Some(frame) =
-                            reveal::freeze_print(&ui.get_home_picture(), ui.window().size())
-                    {
-                        ui.set_home_frame(frame);
-                    }
                     // Keep only the displayed artwork while the book is loading.
                     // A failed open can regenerate the field at the saved time.
                     if ui.get_opening_document() {
                         home.field.replace(None);
                     }
                 } else {
-                    if home.kind.get() == 0 {
-                        ui.set_home_frame(Image::default());
-                    }
                     home.last_input.set(Instant::now());
                     home.resume(&ui);
                 }
@@ -260,7 +245,6 @@ impl Cover {
         ui.set_home_reveal_progress(0.0);
         ui.set_home_reveal_frame(Image::default());
         ui.set_home_frame(Image::default());
-        ui.set_home_variant(0);
         // Release the last evaluated image of this lazy Slint binding too.
         let _ = ui.get_home_picture();
         self.reveal.replace(None);
@@ -277,6 +261,16 @@ impl Cover {
                 .unwrap_or(false)
     }
 
+    #[cfg(feature = "qa")]
+    pub fn motion_state(&self, ui: &ReaderWindow) -> serde_json::Value {
+        let window = ui
+            .window()
+            .with_winit_window(|w| (w.has_focus(), w.is_minimized()));
+        serde_json::json!({"focus":self.focused.get(),"native_focus":window.map(|w|w.0),
+            "minimized":window.and_then(|w|w.1),"visible":self.visible(ui),"occluded":self.occluded.get(),
+            "picker":self.picker.get(),"timer":self.timer.running(),"motion_allowed":allows_motion()})
+    }
+
     fn begin_reveal(self: &Rc<Self>, ui: &ReaderWindow) {
         if self.retired.get() || ui.get_home_transition() {
             return;
@@ -286,11 +280,7 @@ impl Cover {
             self.retire(ui);
             return;
         }
-        let film = if self.kind.get() == 0 {
-            ui.get_home_frame()
-        } else {
-            ui.get_home_picture()
-        };
+        let film = ui.get_home_picture();
         let Some(dissolve) = reveal::Dissolve::new(&film) else {
             self.retire(ui);
             return;
@@ -323,13 +313,6 @@ impl Cover {
                     .and_then(|r| r.frame(elapsed));
                 if let Some(frame) = next {
                     ui.set_home_reveal_frame(frame);
-                    if home.kind.get() == 0
-                        && elapsed >= reveal::FRAME_INTERVAL
-                        && ui.get_home_frame().size().width != 0
-                    {
-                        // The grain image now owns everything the print can show.
-                        ui.set_home_frame(Image::default());
-                    }
                     ui.set_home_reveal_progress(
                         elapsed.as_secs_f32() / reveal::DURATION.as_secs_f32(),
                     );
@@ -357,7 +340,6 @@ impl Cover {
     fn resume(self: &Rc<Self>, ui: &ReaderWindow) {
         let Some(period) = self.period else { return };
         if self.retired.get()
-            || self.kind.get() == 0
             || ui.get_opening_document()
             || ui.get_home_transition()
             || self.timer.running()
@@ -388,10 +370,10 @@ impl Cover {
                 let mut field = home.field.borrow_mut();
                 if field.as_ref().is_none_or(|f| f.size != size) {
                     *field = Field::new(
-                        if home.kind.get() == 1 {
-                            Kind::Plasma
-                        } else {
+                        if ui.get_blue_cover() {
                             Kind::Blue
+                        } else {
+                            Kind::Plasma
                         },
                         size,
                     );
@@ -471,7 +453,7 @@ mod tests {
                 alternate(&config),
                 alternate(&config)
             ],
-            [1, 2, 1, 2]
+            [Kind::Plasma, Kind::Blue, Kind::Plasma, Kind::Blue]
         );
         assert!(!config.exists());
         let _ = fs::remove_dir(dir);

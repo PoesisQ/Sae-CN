@@ -13,7 +13,7 @@ import zipfile
 
 root = Path(__file__).resolve().parents[1]
 parser = argparse.ArgumentParser()
-parser.add_argument('--name', default='SaeReader-0.6.5-preview.4')
+parser.add_argument('--name', default='SaeReader-0.6.5-preview.5')
 args = parser.parse_args()
 dist = root / 'dist'
 manifest = json.loads((dist / (args.name + '-manifest.json')).read_text(encoding='utf-8'))
@@ -48,6 +48,9 @@ for kind in ('source', 'windows-x64'):
                         'src/home/wordmark.rs', 'src/glass/surfaces.rs', 'scripts/pack-wordmark.py', 'assets/home/wordmark.spans',
                         '.github/workflows/windows.yml', 'src/file_drop.rs', 'src/home/reveal.rs', 'src/qa/opening.rs',
                         'scripts/check-opening-transition.py', 'scripts/check-shell-drop.ps1',
+                        'src/qa/zoom_presets.rs', 'docs/iteration-0.6.5-p5.md', 'docs/evidence/iteration-0.6.5-p5/windows.json',
+                        'docs/evidence/iteration-0.6.5-p5/covers.webp', 'docs/evidence/iteration-0.6.5-p5/contrast.webp',
+                        'docs/evidence/iteration-0.6.5-p5/wheels.webp',
                         'docs/iteration-0.6.5-p4.md', 'docs/evidence/iteration-0.6.5-p4/windows.json',
                         'docs/evidence/iteration-0.6.5-p4/opening.webp',
                         'src/qa/page_input.rs', 'docs/iteration-0.6.5-p2.md', 'docs/evidence/iteration-0.6.5-p2/windows.json',

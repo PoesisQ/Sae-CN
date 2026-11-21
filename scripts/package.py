@@ -16,8 +16,8 @@ from urllib.parse import quote
 
 root=Path(__file__).resolve().parents[1]
 parser=argparse.ArgumentParser()
-parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.4/SaeReader.exe')
-parser.add_argument('--name',default='SaeReader-0.6.5-preview.4')
+parser.add_argument('--exe',type=Path,default=root/'artifacts/production/SaeReader-0.6.5-preview.5/SaeReader.exe')
+parser.add_argument('--name',default='SaeReader-0.6.5-preview.5')
 parser.add_argument('--reuse-registry-from',type=Path,help='Reuse registry source from a checksum-verified prior source ZIP with identical Cargo.lock')
 args=parser.parse_args()
 if not re.fullmatch(r'[A-Za-z0-9._-]+',args.name):raise ValueError('Invalid package name')
@@ -114,9 +114,9 @@ readme='''Sae Reader · Windows x64 预览版
 Ctrl+O 打开，左右方向键 / PageUp / PageDown 翻页，Ctrl+F 全文查找，Ctrl+C 复制。
 F10 固定或自动收起工具栏。系统最大化或 F11 进入全屏，Esc 收起浮层或退出全屏。
 鼠标靠近下沿显示进度，拖动时显示目标页，松手跳转。点击页码或按 Ctrl+G 输入页码。
-靠近 PDF 底部倍率，圆盘与底板一起展开。向右或向上直拖、顺时针沿盘缘旋转均可放大，反向缩小。三道刻线支持点按，拖动时可越过刻线。
+靠近 PDF 底部倍率，圆盘与底板一起展开。向右或向上直拖、顺时针沿盘缘旋转均可放大，反向缩小。径向刻线支持点按，拖动时可越过刻线。
 拖动后面板保留，可再次拖动。点击正文或按 Esc 收起。
-圆盘下弧从左至右的三道刻线分别是整页（100%）、适宽、铺满，悬停显示名称。图片未载入等情况可在阅读设置的「文档信息」查看。
+圆盘下弧提供整页（100%）、适宽和铺满，悬停显示名称。当前页面缩放结果相同时，挡位自动合并。图片未载入等情况可在阅读设置的「文档信息」查看。
 PDF 放大并超出窗口时，左键、中键或右键拖动都能平移，Shift+左键拖动可以选字，Shift+滚轮可以横移。
 排版面板可改字体、字号、行距、段距、缩进、宽度、四边距和主题；
 PDF 可单页/双页缩放、适页/适宽和平移，原色/随主题着色/反色可选。正常关闭后保存设置及每本书的逻辑位置。

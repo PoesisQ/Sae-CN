@@ -4,6 +4,7 @@ use super::*;
 mod opening;
 pub(crate) use opening::{choose_file, opening_motion_policy};
 mod page_input;
+mod zoom_presets;
 use serde_json::{Value, json};
 use slint::Model;
 use std::{
@@ -98,6 +99,7 @@ struct Memory {
 #[link(name = "kernel32")]
 unsafe extern "system" {
     fn GetCurrentProcess() -> *mut std::ffi::c_void;
+    fn GetCurrentThreadId() -> u32;
     fn GetProcessTimes(
         process: *mut std::ffi::c_void,
         create: *mut u64,
@@ -106,6 +108,37 @@ unsafe extern "system" {
         user: *mut u64,
     ) -> i32;
     fn GetProcessHandleCount(process: *mut std::ffi::c_void, count: *mut u32) -> i32;
+}
+#[link(name = "user32")]
+unsafe extern "system" {
+    fn GetThreadDesktop(thread_id: u32) -> *mut std::ffi::c_void;
+    fn GetUserObjectInformationW(
+        object: *mut std::ffi::c_void,
+        index: i32,
+        info: *mut std::ffi::c_void,
+        len: u32,
+        needed: *mut u32,
+    ) -> i32;
+}
+
+fn private_focus_desktop() -> bool {
+    if std::env::var_os("SAE_TEST_DESKTOP_NAME").is_none() {
+        return false;
+    }
+    // UOI_IO reports whether this thread's actual desktop receives user input.
+    // A real foreground window keeps the native activation path even if the
+    // runner's environment was inadvertently inherited.
+    let mut receives_input = 1i32;
+    unsafe {
+        GetUserObjectInformationW(
+            GetThreadDesktop(GetCurrentThreadId()),
+            6,
+            (&raw mut receives_input).cast(),
+            4,
+            std::ptr::null_mut(),
+        ) != 0
+            && receives_input == 0
+    }
 }
 #[link(name = "psapi")]
 unsafe extern "system" {
@@ -189,13 +222,16 @@ pub fn start(
     ui: &ReaderWindow,
     state: Arc<Mutex<State>>,
     mailbox: Arc<Mailbox>,
+    cover: Option<Rc<home::Cover>>,
 ) -> Option<Rc<slint::Timer>> {
     let report = PathBuf::from(std::env::var_os("SAE_READER_QA_REPORT")?);
     let scenario = std::env::var("SAE_READER_QA_SCENARIO").unwrap_or_else(|_| "idle".into());
+    let private_home = scenario == "home-motion" && private_focus_desktop();
     let screenshots = std::env::var_os("SAE_READER_QA_SCREENSHOTS").map(PathBuf::from);
     let weak = ui.as_weak();
     let run = Rc::new(RefCell::new(Run::default()));
     let mut opening = (scenario == "opening").then(opening::Probe::new);
+    let mut zoom_marks = (scenario == "zoom-presets").then(zoom_presets::Probe::default);
     let timer = Rc::new(slint::Timer::default());
     let stop = Rc::downgrade(&timer);
     timer.start(
@@ -264,7 +300,8 @@ pub fn start(
                     let value = json!({"seq":command,"sample":run.operations,"dpi":ui.window().scale_factor(),
                         "pointer":POINTER.with(Cell::get),
                         "window":[ui.get_viewport_width(),ui.get_viewport_height()],
-                        "mode_x":ui.get_mode_center_x(),"header":ui.get_header_height_logical(),"depth":ui.get_mode_depth(),
+                        "mode_x":ui.get_mode_center_x(),"mode_y":ui.get_mode_center_y(),"mode_radius":ui.get_mode_radius(),
+                        "pitch":ui.get_mode_pitch(),"header":ui.get_header_height_logical(),"depth":ui.get_mode_depth(),
                         "mode_position":ui.get_mode_position(),"mode_held":ui.get_mode_dragging(),
                         "presets":[ui.get_preset_page_x(),ui.get_preset_page_y(),ui.get_preset_width_y()],
                         "mode":if ui.get_pdf_multi(){2}else if ui.get_double_page(){1}else{0},
@@ -302,20 +339,59 @@ pub fn start(
             if Instant::now() < run.ready.unwrap() {
                 return;
             }
+            if scenario == "wordmark" {
+                // Set the field to exact successive home animation times. Snapshot
+                // its pixels and the real composited lettering in the same event.
+                if run.step == 0 {
+                    ui.invoke_home_picker(true);
+                    ui.window().set_size(slint::LogicalSize::new(960., 640.));
+                    run.step += 1;
+                    run.ready = Some(Instant::now() + Duration::from_millis(100));
+                    return;
+                }
+                let name = if ui.get_blue_cover() { "blue" } else { "plasma" };
+                let time = 4.0 + (run.step - 1) as f32 / 15.;
+                let capture = || -> anyhow::Result<()> {
+                    let frame = crate::home::sampled_cover(ui.get_blue_cover(),ui.window().size(),time)
+                        .ok_or_else(|| anyhow::anyhow!("Unavailable cover frame"))?;
+                    ui.set_home_frame(frame);
+                    let folder = screenshots.as_ref().ok_or_else(|| anyhow::anyhow!("Wordmark screenshots required"))?;
+                    cover_snapshot(&ui, &folder.join(format!("{name}-{}.png",run.step)))
+                };
+                if let Err(error) = capture() { run.errors.push(error.to_string()); }
+                run.snapshots.push(json!({"cover":name,"time":time}));
+                run.step += 1;
+                if run.step > 3 || !run.errors.is_empty() {
+                    finish(&ui, &state, &report, &scenario, &run);
+                    if let Some(timer) = stop.upgrade() { timer.stop(); }
+                }
+                return;
+            }
             if scenario == "home-motion" {
                 let step = run.step;
                 let count = ui.get_home_frames();
-                // Windows hands over focus asynchronously, including after restore.
-                if step == 1 && count == 0 && run.ready.unwrap().elapsed() < Duration::from_secs(4) {
-                    ui.window().with_winit_window(|w| w.focus_window());
+                let activate = || {
+                    if private_home && let Some(home) = &cover {
+                        home.event(&ui, &winit::event::WindowEvent::Focused(true));
+                    } else {
+                        ui.window().with_winit_window(|w| w.focus_window());
+                    }
+                };
+                // A foreground-only animation can receive activation after the
+                // probe's next tick, especially when restoring a native window.
+                if matches!(step, 1 | 3 | 5 | 9 | 10) && count == run.home_before
+                    && run.ready.unwrap().elapsed() < Duration::from_secs(4) {
+                    activate();
                     return;
                 }
-                run.snapshots.push(json!({"step":step,"frames":count,"cover":ui.get_home_variant(),
-                    "texture":ui.get_home_frame().size().width,"home_session":ui.get_home_session()}));
-                let next = || {
-                    use slint::platform::{Key,WindowEvent};
-                    ui.window().dispatch_event(WindowEvent::KeyPressed{text:Key::RightArrow.into()});
-                    ui.window().dispatch_event(WindowEvent::KeyReleased{text:Key::RightArrow.into()});
+                run.snapshots.push(json!({"step":step,"frames":count,"cover":if ui.get_blue_cover() {"blue"} else {"plasma"},
+                    "texture":ui.get_home_frame().size().width,"home_session":ui.get_home_session(),
+                    "private_focus":private_home,"motion":cover.as_ref().map(|home|home.motion_state(&ui))}));
+                let cycle = |key: slint::platform::Key| {
+                    use slint::platform::WindowEvent;
+                    let text: slint::SharedString = key.into();
+                    ui.window().dispatch_event(WindowEvent::KeyPressed{text:text.clone()});
+                    ui.window().dispatch_event(WindowEvent::KeyReleased{text});
                 };
                 let capture = |name:&str| -> anyhow::Result<()> {
                     if let Some(dir)=&screenshots { cover_snapshot(&ui,&dir.join(name))?; }
@@ -323,16 +399,16 @@ pub fn start(
                 };
                 let action = match step {
                     0 => {
-                        ui.window().with_winit_window(|w| w.focus_window());
+                        activate();
                         Ok(())
                     }
                     1 => {
-                        if count==0 || ui.get_home_variant()!=1 { run.errors.push("first cover did not animate".into()); }
+                        if count==0 || ui.get_blue_cover() { run.errors.push("first cover did not animate".into()); }
                         capture("plasma.png")
                     }
-                    2 => { let image=capture("plasma-later.png"); next(); image }
+                    2 => { let image=capture("plasma-later.png"); cycle(slint::platform::Key::RightArrow); image }
                     3 => {
-                        if count<=run.home_before || ui.get_home_variant()!=2 { run.errors.push("second cover did not animate".into()); }
+                        if count<=run.home_before || !ui.get_blue_cover() { run.errors.push("second cover did not animate".into()); }
                         let image=capture("blue.png");
                         ui.invoke_home_picker(true);
                         image
@@ -349,15 +425,15 @@ pub fn start(
                     7 => {
                         if count!=run.home_before { run.errors.push("minimized cover timer advanced".into()); }
                         ui.window().set_minimized(false);
-                        ui.window().with_winit_window(|w| w.focus_window()); Ok(())
+                        activate(); Ok(())
                     }
-                    8 => { next(); Ok(()) }
+                    8 => { cycle(slint::platform::Key::RightArrow); Ok(()) }
                     9 => {
-                        if ui.get_home_variant()!=0 || ui.get_home_frame().size().width!=0 {run.errors.push("print retained a motion texture".into());}
-                        let image=capture("print.png");next();image
+                        if ui.get_blue_cover() || count<=run.home_before { run.errors.push("right arrow did not wrap to animated Plasma".into()); }
+                        cycle(slint::platform::Key::LeftArrow); Ok(())
                     }
                     10 => {
-                        if count<=run.home_before { run.errors.push("cover failed to resume after print".into()); }
+                        if !ui.get_blue_cover() || count<=run.home_before { run.errors.push("left arrow did not wrap to animated Blue".into()); }
                         open(PathBuf::from("tests/fixtures/core.pdf"),&ui,&state,&mailbox);Ok(())
                     }
                     _ => {
@@ -371,6 +447,19 @@ pub fn start(
                 if let Err(e)=action {run.errors.push(e.to_string());}
                 run.home_before=count;run.step+=1;run.operations+=1;
                 run.ready=Some(Instant::now()+Duration::from_millis(500));return;
+            }
+            if let Some(probe) = &mut zoom_marks {
+                let result = screenshots.as_deref().ok_or_else(|| anyhow::anyhow!("Zoom preset screenshots required"))
+                    .and_then(|screens| probe.tick(&ui, &state, &mailbox, screens, &mut run));
+                if matches!(result, Ok(false)) {
+                    run.operations += 1;
+                    run.ready = Some(Instant::now() + Duration::from_millis(320));
+                } else {
+                    if let Err(error) = result { run.errors.push(error.to_string()); }
+                    finish(&ui, &state, &report, &scenario, &run);
+                    if let Some(t) = stop.upgrade() { t.stop(); }
+                }
+                return;
             }
             if scenario == "page-input" {
                 if page_input::step(&ui, &state, &mut run) {
@@ -388,11 +477,7 @@ pub fn start(
                 let w = ui.get_viewport_width();
                 let h = ui.get_viewport_height();
                 let inset = (w.min(h)/16.).clamp(24.,64.);
-                let action = if ui.get_home_variant() == 0 {
-                    slint::LogicalPosition::new((w*0.066).clamp(28.,108.)+35., h*0.895)
-                } else {
-                    slint::LogicalPosition::new(inset+35., h-inset-19.)
-                };
+                let action = slint::LogicalPosition::new(inset+35., h-inset-19.);
                 if let Some(folder) = &screenshots {
                     let name = match run.step {
                         4 => "action-hover.png".to_owned(),
@@ -450,7 +535,7 @@ pub fn start(
                 let center = ui.get_mode_center_x();
                 let page = state.lock().unwrap().frame.as_ref().map(|f| f.page);
                 let (calls, micros) = crate::glass::PROFILE.with(|p| p.get());
-                let mut sample = json!({"step":step,"page":page,"radius":ui.get_header_height_logical()+ui.get_mode_depth(),
+                let mut sample = json!({"step":step,"page":page,"radius":ui.get_mode_radius(),"center_y":ui.get_mode_center_y(),
                     "center":center,"builds":calls,"total_us":micros,"visible":ui.get_top_visible()});
                 let name = match step { 1 => "bare", 2 => "rest", 3 => "raised", 4 => "next",
                     5 => "night", 6 => "settled", 7 => "night-bare", 8 => "dial-warm-rest",
@@ -536,7 +621,7 @@ pub fn start(
                     if step==20 && (ui.get_pdf_zoom()-0.25).abs()>0.001 {run.errors.push(format!("held monitor edge stopped at {}",ui.get_pdf_zoom()));}
                     if step==21 && !ui.get_zoom_pinned() {run.errors.push("releasing edge grip lost the axle".into());}
                     run.snapshots.push(json!({"step":step,"slots":ui.get_pages().row_count(),"stride":count,"rows":ui.get_grid_rows(),"page":page,"generation":generation,"zoom":ui.get_pdf_zoom(),"radius":ui.get_knob_radius(),
-                        "mode_x":ui.get_mode_center_x(),"mode_radius":ui.get_header_height_logical()+ui.get_mode_depth()}));
+                        "mode_x":ui.get_mode_center_x(),"mode_y":ui.get_mode_center_y(),"mode_radius":ui.get_mode_radius()}));
                     if matches!(step,4|6|8|10|15|17|19|22) && let Some(folder)=&screenshots {
                         if let Err(e)=snapshot(&ui,&folder.join(format!("instrument-{step:02}.png"))) {run.errors.push(e.to_string());}
                     }
@@ -545,8 +630,8 @@ pub fn start(
                     0=>{ui.invoke_fullscreen();ui.set_show_toolbar(true);},
                     1=>{
                         let track=ui.get_mode_label_radius();
-                        let theta=48f32.to_radians();
-                        let previous=pos(mode.x-track*theta.sin(),track*theta.cos());
+                        let theta=ui.get_mode_pitch().to_radians();
+                        let previous=pos(mode.x-track*theta.sin(),ui.get_mode_center_y()+track*theta.cos());
                         move_to(previous);press(previous);release(previous);
                     },
                     2=>{run.panel_generation=Some(generation);scroll(120.0);},
@@ -664,8 +749,9 @@ pub fn start(
                 };
                 let mode_center = ui.get_mode_center_x();
                 let track = ui.get_mode_label_radius();
-                let adjacent_mode = track * 48f32.to_radians().sin();
-                let adjacent_y = track * 48f32.to_radians().cos();
+                let theta = ui.get_mode_pitch().to_radians();
+                let adjacent_mode = track * theta.sin();
+                let adjacent_y = ui.get_mode_center_y() + track * theta.cos();
                 if run.step >= 108 {
                     match run.step {
                         108=>{ui.set_double_page(true);ui.invoke_mode_changed(true);ui.window().set_size(slint::LogicalSize::new(640.0,480.0));},
@@ -738,6 +824,7 @@ pub fn start(
                     run.operations += 1;
                     let value = ui.get_pdf_zoom();
                     let stop = ui.get_pdf_zoom_stop();
+                    let at_fill = stop != 0 && stop != Stop::Page as i32 && value == ui.get_pdf_fill_zoom();
                     let step = run.step;
                     let spread = ui.get_effective_spread();
                     if (3..=25).contains(&step) || (28..=50).contains(&step) {
@@ -755,13 +842,13 @@ pub fn start(
                         if stop == 1 && (frame.overflow.0 > 2.0 || frame.overflow.1 > 2.0) {
                             run.errors.push("fit-page detent cropped a page".into());
                         }
-                        if stop == 2 && (frame.display_width < column - 2.0 || frame.display_height < ui.get_viewport_height() - 2.0) {
+                        if at_fill && (frame.display_width < column - 2.0 || frame.display_height < ui.get_viewport_height() - 2.0) {
                             run.errors.push("fill detent did not fill the current page column".into());
                         }
                     }
                     drop(s);
-                    if stop == 1 || stop == 2 {
-                        run.dial_stops[usize::from(spread)*2 + (stop as usize-1)] += 1;
+                    if stop == Stop::Page as i32 || at_fill {
+                        run.dial_stops[usize::from(spread)*2 + usize::from(at_fill)] += 1;
                     }
                     run.snapshots.push(json!({"step":step,"zoom":value,"stop":stop,"spread":spread,
                         "fill_ratio":ui.get_pdf_fill_zoom(),"width_ratio":ui.get_pdf_fit_width_zoom()}));
@@ -967,7 +1054,7 @@ pub fn start(
                     if run.step==15 && page!=7 {run.errors.push("editable page number did not navigate to page 8".into());}
                     if run.step==16 && page!=8 {run.errors.push("Right key after magnifying did not turn the page".into());}
                     if run.step==17 && page!=7 {run.errors.push("Left key after magnifying did not turn the page".into());}
-                    if run.step==18 && ui.get_pdf_zoom_stop()!=3 {run.errors.push("fit width preset was not selected".into());}
+                    if run.step==18 && ui.get_pdf_zoom_stop()!=zoom_presets(&ui).canonical(Stop::Width) as i32 {run.errors.push("the mark representing fit width was not selected".into());}
                     if run.step==19 && (ui.get_pdf_zoom()-1.0).abs()>0.01 {run.errors.push("100% preset did not restore fit page".into());}
                     if run.step==21 && (page!=7 || !ui.get_page_entry_active()) {run.errors.push("out-of-range page was not rejected".into());}
                     if run.step==22 && (page!=7 || ui.get_page_entry_active()) {run.errors.push("Escape did not cancel the page editor".into());}

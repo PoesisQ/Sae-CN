@@ -56,7 +56,10 @@ def measure(folder):
     assert not report["errors"] and report["count"] == 2
     samples = report["samples"]
     assert samples[1]["visible"] is False and samples[2]["visible"] is True
-    assert abs(samples[2]["radius"] - 64) < .1 and abs(samples[3]["radius"] - 78) < .1
+    assert abs(samples[2]["radius"] - 88) < .1 and 95.9 <= samples[3]["radius"] <= 104.1
+    for sample in samples[2:4]:
+        exposed = sample["radius"] + sample["center_y"]
+        assert abs(exposed / (2*sample["radius"]) - .36) < .001, sample
     assert samples[3]["page"] == 0 and samples[4]["page"] == 1
     assert samples[5]["builds"] == samples[6]["builds"] == samples[7]["builds"]
     assert samples[4]["builds"] > samples[3]["builds"] and samples[5]["builds"] > samples[4]["builds"]
@@ -80,9 +83,9 @@ def measure(folder):
         return centers
     centers = {"light": icon_centers(read("rest"),(70,86,79)),
                "dark": icon_centers(dark,(190,203,197))}
-    cx, r = samples[3]["center"], samples[3]["radius"]
+    cx, cy, r = samples[3]["center"], samples[3]["center_y"], samples[3]["radius"]
     # Sample the page below the rail, clear of the lettering and bevel.
-    box = tuple(round(p*dpi) for p in (cx-r*.46, r*.73, cx-r*.24, r*.82))
+    box = tuple(round(p*dpi) for p in (cx-r*.42, cy+r*.83, cx-r*.24, cy+r*.89))
     colors = [ImageStat.Stat(im.crop(box)).median for im in (blue, red, dark)]
     assert colors[0][2] - colors[0][0] > 20 and colors[1][0] - colors[1][2] > 20, colors
     assert sum(colors[2]) < sum(colors[1]) - 95, colors
@@ -94,7 +97,7 @@ def measure(folder):
         return ImageStat.Stat(diffs).mean[0]
     bare, frosted = fine_detail(read("bare")), fine_detail(blue)
     assert frosted < .65*bare, (bare, frosted)
-    return {"rest_radius": samples[2]["radius"], "expanded_radius": r, "toolbar_icon_centers": centers,
+    return {"rest_radius": samples[2]["radius"], "expanded_radius": r, "expanded_axle_y": cy, "toolbar_icon_centers": centers,
             "region_median_rgb": colors, "bare_edge_energy": round(bare,3),
             "glass_edge_energy": round(frosted,3), "builds": samples[6]["builds"],
             "mean_build_us": round(samples[6]["total_us"] / max(1,samples[6]["builds"]),1),
