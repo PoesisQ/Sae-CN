@@ -1,0 +1,41 @@
+name: Native Windows material verification
+on:
+  push:
+    branches: [codex/windows-optics-verification]
+permissions:
+  contents: read
+jobs:
+  candidate:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Fetch the owner’s draft candidate and verify bytes
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download v0.6.4-preview.1 --repo PoesisQ/Sae-CN --pattern windows-validation.zip --dir "$env:RUNNER_TEMP"
+          if ($LASTEXITCODE) {exit 1}
+          $zip = Join-Path $env:RUNNER_TEMP windows-validation.zip
+          if ((Get-FileHash $zip).Hash -ne 'EC9987EC629B37D923CA0FC593AA952C3ABB9C3F95B9AFFAECC0477B85111F23') {throw 'Input checksum mismatch'}
+          python -m zipfile -e $zip .
+          if ($LASTEXITCODE) {exit 1}
+          if ((Get-FileHash artifacts/production/SaeReader-0.6.4-preview.1/SaeReader.exe).Hash -ne 'B99F9483B1237DEEB8949A0DF36D980FC454847422D5647F516264B427A4F764') {throw 'Production checksum mismatch'}
+      - name: Set up screenshot analysis
+        run: python -m pip install --disable-pip-version-check pillow numpy psutil
+      - name: Native tests and optical captures
+        run: ./scripts/verify-optical-candidate.ps1
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: windows-optical-evidence
+          path: |
+            artifacts/iteration-0.6.4/**/*.png
+            artifacts/iteration-0.6.4/**/*.json
+            artifacts/iteration-0.6.4/*.log
+          retention-days: 10
