@@ -199,7 +199,7 @@ pub(crate) fn draw(view: GlassView, pages: ModelRc<PageTile>) -> Image {
     let started = std::time::Instant::now();
     let r = view.radius.clamp(1., 100.);
     let frost = Frost::new(&view, &pages);
-    // The core is low frequency. Cap raster density at 1.5脳 and antialias
+    // The core is low frequency. Cap raster density at 1.5× and antialias
     // the analytic rim; larger desktop scales interpolate this small surface.
     let half = ((r + MARGIN) * view.density.clamp(1., 1.5)).ceil() as u32;
     let step = (r + MARGIN) / half as f32;

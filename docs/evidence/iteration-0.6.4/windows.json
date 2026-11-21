@@ -1,0 +1,711 @@
+{
+  "builds": {
+    "0.6.3": {
+      "bytes": 25865728,
+      "sha256": "d0262b59dc13375bfdca93cb67bfc10ad373b545262cf0f8b9d452225caf4f10"
+    },
+    "0.6.4": {
+      "bytes": 25887232,
+      "sha256": "b99f9483b1237deeb8949a0df36d980fc454847422d5647f516264b427a4f764"
+    }
+  },
+  "fixtures": {
+    "blank": {
+      "0.6.3": {
+        "warm_start_ms": [
+          57.6516,
+          54.5778,
+          53.6171,
+          56.3123,
+          54.7729,
+          58.1681,
+          56.8706,
+          58.7582,
+          58.7867,
+          59.3285
+        ],
+        "median_ms": 57.26,
+        "p95_ms": 59.33,
+        "windows": [
+          {
+            "private_bytes": 11927552.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 93.75,
+            "idle_wall_ms": 2755.02
+          },
+          {
+            "private_bytes": 11956224.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 46.875,
+            "idle_wall_ms": 2754.62
+          },
+          {
+            "private_bytes": 11915264.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 93.75,
+            "idle_wall_ms": 2755.14
+          }
+        ],
+        "private_mib": 11.38
+      },
+      "0.6.4": {
+        "warm_start_ms": [
+          52.8593,
+          51.7658,
+          54.5623,
+          53.2951,
+          54.9444,
+          53.0815,
+          57.6933,
+          58.8201,
+          57.6052,
+          57.4847
+        ],
+        "median_ms": 54.75,
+        "p95_ms": 58.82,
+        "windows": [
+          {
+            "private_bytes": 12337152.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 15.625,
+            "idle_wall_ms": 2756.21
+          },
+          {
+            "private_bytes": 12337152.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 62.5,
+            "idle_wall_ms": 2755.12
+          },
+          {
+            "private_bytes": 12288000.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 31.25,
+            "idle_wall_ms": 2754.74
+          }
+        ],
+        "private_mib": 11.77
+      }
+    },
+    "pdf": {
+      "0.6.3": {
+        "warm_start_ms": [
+          152.7641,
+          149.9221,
+          150.8157,
+          150.2357,
+          154.539,
+          152.4401,
+          149.6771,
+          152.2744,
+          154.5959,
+          153.04
+        ],
+        "median_ms": 152.36,
+        "p95_ms": 154.6,
+        "windows": [
+          {
+            "private_bytes": 13234176.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.3
+          },
+          {
+            "private_bytes": 13213696.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.77
+          },
+          {
+            "private_bytes": 13217792.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.39
+          }
+        ],
+        "private_mib": 12.61
+      },
+      "0.6.4": {
+        "warm_start_ms": [
+          150.8882,
+          151.3006,
+          150.8911,
+          149.8394,
+          162.0608,
+          151.7536,
+          152.0702,
+          150.9227,
+          149.2946,
+          151.1127
+        ],
+        "median_ms": 151.02,
+        "p95_ms": 162.06,
+        "windows": [
+          {
+            "private_bytes": 13221888.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.43
+          },
+          {
+            "private_bytes": 13254656.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2754.54
+          },
+          {
+            "private_bytes": 13225984.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.3
+          }
+        ],
+        "private_mib": 12.61
+      }
+    },
+    "epub": {
+      "0.6.3": {
+        "warm_start_ms": [
+          150.3767,
+          148.3634,
+          148.5502,
+          148.8828,
+          151.2216,
+          149.8556,
+          149.3613,
+          153.5282,
+          150.6516,
+          149.0615
+        ],
+        "median_ms": 149.61,
+        "p95_ms": 153.53,
+        "windows": [
+          {
+            "private_bytes": 11886592.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.87
+          },
+          {
+            "private_bytes": 11894784.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.12
+          },
+          {
+            "private_bytes": 11878400.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.65
+          }
+        ],
+        "private_mib": 11.34
+      },
+      "0.6.4": {
+        "warm_start_ms": [
+          149.3122,
+          147.6716,
+          147.1086,
+          145.2993,
+          151.8635,
+          153.1486,
+          152.293,
+          154.8348,
+          151.8007,
+          148.4854
+        ],
+        "median_ms": 150.56,
+        "p95_ms": 154.83,
+        "windows": [
+          {
+            "private_bytes": 11874304.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.46
+          },
+          {
+            "private_bytes": 11902976.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2756.61
+          },
+          {
+            "private_bytes": 11878400.0,
+            "private_working_set": 0.0,
+            "idle_cpu_ms": 0.0,
+            "idle_wall_ms": 2755.4
+          }
+        ],
+        "private_mib": 11.33
+      }
+    }
+  },
+  "machine": {
+    "WindowsProductName": "Windows Server 2022 Datacenter",
+    "WindowsVersion": "2009",
+    "OsBuildNumber": "20348",
+    "CsNumberOfLogicalProcessors": 4
+  },
+  "method": {
+    "startup": "Native snapshot-ready time in the instrumented build; 10 alternating warm launches of each version for each fixture.",
+    "memory": "Private bytes from uninstrumented release executables; median of three independent 6 s windows.",
+    "wheel_idle": "Two independent paired observations per version, three seconds per state. CPU is a counter delta, not the timer resolution.",
+    "home": "Two independent foreground intervals, about 4.5 seconds per animation, followed by 2.5 seconds minimized. Percent of one logical CPU."
+  },
+  "glass": {
+    "1": {
+      "rest_radius": 82.0,
+      "expanded_radius": 100.0,
+      "region_median_rgb": [
+        [
+          151,
+          212,
+          217
+        ],
+        [
+          225,
+          188,
+          143
+        ],
+        [
+          109,
+          85,
+          55
+        ]
+      ],
+      "bare_edge_energy": 14.052,
+      "glass_edge_energy": 0.578,
+      "builds": 12,
+      "mean_build_us": 646.8,
+      "idle_builds": 0
+    },
+    "1.5": {
+      "rest_radius": 82.0,
+      "expanded_radius": 100.0,
+      "region_median_rgb": [
+        [
+          151,
+          213,
+          218
+        ],
+        [
+          226,
+          188,
+          143
+        ],
+        [
+          109,
+          85,
+          55
+        ]
+      ],
+      "bare_edge_energy": 11.294,
+      "glass_edge_energy": 0.377,
+      "builds": 10,
+      "mean_build_us": 1203.6,
+      "idle_builds": 0
+    },
+    "2": {
+      "rest_radius": 82.0,
+      "expanded_radius": 100.0,
+      "region_median_rgb": [
+        [
+          151,
+          213,
+          217
+        ],
+        [
+          225,
+          188,
+          143
+        ],
+        [
+          109,
+          85,
+          55
+        ]
+      ],
+      "bare_edge_energy": 8.744,
+      "glass_edge_energy": 0.279,
+      "builds": 7,
+      "mean_build_us": 1163.7,
+      "idle_builds": 0
+    }
+  },
+  "wheel_cost": {
+    "0.6.3": [
+      {
+        "hidden": {
+          "private_mib": 12.645,
+          "cpu_ms": 0.0,
+          "seconds": 3.015
+        },
+        "raised": {
+          "private_mib": 12.785,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 12.656,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        },
+        "raised": {
+          "private_mib": 12.766,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      }
+    ],
+    "0.6.4": [
+      {
+        "hidden": {
+          "private_mib": 12.648,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        },
+        "raised": {
+          "private_mib": 13.094,
+          "cpu_ms": 0.0,
+          "seconds": 3.0
+        }
+      },
+      {
+        "hidden": {
+          "private_mib": 12.613,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        },
+        "raised": {
+          "private_mib": 13.051,
+          "cpu_ms": 0.0,
+          "seconds": 3.016
+        }
+      }
+    ]
+  },
+  "baseline_home_cost": {
+    "plasma": [
+      {
+        "active": {
+          "private_mib": 11.395,
+          "one_core_percent": 3.119,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 11.508,
+          "one_core_percent": 0.0,
+          "seconds": 2.506
+        }
+      },
+      {
+        "active": {
+          "private_mib": 11.387,
+          "one_core_percent": 7.263,
+          "seconds": 4.518
+        },
+        "minimized": {
+          "private_mib": 11.527,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      }
+    ],
+    "blue": [
+      {
+        "active": {
+          "private_mib": 11.281,
+          "one_core_percent": 5.891,
+          "seconds": 4.509
+        },
+        "minimized": {
+          "private_mib": 11.32,
+          "one_core_percent": 0.0,
+          "seconds": 2.506
+        }
+      },
+      {
+        "active": {
+          "private_mib": 11.246,
+          "one_core_percent": 1.04,
+          "seconds": 4.509
+        },
+        "minimized": {
+          "private_mib": 11.336,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      }
+    ]
+  },
+  "home_cost": {
+    "plasma": [
+      {
+        "active": {
+          "private_mib": 11.781,
+          "one_core_percent": 4.854,
+          "seconds": 4.507
+        },
+        "minimized": {
+          "private_mib": 11.816,
+          "one_core_percent": 0.0,
+          "seconds": 2.504
+        }
+      },
+      {
+        "active": {
+          "private_mib": 11.73,
+          "one_core_percent": 5.547,
+          "seconds": 4.507
+        },
+        "minimized": {
+          "private_mib": 11.77,
+          "one_core_percent": 0.0,
+          "seconds": 2.504
+        }
+      }
+    ],
+    "blue": [
+      {
+        "active": {
+          "private_mib": 11.664,
+          "one_core_percent": 3.812,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 11.703,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      },
+      {
+        "active": {
+          "private_mib": 11.656,
+          "one_core_percent": 0.693,
+          "seconds": 4.509
+        },
+        "minimized": {
+          "private_mib": 11.691,
+          "one_core_percent": 0.0,
+          "seconds": 2.506
+        }
+      }
+    ],
+    "static": [
+      {
+        "active": {
+          "private_mib": 8.605,
+          "one_core_percent": 0.0,
+          "seconds": 4.509
+        },
+        "minimized": {
+          "private_mib": 8.648,
+          "one_core_percent": 0.0,
+          "seconds": 2.505
+        }
+      },
+      {
+        "active": {
+          "private_mib": 8.859,
+          "one_core_percent": 0.0,
+          "seconds": 4.508
+        },
+        "minimized": {
+          "private_mib": 8.898,
+          "one_core_percent": 0.0,
+          "seconds": 2.506
+        }
+      }
+    ]
+  },
+  "cover_composition": {
+    "plasma": {
+      "pixels": [
+        1770,
+        1260
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 20.18,
+      "stroke_fraction_above_3": 1.0
+    },
+    "blue": {
+      "pixels": [
+        1770,
+        1260
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 6.89,
+      "stroke_fraction_above_3": 0.919
+    },
+    "plasma-static-0": {
+      "pixels": [
+        1770,
+        1260
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 14.06,
+      "stroke_fraction_above_3": 1.0
+    },
+    "plasma-static-1": {
+      "pixels": [
+        960,
+        720
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 14.75,
+      "stroke_fraction_above_3": 1.0
+    },
+    "plasma-static-3": {
+      "pixels": [
+        1920,
+        1200
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 12.29,
+      "stroke_fraction_above_3": 1.0
+    },
+    "blue-static-0": {
+      "pixels": [
+        1770,
+        1260
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 8.01,
+      "stroke_fraction_above_3": 0.99
+    },
+    "blue-static-1": {
+      "pixels": [
+        960,
+        720
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 6.69,
+      "stroke_fraction_above_3": 0.985
+    },
+    "blue-static-3": {
+      "pixels": [
+        1920,
+        1200
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 6.15,
+      "stroke_fraction_above_3": 0.976
+    },
+    "plasma-dpi-1.25": {
+      "pixels": [
+        960,
+        720
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 14.32,
+      "stroke_fraction_above_3": 1.0
+    },
+    "plasma-dpi-2": {
+      "pixels": [
+        960,
+        720
+      ],
+      "old_paper_percent": 0.0,
+      "field_99pct_error_rgb_levels": 0.0,
+      "wordmark_ink": "ivory",
+      "median_stroke_contrast": 15.35,
+      "stroke_fraction_above_3": 1.0
+    }
+  },
+  "validation": {
+    "source": "https://github.com/PoesisQ/Sae-CN/actions/runs/44885916793",
+    "fixture_scenarios": [
+      "chrome",
+      "contents",
+      "detents",
+      "dpi-1",
+      "dpi-125",
+      "dpi-2",
+      "features",
+      "home",
+      "instruments",
+      "multipage",
+      "navigation",
+      "stress",
+      "visual"
+    ],
+    "document_samples": "Only repository fixtures were used on hosted Windows. Four optional external-library tests returned early because private user books were not supplied.",
+    "glass_idle_regeneration": [
+      0,
+      0,
+      0
+    ],
+    "local_install": "Windows 11 Smart App Control denied the unsigned 0.6.4 exe (4551, CodeIntegrity 3077). The previously accepted installation stayed in place. The launch preflight allowed 0.6.3 and rejected 0.6.4 on the local PC. Old-to-new fixed-path installation passed on hosted Windows.",
+    "pointer": {
+      "run": "https://github.com/PoesisQ/Sae-CN/actions/runs/44886967796",
+      "pdf_drags": 12,
+      "pointer_samples": 468,
+      "pdf_detents": {
+        "held_positions": [
+          0.06325098872184753,
+          0.15089069306850433,
+          0.28725433349609375,
+          0.47243401408195496,
+          0.5550334453582764
+        ],
+        "view_detents": "partial return, engage, hysteresis, hard-stop reversal, two wheel impulses"
+      },
+      "epub_detents": "Both end stops passed on the two-mode EPUB fixture.",
+      "pixels": {
+        "scale": 1.0,
+        "circular_edge_error_px": [
+          1,
+          1,
+          2,
+          2,
+          1,
+          1
+        ],
+        "zoom_face_physical_px": [
+          64,
+          64
+        ],
+        "ticks_on_visible_arc": [
+          {
+            "drum": 15,
+            "three-labels": 17,
+            "rest-double": 17,
+            "multi": 15,
+            "held-7": 15,
+            "held-16": 16,
+            "held-28": 17,
+            "held-42": 17,
+            "held-48": 17,
+            "drum-dark": 17
+          },
+          {
+            "drum": 9,
+            "double": 9,
+            "rest-double": 9,
+            "epub-end": 9,
+            "drum-dark": 9
+          }
+        ]
+      }
+    }
+  }
+}

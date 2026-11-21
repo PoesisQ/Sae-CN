@@ -40,6 +40,55 @@ function Resolve-ReaderDirectory([string]$Directory) {
     throw 'The program directory contains a link cycle or too many links.'
 }
 
+function Test-ReaderLaunch([string]$Executable) {
+    if (-not ('SaeReader.LaunchCheck' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.ComponentModel;
+using System.Runtime.InteropServices;
+namespace SaeReader {
+    public static class LaunchCheck {
+        [StructLayout(LayoutKind.Sequential)]
+        private struct StartupInfo {
+            public int size;
+            public IntPtr reserved, desktop, title;
+            public int x, y, width, height, charsX, charsY, fill, flags;
+            public short show, reservedBytes;
+            public IntPtr reservedData, input, output, error;
+        }
+        [StructLayout(LayoutKind.Sequential)]
+        private struct ProcessInfo {
+            public IntPtr process, thread;
+            public int processId, threadId;
+        }
+        [DllImport("kernel32.dll", CharSet=CharSet.Unicode, SetLastError=true)]
+        private static extern bool CreateProcessW(string path, IntPtr args, IntPtr processSecurity,
+            IntPtr threadSecurity, bool inherit, uint flags, IntPtr environment, string directory,
+            ref StartupInfo startup, out ProcessInfo process);
+        [DllImport("kernel32.dll", SetLastError=true)]
+        private static extern bool TerminateProcess(IntPtr process, uint exitCode);
+        [DllImport("kernel32.dll")] private static extern uint WaitForSingleObject(IntPtr handle, uint timeout);
+        [DllImport("kernel32.dll")] private static extern bool CloseHandle(IntPtr handle);
+        public static void Check(string path) {
+            var start = new StartupInfo();
+            start.size = Marshal.SizeOf(typeof(StartupInfo));
+            ProcessInfo info;
+            // Windows evaluates the executable policy before returning a process.
+            // A suspended primary thread never enters the reader or opens a profile.
+            if (!CreateProcessW(path, IntPtr.Zero, IntPtr.Zero, IntPtr.Zero, false, 4,
+                IntPtr.Zero, null, ref start, out info)) throw new Win32Exception(Marshal.GetLastWin32Error());
+            try {
+                if (!TerminateProcess(info.process, 0)) throw new Win32Exception(Marshal.GetLastWin32Error());
+                if (WaitForSingleObject(info.process, 5000) != 0) throw new TimeoutException("Launch check did not exit.");
+            } finally { CloseHandle(info.thread); CloseHandle(info.process); }
+        }
+    }
+}
+'@
+    }
+    [SaeReader.LaunchCheck]::Check($Executable)
+}
+
 $readerSource = Resolve-ReaderDirectory ((Resolve-Path -LiteralPath $PackageDirectory).ProviderPath)
 $readerTarget = Resolve-ReaderDirectory $InstallDirectory
 $readerSourceExe = Join-Path $readerSource 'SaeReader.exe'
@@ -53,17 +102,9 @@ $readerVersion = [Diagnostics.FileVersionInfo]::GetVersionInfo($readerSourceExe)
 if ($readerVersion.ProductName -ne 'Sae Reader') { throw 'This is not a Sae Reader executable.' }
 $readerHash = (Get-FileHash -LiteralPath $readerSourceExe -Algorithm SHA256).Hash
 if ($ExpectedSHA256 -and $readerHash -ne $ExpectedSHA256) { throw 'Executable checksum mismatch.' }
+Test-ReaderLaunch $readerSourceExe
 if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::OrdinalIgnoreCase)) {
     New-Item -ItemType Directory -Path $readerTarget -Force | Out-Null
-    # Only distribution files are copied. Portable data and personal books are
-    # deliberately excluded; the normal LocalAppData profile is never touched.
-    foreach ($readerName in @('LICENSE', 'THIRD-PARTY-NOTICES.txt', 'dependency-inventory.json', 'README.txt', '使用说明.txt',
-                             'README.md', 'CHANGELOG.md', 'assets', 'docs', 'licenses')) {
-        $readerItem = Join-Path $readerSource $readerName
-        if (Test-Path -LiteralPath $readerItem) {
-            Copy-Item -LiteralPath $readerItem -Destination $readerTarget -Recurse -Force
-        }
-    }
     $readerStage = Join-Path $readerTarget ('SaeReader-' + [Guid]::NewGuid().ToString('N'))
     $readerIncoming = $readerStage + '.new'
     $readerBackup = $readerStage + '.previous'
@@ -84,12 +125,26 @@ if (-not [string]::Equals($readerSource, $readerTarget, [StringComparison]::Ordi
         } else {
             [IO.File]::Move($readerIncoming, $readerTargetExe)
         }
-        if ((Get-FileHash -LiteralPath $readerTargetExe -Algorithm SHA256).Hash -ne $readerHash) {
-            throw 'Installed executable checksum mismatch; registration was not changed.'
+        try {
+            if ((Get-FileHash -LiteralPath $readerTargetExe -Algorithm SHA256).Hash -ne $readerHash) {
+                throw 'Installed executable checksum mismatch.'
+            }
+            Test-ReaderLaunch $readerTargetExe
+        } catch {
+            if ([IO.File]::Exists($readerBackup)) { [IO.File]::Replace($readerBackup, $readerTargetExe, $readerIncoming) }
+            else { Remove-Item -LiteralPath $readerTargetExe }
+            throw
         }
         Remove-Item -LiteralPath $readerBackup -ErrorAction SilentlyContinue
     } finally {
         Remove-Item -LiteralPath $readerIncoming -ErrorAction SilentlyContinue
+    }
+    foreach ($readerName in @('LICENSE', 'THIRD-PARTY-NOTICES.txt', 'dependency-inventory.json', 'README.txt', '使用说明.txt',
+                             'README.md', 'CHANGELOG.md', 'assets', 'docs', 'licenses')) {
+        $readerItem = Join-Path $readerSource $readerName
+        if (Test-Path -LiteralPath $readerItem) {
+            Copy-Item -LiteralPath $readerItem -Destination $readerTarget -Recurse -Force
+        }
     }
 }
 $readerInstalledScript = Join-Path $readerTarget 'Install.ps1'

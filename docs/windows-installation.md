@@ -31,7 +31,7 @@ EPUB、PDF、AZW3 等格式分别选择一次即可。也可以在 Windows「设
 在仓库目录的 PowerShell 中运行（把包路径替换成实际解压目录）：
 
 ```powershell
-.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.6.3-preview.1' -OpenDefaults
+.\scripts\install-local.ps1 -PackageDirectory '.\dist\SaeReader-0.6.4-preview.1' -OpenDefaults
 ```
 
 包含 `Install.ps1` 的后续 Windows 发布包也可直接在包目录运行：
@@ -48,3 +48,9 @@ EPUB、PDF、AZW3 等格式分别选择一次即可。也可以在 Windows「设
 
 Windows 的注册和默认选择方式参见微软文档：[应用注册](https://learn.microsoft.com/en-us/windows/win32/shell/app-registration)、
 [默认应用平台](https://learn.microsoft.com/en-us/windows/apps/develop/windows-integration/default-apps-platform)。
+
+## 系统报告 4551
+
+安装器在复制文件前请 Windows 校验源 EXE 能否创建进程。校验过程不执行阅读器代码。替换后还会检查固定路径。目标位置的检查失败时自动恢复原有 EXE。本版在一台启用智能应用控制的 Windows 11 上被拦截，代码完整性日志为事件 3077，策略名为 VerifiedAndReputableDesktop。该机的现有版本仍可启动。
+
+智能应用控制根据文件信誉或受信任的代码签名决定是否运行。遇到 4551 时可继续使用已安装的版本，等待受信任签名的构建。发行者也可以将同一文件提交微软复核。[微软的智能应用控制开发说明](https://learn.microsoft.com/windows/apps/develop/smart-app-control/overview)
